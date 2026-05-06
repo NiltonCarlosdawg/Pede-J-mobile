@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, authApi, restaurantApi, orderApi, userApi } from '../services/api';
+import api, { authApi, restaurantApi, orderApi, userApi } from '../services/api';
 
 export function useAuth() {
   const queryClient = useQueryClient();
