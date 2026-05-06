@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
-import { colors, spacing, borderRadius, shadows } from '../../theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius, shadows, typography } from '../../theme';
 
 interface CardProps {
   title: string;
@@ -9,23 +10,55 @@ interface CardProps {
   rating?: number;
   deliveryTime?: string;
   deliveryFee?: string;
-  onPress: () => void;
+  distance?: string;
+  onPress?: () => void;
+  favorite?: boolean;
 }
 
-export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, deliveryFee, onPress }: CardProps) {
+export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, deliveryFee, distance, onPress, favorite }: CardProps) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
       <View style={styles.imageContainer}>
-        {image && <Image source={{ uri: image }} style={styles.image} />}
-        {deliveryFee === 'Grátis' && <View style={styles.badge}><Text style={styles.badgeText}>Entrega Grátis</Text></View>}
+        <Image 
+          source={{ uri: image || 'https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=400' }} 
+          style={styles.image} 
+        />
+        {favorite !== undefined && (
+          <TouchableOpacity style={styles.favoriteBtn}>
+            <MaterialCommunityIcons 
+              name={favorite ? "heart" : "heart-outline"} 
+              size={20} 
+              color={favorite ? colors.primary[500] : colors.neutral[500]} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
-        <View style={styles.info}>
-          {rating && <Text style={styles.rating}>⭐ {rating}</Text>}
-          {deliveryTime && <Text style={styles.infoText}>{deliveryTime}</Text>}
-          {deliveryFee && <Text style={styles.infoText}>{deliveryFee}</Text>}
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {rating && (
+            <View style={styles.ratingBadge}>
+              <MaterialCommunityIcons name="star" size={14} color={colors.secondary[500]} />
+              <Text style={styles.ratingText}>{rating}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={styles.dot}>•</Text>
+          {distance && <Text style={styles.subtitle}>{distance}</Text>}
+        </View>
+        <View style={styles.deliveryRow}>
+          <View style={styles.deliveryInfo}>
+            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.neutral[700]} />
+            <Text style={styles.deliveryText}>{deliveryTime}</Text>
+          </View>
+          <View style={styles.deliveryInfo}>
+            <MaterialCommunityIcons name="moped" size={16} color={deliveryFee === 'Grátis' ? colors.primary[500] : colors.neutral[700]} />
+            <Text style={[styles.deliveryText, deliveryFee === 'Grátis' && styles.freeDelivery]}>
+              {deliveryFee}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -33,15 +66,36 @@ export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, d
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: borderRadius.lg, overflow: 'hidden', marginBottom: spacing.md, ...shadows.md },
-  imageContainer: { position: 'relative', width: '100%', aspectRatio: 16 / 9 },
+  card: { 
+    backgroundColor: colors.surfaceContainerLowest, 
+    borderRadius: 16, 
+    overflow: 'hidden', 
+    marginBottom: spacing.md, 
+    ...shadows.md,
+  },
+  imageContainer: { position: 'relative', width: '100%', aspectRatio: 16 / 9, backgroundColor: colors.surfaceContainerHighet },
   image: { width: '100%', height: '100%', resizeMode: 'cover' },
-  badge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: colors.secondary[500], paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: borderRadius.sm },
-  badgeText: { color: colors.neutral[900], fontSize: 12, fontWeight: '600' },
+  favoriteBtn: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { padding: spacing.md },
-  title: { fontSize: 18, fontWeight: '600', color: colors.neutral[900], marginBottom: spacing.xs },
-  subtitle: { fontSize: 14, color: colors.neutral[700], marginBottom: spacing.sm },
-  info: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  rating: { fontSize: 14, fontWeight: '600', color: colors.neutral[900] },
-  infoText: { fontSize: 14, color: colors.neutral[500] },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xs },
+  title: { fontSize: 18, fontWeight: '600', color: colors.neutral[900], flex: 1 },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surfaceContainer, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  ratingText: { fontSize: 12, fontWeight: '600', color: colors.secondary[500] },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  subtitle: { fontSize: 14, color: colors.neutral[500] },
+  dot: { marginHorizontal: 6, color: colors.neutral[300] },
+  deliveryRow: { flexDirection: 'row', alignItems: 'center', paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.neutral[100], gap: spacing.lg },
+  deliveryInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  deliveryText: { fontSize: 14, color: colors.neutral[700] },
+  freeDelivery: { color: colors.primary[500], fontWeight: '600' },
 });

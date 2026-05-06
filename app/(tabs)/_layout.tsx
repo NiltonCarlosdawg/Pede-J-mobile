@@ -18,25 +18,28 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        headerStyle: { backgroundColor: colors.white },
-        headerTintColor: colors.neutral[900],
-        headerTitleStyle: { fontWeight: '700' },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home" size={size} color={color} />,
-          headerTitle: 'PedeJá',
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="restaurantes"
         options={{
-          title: 'Pedidos',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="receipt" size={size} color={color} />,
-          headerTitle: 'Meus Pedidos',
+          title: 'Restaurantes',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="store" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="rastreamento"
+        options={{
+          title: 'Acompanhar',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="moped" size={size} color={color} />,
         }}
       />
     </Tabs>
