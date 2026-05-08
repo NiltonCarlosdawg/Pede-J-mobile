@@ -27,7 +27,19 @@ export const CategoryIcon = ({
 }: CategoryIconProps) => {
   const icon = iconMap[name] || iconMap["Todas"];
   if (icon.lib === "Ionicons") {
-    return <Ionicons name={icon.name} size={size} color={color} />;
+    return (
+      <Ionicons
+        name={icon.name as React.ComponentProps<typeof Ionicons>["name"]}
+        size={size}
+        color={color}
+      />
+    );
   }
-  return <MaterialCommunityIcons name={icon.name} size={size} color={color} />;
+  return (
+    <MaterialCommunityIcons
+      name={icon.name as React.ComponentProps<typeof MaterialCommunityIcons>["name"]}
+      size={size}
+      color={color}
+    />
+  );
 };

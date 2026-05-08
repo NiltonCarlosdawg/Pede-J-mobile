@@ -8,11 +8,30 @@ import {
     Image,
     Switch,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "../src/components/ui/Header";
+import { clearSession } from "../src/store/authSlice";
+import { useAppDispatch, useAppSelector } from "../src/store";
+import { clearDemoSession } from "../src/services/demoAuth";
 import { colors, spacing } from "../src/theme";
 
 export default function PerfilScreen() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const user = useAppSelector((state) => state.auth.user);
+
+  async function handleLogout() {
+    await clearDemoSession();
+    dispatch(clearSession());
+  }
+
+  const profileName = user?.name ?? "Alexandre João";
+  const profileEmail = user?.email ?? "alexandre.joao@example.ao";
+  const profileAvatar =
+    user?.avatar ??
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2e?w=200";
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header title="Meu Perfil" />
@@ -22,16 +41,16 @@ export default function PerfilScreen() {
         <View style={styles.profileCard}>
           <View style={styles.profileGradient} />
           <View style={styles.profileImageContainer}>
-            <Image 
-              source={{ uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2e?w=200" }} 
-              style={styles.profileImage} 
+            <Image
+              source={{ uri: profileAvatar }}
+              style={styles.profileImage}
             />
             <TouchableOpacity style={styles.editButton}>
               <MaterialCommunityIcons name="pencil" size={16} color={colors.white} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>Alexandre João</Text>
-          <Text style={styles.profileEmail}>alexandre.joao@example.ao</Text>
+          <Text style={styles.profileName}>{profileName}</Text>
+          <Text style={styles.profileEmail}>{profileEmail}</Text>
           <View style={styles.memberBadge}>
             <MaterialCommunityIcons name="star" size={16} color={colors.secondary[500]} />
             <Text style={styles.memberText}>Gold Member</Text>
@@ -112,7 +131,10 @@ export default function PerfilScreen() {
         </View>
 
         {/* Order History */}
-        <TouchableOpacity style={styles.orderHistoryCard}>
+        <TouchableOpacity
+          style={styles.orderHistoryCard}
+          onPress={() => router.push("/pedidos")}
+        >
           <View style={styles.orderIcon}>
             <MaterialCommunityIcons name="receipt" size={28} color={colors.white} />
           </View>
@@ -141,7 +163,7 @@ export default function PerfilScreen() {
             <Text style={styles.supportText}>Terms of Service</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.supportItem, styles.logoutItem]}>
+          <TouchableOpacity style={[styles.supportItem, styles.logoutItem]} onPress={handleLogout}>
             <View style={styles.logoutIcon}>
               <MaterialCommunityIcons name="logout" size={24} color={colors.error} />
             </View>

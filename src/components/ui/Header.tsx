@@ -87,16 +87,22 @@ export function Header({
           )}
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={styles.avatarButton}
-          onPress={() => router.push('/perfil')}
-        >
-          <MaterialCommunityIcons 
-            name="account-circle" 
-            size={36} 
-            color={colors.neutral[300]} 
-          />
-        </TouchableOpacity>
+        {showAvatar ? (
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => router.push('/perfil')}
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <MaterialCommunityIcons
+                name="account-circle"
+                size={36}
+                color={colors.neutral[300]}
+              />
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -166,5 +172,11 @@ const styles = StyleSheet.create({
   },
   avatarButton: {
     padding: spacing.xs,
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.neutral[100],
   },
 });

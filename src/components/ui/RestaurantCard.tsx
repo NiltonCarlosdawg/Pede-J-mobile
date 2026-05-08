@@ -13,9 +13,10 @@ interface CardProps {
   distance?: string;
   onPress?: () => void;
   favorite?: boolean;
+  onFavoritePress?: () => void;
 }
 
-export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, deliveryFee, distance, onPress, favorite }: CardProps) {
+export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, deliveryFee, distance, onPress, favorite, onFavoritePress }: CardProps) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
       <View style={styles.imageContainer}>
@@ -24,7 +25,7 @@ export function RestaurantCard({ title, subtitle, image, rating, deliveryTime, d
           style={styles.image} 
         />
         {favorite !== undefined && (
-          <TouchableOpacity style={styles.favoriteBtn}>
+          <TouchableOpacity style={styles.favoriteBtn} onPress={onFavoritePress}>
             <MaterialCommunityIcons 
               name={favorite ? "heart" : "heart-outline"} 
               size={20} 

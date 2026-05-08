@@ -5,14 +5,21 @@ import {
     ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { StatusBar, Platform } from "react-native";
+import { StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Provider } from "react-redux";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/useColorScheme";
+import "../src/services/sentry";
+import { clearSession, hydrateSession } from "../src/store/authSlice";
+import { store } from "../src/store";
+import { loadDemoSession } from "../src/services/demoAuth";
+import { useAppDispatch, useAppSelector } from "../src/store";
+import { useRef } from "react";
 
 export {
     ErrorBoundary
@@ -46,13 +53,68 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <RootLayoutNav />
+      <Provider store={store}>
+        <RootLayoutNav loaded={loaded} />
+      </Provider>
     </SafeAreaProvider>
   );
 }
 
-function RootLayoutNav() {
+function RootLayoutNav({ loaded }: { loaded: boolean }) {
+  const dispatch = useAppDispatch();
+  const { token } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      const session = await loadDemoSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (session) {
+        dispatch(hydrateSession(session));
+      } else {
+        dispatch(clearSession());
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
+
+  if (!loaded) {
+    return null;
+  }
+
+  return <RootLayoutNavContent isAuthenticated={Boolean(token)} />;
+}
+
+function RootLayoutNavContent({
+  isAuthenticated,
+}: {
+  isAuthenticated: boolean;
+}) {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const role = useAppSelector((state) => state.auth.role);
+  const lastRedirectTarget = useRef<string | null>(null);
+
+  useEffect(() => {
+    const target =
+      !isAuthenticated
+        ? "/(auth)/login"
+        : role === "delivery"
+          ? "/delivery"
+          : "/(tabs)";
+    if (lastRedirectTarget.current !== target) {
+      lastRedirectTarget.current = target;
+      router.replace(target as never);
+    }
+  }, [isAuthenticated, role, router]);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -71,8 +133,11 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="checkout" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="pedidos" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="perfil" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="endereco" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="delivery" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
