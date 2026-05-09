@@ -9,17 +9,16 @@ import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StatusBar } from "react-native";
+import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
-import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/useColorScheme";
-import "../src/services/sentry";
-import { clearSession, hydrateSession } from "../src/store/authSlice";
-import { store } from "../src/store";
-import { loadDemoSession } from "../src/services/demoAuth";
-import { useAppDispatch, useAppSelector } from "../src/store";
 import { useRef } from "react";
+import { loadDemoSession } from "../src/services/demoAuth";
+import "../src/services/sentry";
+import { store, useAppDispatch, useAppSelector } from "../src/store";
+import { clearSession, hydrateSession } from "../src/store/authSlice";
 
 export {
     ErrorBoundary
@@ -137,6 +136,8 @@ function RootLayoutNavContent({
         <Stack.Screen name="pedidos" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="perfil" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="endereco" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="search" options={{ headerShown: false, presentation: 'card' }} />
+        <Stack.Screen name="payment-methods" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="delivery" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>

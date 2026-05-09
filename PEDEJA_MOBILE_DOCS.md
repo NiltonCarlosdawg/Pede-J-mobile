@@ -259,7 +259,7 @@ Isto é backlog real, não implementação actual.
 - [x] login demo local com seleção de `client` ou `delivery`
 - [x] redirecionamento por papel após autenticação
 - [x] logout demo com limpeza de sessão local
-- [ ] `register.tsx`
+- [x] `register.tsx`
 - [ ] `profile-select.tsx`
 - [ ] autenticação JWT ligada ao fluxo de UI
 - [ ] logout real com limpeza de estado
@@ -276,9 +276,9 @@ Isto é backlog real, não implementação actual.
 - [x] favoritos persistidos na Home e em Restaurantes
 - [x] ecrã de pedidos/histórico dedicado
 - [x] carrinho com estado global
-- [ ] ecrã de pesquisa dedicado
-- [ ] método de pagamento
-- [ ] checkout completo
+- [x] ecrã de pesquisa dedicado
+- [x] método de pagamento
+- [x] checkout completo
 
 ### Restaurante / Carrinho
 - [x] telas base de restaurante e carrinho existem

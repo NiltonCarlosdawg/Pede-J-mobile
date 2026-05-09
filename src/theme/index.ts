@@ -32,6 +32,9 @@ export const colors = {
   onBackground: '#292929',
   white: '#FFFFFF',
   error: '#BA1A1A',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  info: '#2196F3',
 };
 
 export const typography = {

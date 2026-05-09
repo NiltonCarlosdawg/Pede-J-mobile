@@ -1,5 +1,10 @@
+export { Badge } from './Badge';
 export { Button } from './Button';
-export { RestaurantCard } from './RestaurantCard';
-export { CategoryIcon } from './CategoryIcon';
 export { CategoryCard } from './CategoryCard';
+export { CategoryIcon } from './CategoryIcon';
+export { Input } from './Input';
+export { PaymentMethodCard } from './PaymentMethodCard';
 export { ProductCard } from './ProductCard';
+export { RestaurantCard } from './RestaurantCard';
+export { SearchBar } from './SearchBar';
+

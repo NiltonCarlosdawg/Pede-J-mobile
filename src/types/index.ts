@@ -75,3 +75,25 @@ export interface ApiError {
   message: string;
   code?: string;
 }
+
+export interface PaymentMethod {
+  id: string;
+  type: 'credit_card' | 'debit_card' | 'pix' | 'wallet' | 'cash';
+  label: string;
+  isDefault: boolean;
+  cardNumber?: string; // Last 4 digits
+  cardHolder?: string;
+  expiryDate?: string;
+  brand?: string; // Visa, Mastercard, etc.
+  pixKey?: string;
+}
+
+export interface PaymentResponse {
+  id: string;
+  orderId: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+  transactionId?: string;
+  timestamp: string;
+}

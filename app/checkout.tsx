@@ -5,33 +5,57 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../src/components/ui/Header";
+import { Button } from "../src/components/ui/Button";
+import { Input } from "../src/components/ui/Input";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { clearCart, selectCartItems, selectCartSubtotal } from "../src/store/cartSlice";
 import { colors, spacing, formatPrice } from "../src/theme";
+import type { PaymentMethod, Address } from "../src/types";
 
-const PAYMENT_METHODS = [
+// Mock data
+const MOCK_ADDRESSES: Address[] = [
   {
-    id: "1",
-    label: "Multicaixa Express",
-    subtitle: "Pagamento no acto de entrega",
-    active: true,
+    id: "addr1",
+    label: "Casa",
+    address: "Rua das Flores, 123 - Apto 45",
+    neighborhood: "Centro",
+    city: "Luanda",
+    isDefault: true,
   },
   {
-    id: "2",
-    label: "Cartão",
-    subtitle: "Cartão guardado terminando em 4242",
+    id: "addr2",
+    label: "Trabalho",
+    address: "Av. Kwame Nkrumah, 500 - Sala 201",
+    neighborhood: "Kinaxixi",
+    city: "Luanda",
+    isDefault: false,
+  },
+];
+
+const MOCK_PAYMENT_METHODS: PaymentMethod[] = [
+  {
+    id: "pm1",
+    type: "credit_card",
+    label: "Visa Pessoal",
+    isDefault: true,
+    cardNumber: "4242",
+    cardHolder: "JOÃO SILVA",
+    expiryDate: "12/25",
+    brand: "Visa",
   },
   {
-    id: "3",
-    label: "Dinheiro",
-    subtitle: "Pagar em numerário ao entregador",
+    id: "pm2",
+    type: "pix",
+    label: "Chave CPF",
+    isDefault: false,
+    pixKey: "123.456.789-00",
   },
 ];
 
@@ -40,28 +64,543 @@ export default function CheckoutScreen() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
   const subtotal = useAppSelector(selectCartSubtotal);
-  const [selectedPayment, setSelectedPayment] = useState("1");
+  
+  const [selectedAddress, setSelectedAddress] = useState<string>(MOCK_ADDRESSES[0].id);
+  const [selectedPayment, setSelectedPayment] = useState<string>(MOCK_PAYMENT_METHODS[0].id);
   const [coupon, setCoupon] = useState("");
+  const [discount, setDiscount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasItems = items.length > 0;
+  const deliveryFee = subtotal > 25 ? 0 : 5.9;
+  const total = subtotal + deliveryFee - discount;
+
+  const currentAddress = MOCK_ADDRESSES.find((a) => a.id === selectedAddress);
+  const currentPayment = MOCK_PAYMENT_METHODS.find((p) => p.id === selectedPayment);
+
+  const handleApplyCoupon = () => {
+    if (!coupon) return;
+    
+    // Simple demo: apply 10% discount if coupon is "DESCONTO10"
+    if (coupon.toUpperCase() === "DESCONTO10") {
+      const discountAmount = Math.round(subtotal * 0.1);
+      setDiscount(discountAmount);
+      Alert.alert("Sucesso", `Cupão aplicado! Desconto de Kz ${discountAmount}`);
+      setCoupon("");
+    } else {
+      Alert.alert("Erro", "Cupão inválido");
+    }
+  };
 
   async function handleConfirmOrder() {
-    if (!hasItems || isSubmitting) {
+    if (!hasItems || !currentAddress || !currentPayment || isSubmitting) {
+      return;
+    }
+
+    if (!selectedAddress) {
+      Alert.alert("Erro", "Selecione um endereço de entrega");
+      return;
+    }
+
+    if (!selectedPayment) {
+      Alert.alert("Erro", "Selecione um método de pagamento");
       return;
     }
 
     setIsSubmitting(true);
-    dispatch(clearCart());
-    setIsSubmitting(false);
-    router.push("/pedidos");
+
+    try {
+      // Simulate order creation
+      const orderData = {
+        items: items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        address: currentAddress,
+        payment: currentPayment,
+        subtotal,
+        deliveryFee,
+        discount,
+        total,
+        createdAt: new Date().toISOString(),
+      };
+
+      console.log("[checkout] order created:", orderData);
+
+      dispatch(clearCart());
+      Alert.alert(
+        "Pedido confirmado!",
+        "Seu pedido foi recebido e será entregue em breve.",
+        [
+          {
+            text: "Ver pedido",
+            onPress: () => router.push("/pedidos"),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("[checkout] error:", error);
+      Alert.alert("Erro", "Não foi possível confirmar o pedido. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Checkout" />
+      <Header title="Checkout" showBack onBackPress={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+        {!hasItems ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons
+              name="cart-outline"
+              size={48}
+              color={colors.neutral[300]}
+            />
+            <Text style={styles.emptyTitle}>Carrinho vazio</Text>
+            <Text style={styles.emptyText}>
+              Adicione itens no restaurante para fazer checkout.
+            </Text>
+            <Button
+              title="Voltar ao restaurante"
+              onPress={() => router.back()}
+            />
+          </View>
+        ) : (
+          <>
+            <View style={styles.heroCard}>
+              <Text style={styles.kicker}>Finalize sua compra</Text>
+              <Text style={styles.title}>Revise e confirme</Text>
+              <Text style={styles.subtitle}>
+                Verifique seus itens, endereço e método de pagamento.
+              </Text>
+            </View>
+
+            {/* Address Selection */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Endereço de Entrega</Text>
+                <TouchableOpacity onPress={() => router.push("/endereco")}>
+                  <Text style={styles.sectionAction}>Editar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.addressOptions}>
+                {MOCK_ADDRESSES.map((address) => (
+                  <TouchableOpacity
+                    key={address.id}
+                    onPress={() => setSelectedAddress(address.id)}
+                    style={[
+                      styles.addressItem,
+                      selectedAddress === address.id && styles.addressItemSelected,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={selectedAddress === address.id ? "radio-marked" : "radio-blank"}
+                      size={20}
+                      color={
+                        selectedAddress === address.id
+                          ? colors.primary[500]
+                          : colors.neutral[300]
+                      }
+                    />
+                    <View style={styles.addressInfo}>
+                      <Text style={styles.addressLabel}>{address.label}</Text>
+                      <Text style={styles.addressDetails}>
+                        {address.address}, {address.neighborhood}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Cart Items */}
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Itens do Pedido</Text>
+              <View style={styles.itemsList}>
+                {items.map((item) => (
+                  <View key={item.id} style={styles.itemRow}>
+                    <View style={styles.itemQuantity}>
+                      <Text style={styles.itemQty}>{item.quantity}x</Text>
+                    </View>
+                    <View style={styles.itemContent}>
+                      <Text style={styles.itemName}>{item.title}</Text>
+                      <Text style={styles.itemPrice}>
+                        Kz {(item.price * item.quantity).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Payment Method Selection */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Método de Pagamento</Text>
+                <TouchableOpacity onPress={() => router.push("/payment-methods")}>
+                  <Text style={styles.sectionAction}>Gerenciar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.paymentOptions}>
+                {MOCK_PAYMENT_METHODS.map((method) => (
+                  <TouchableOpacity
+                    key={method.id}
+                    onPress={() => setSelectedPayment(method.id)}
+                    style={[
+                      styles.paymentItem,
+                      selectedPayment === method.id && styles.paymentItemSelected,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={selectedPayment === method.id ? "radio-marked" : "radio-blank"}
+                      size={20}
+                      color={
+                        selectedPayment === method.id
+                          ? colors.primary[500]
+                          : colors.neutral[300]
+                      }
+                    />
+                    <View style={styles.paymentInfo}>
+                      <Text style={styles.paymentLabel}>
+                        {method.type === "credit_card"
+                          ? `${method.brand} ••${method.cardNumber}`
+                          : method.type === "pix"
+                          ? "PIX"
+                          : method.label}
+                      </Text>
+                      <Text style={styles.paymentSubtitle}>{method.label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Coupon Section */}
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Código de Desconto</Text>
+              <View style={styles.couponRow}>
+                <Input
+                  placeholder="Inserir código"
+                  value={coupon}
+                  onChangeText={setCoupon}
+                  icon="ticket-percent"
+                  iconPosition="left"
+                />
+                <Button
+                  title="Aplicar"
+                  onPress={handleApplyCoupon}
+                  variant="secondary"
+                  size="small"
+                />
+              </View>
+              {discount > 0 && (
+                <Text style={styles.discountApplied}>
+                  ✓ Desconto de Kz {discount.toFixed(2)} aplicado
+                </Text>
+              )}
+            </View>
+
+            {/* Order Summary */}
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Entrega</Text>
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    deliveryFee === 0 && styles.freeDelivery,
+                  ]}
+                >
+                  {deliveryFee === 0 ? "Grátis" : formatPrice(deliveryFee)}
+                </Text>
+              </View>
+              {discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Desconto</Text>
+                  <Text style={[styles.summaryValue, styles.discountValue]}>
+                    - {formatPrice(discount)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.divider} />
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{formatPrice(total)}</Text>
+              </View>
+            </View>
+          </>
+        )}
+      </ScrollView>
+
+      {hasItems && (
+        <View style={styles.checkoutBar}>
+          <Button
+            title={isSubmitting ? "Confirmando..." : "Confirmar Pedido"}
+            onPress={handleConfirmOrder}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+          />
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.neutral[900],
+    marginTop: spacing.md,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.neutral[500],
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  heroCard: {
+    backgroundColor: colors.primary[100],
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  kicker: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: colors.primary[600],
+    marginBottom: spacing.xs,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.neutral[900],
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.neutral[600],
+    lineHeight: 20,
+  },
+  sectionCard: {
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    marginBottom: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.neutral[900],
+  },
+  sectionAction: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.primary[500],
+  },
+  addressOptions: {
+    gap: spacing.sm,
+  },
+  addressItem: {
+    flexDirection: "row",
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    gap: spacing.md,
+    alignItems: "flex-start",
+  },
+  addressItemSelected: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50] || colors.neutral[50],
+  },
+  addressInfo: {
+    flex: 1,
+  },
+  addressLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.neutral[900],
+    marginBottom: spacing.xs / 2,
+  },
+  addressDetails: {
+    fontSize: 13,
+    color: colors.neutral[600],
+  },
+  itemsList: {
+    gap: spacing.sm,
+  },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+    gap: spacing.md,
+  },
+  itemQuantity: {
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    minWidth: 40,
+    alignItems: "center",
+  },
+  itemQty: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary[500],
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.neutral[900],
+    marginBottom: spacing.xs / 2,
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary[500],
+  },
+  paymentOptions: {
+    gap: spacing.sm,
+  },
+  paymentItem: {
+    flexDirection: "row",
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  paymentItemSelected: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50] || colors.neutral[50],
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.neutral[900],
+    marginBottom: spacing.xs / 2,
+  },
+  paymentSubtitle: {
+    fontSize: 13,
+    color: colors.neutral[600],
+  },
+  couponRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  },
+  couponInput: {
+    flex: 1,
+  },
+  discountApplied: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.success,
+    marginTop: spacing.sm,
+  },
+  summaryCard: {
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    marginBottom: 120,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: colors.neutral[600],
+  },
+  summaryValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.neutral[900],
+  },
+  freeDelivery: {
+    color: colors.success,
+  },
+  discountValue: {
+    color: colors.success,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.neutral[200],
+    marginVertical: spacing.sm,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: spacing.sm,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.neutral[900],
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.primary[500],
+  },
+  checkoutBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+    padding: spacing.md,
+  },
+});
         <View style={styles.heroCard}>
           <Text style={styles.kicker}>Pedido pronto para confirmar</Text>
           <Text style={styles.title}>Revisar e concluir compra</Text>

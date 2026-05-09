@@ -1,27 +1,27 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import React, { useMemo, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
-import { clearSession, setSession } from "../../src/store/authSlice";
-import { useAppDispatch } from "../../src/store";
 import {
-  createDemoSession,
-  DEMO_LOGIN,
-  clearDemoSession,
-  DemoRole,
-  saveDemoSession,
+    clearDemoSession,
+    createDemoSession,
+    DEMO_LOGIN,
+    DemoRole,
+    saveDemoSession,
 } from "../../src/services/demoAuth";
+import { useAppDispatch } from "../../src/store";
+import { clearSession, setSession } from "../../src/store/authSlice";
 import { colors, spacing } from "../../src/theme";
 
 export default function LoginScreen() {
@@ -208,6 +208,13 @@ export default function LoginScreen() {
             A conta demo é guardada localmente e pode ser removida com "Limpar".
           </Text>
         </View>
+
+        <View style={styles.registerCard}>
+          <Text style={styles.registerText}>Não tem conta? </Text>
+          <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
+            <Text style={styles.registerLink}>Cadastre-se aqui</Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -352,5 +359,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: colors.neutral[700],
+  },
+  registerCard: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+  },
+  registerText: {
+    fontSize: 15,
+    color: colors.neutral[700],
+  },
+  registerLink: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.primary[500],
   },
 });
