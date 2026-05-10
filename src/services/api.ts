@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGetItem, safeRemoveItem } from '../utils/storage';
 
 export const BASE_URL = 'https://pedej-api-{hash}.herokuapp.com/api/v1';
 
@@ -12,7 +12,7 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = await safeGetItem('authToken');
       if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
     } catch (error) { console.error('Error getting token:', error); }
     return config;
@@ -24,8 +24,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('authToken');
-      await AsyncStorage.removeItem('user');
+      await safeRemoveItem('authToken');
+      await safeRemoveItem('user');
     }
     return Promise.reject(error);
   }

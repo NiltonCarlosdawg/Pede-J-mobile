@@ -2,25 +2,30 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+    Animated,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
-import { Input } from "../../src/components/ui/Input";
 import { DemoRole } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { setSession } from "../../src/store/authSlice";
-import { colors, spacing } from "../../src/theme";
+import { spacing } from "../../src/theme";
+import { useTheme } from "../../src/hooks/useTheme";
 import type { User } from "../../src/types";
 
 export default function RegisterScreen() {
+  const router = useRouter();
+  const { colors } = useTheme();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,37 +35,153 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
-  const router = useRouter();
+
+  const styles = React.useMemo(() => StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.xl,
+      gap: spacing.lg,
+    },
+    logoSection: {
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    logo: {
+      width: 80,
+      height: 80,
+      marginBottom: spacing.md,
+    },
+    appName: {
+      fontSize: 28,
+      fontWeight: "800",
+      color: colors.onSurface,
+      letterSpacing: -0.5,
+    },
+    tagline: {
+      fontSize: 14,
+      color: colors.neutral[500],
+      marginTop: spacing.xs,
+    },
+    formCard: {
+      gap: spacing.md,
+    },
+    inputWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.neutral[50],
+      borderWidth: 1,
+      borderColor: colors.neutral[200],
+      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+    },
+    inputIcon: {
+      marginRight: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.neutral[900],
+    },
+    passwordInput: {
+      paddingRight: 40,
+    },
+    eyeButton: {
+      position: "absolute",
+      right: spacing.md,
+      height: "100%",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 13,
+      fontWeight: "600",
+      textAlign: "center",
+    },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: spacing.xs,
+    },
+    footerText: {
+      fontSize: 14,
+      color: colors.neutral[500],
+    },
+    footerLink: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    termsSection: {
+      alignItems: "center",
+    },
+    termsText: {
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.neutral[500],
+      textAlign: "center",
+    },
+    termsLink: {
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
+  }), [colors]);
+
+  function triggerShake() {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  }
 
   const validateForm = () => {
     if (!name.trim()) {
       setError("Por favor preencha o nome completo.");
+      triggerShake();
       return false;
     }
 
     if (!email.trim()) {
       setError("Por favor preencha o e-mail.");
+      triggerShake();
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Por favor insira um e-mail válido.");
+      triggerShake();
       return false;
     }
 
     if (!password) {
       setError("Por favor preencha a senha.");
+      triggerShake();
       return false;
     }
 
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres.");
+      triggerShake();
       return false;
     }
 
     if (password !== confirmPassword) {
       setError("As senhas não coincidem.");
+      triggerShake();
       return false;
     }
 
@@ -77,8 +198,8 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      // Demo registration - simulating a successful registration
-      // In a real scenario, this would call the backend API
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
       const newUser: User = {
         id: `user-${Date.now()}`,
         name: name.trim(),
@@ -94,10 +215,11 @@ export default function RegisterScreen() {
       };
 
       dispatch(setSession(demoSession));
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     } catch (err) {
       console.error("[register] error:", err);
       setError("Não foi possível criar a conta. Tente novamente.");
+      triggerShake();
     } finally {
       setLoading(false);
     }
@@ -112,59 +234,72 @@ export default function RegisterScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.title}>Criar conta</Text>
-            <Text style={styles.subtitle}>
-              Crie sua conta PedeJá e comece a pedir comida agora mesmo.
-            </Text>
+          {/* Logo */}
+          <View style={styles.logoSection}>
+            <Image
+              source={require("../../assets/images/P.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.appName}>PedeJá</Text>
+            <Text style={styles.tagline}>Crie sua conta e comece</Text>
           </View>
 
-          <View style={styles.formCard}>
-            <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+          {/* Formulário */}
+          <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nome completo"
+                placeholderTextColor={colors.neutral[500]}
+                value={name}
+                onChangeText={setName}
+                editable={!loading}
+              />
+            </View>
 
-            <Input
-              placeholder="Nome completo"
-              value={name}
-              onChangeText={setName}
-              icon="account"
-              iconPosition="left"
-              disabled={loading}
-            />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="E-mail"
+                placeholderTextColor={colors.neutral[500]}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
 
-            <Input
-              placeholder="E-mail"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              icon="email"
-              iconPosition="left"
-              disabled={loading}
-            />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Telefone (opcional)"
+                placeholderTextColor={colors.neutral[500]}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                editable={!loading}
+              />
+            </View>
 
-            <Input
-              placeholder="Telefone (opcional)"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              icon="phone"
-              iconPosition="left"
-              disabled={loading}
-            />
-
-            <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-              Segurança
-            </Text>
-
-            <View style={styles.passwordWrapper}>
-              <Input
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
                 placeholder="Senha"
+                placeholderTextColor={colors.neutral[500]}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                icon="lock"
-                iconPosition="left"
-                disabled={loading}
+                autoCorrect={false}
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((s) => !s)}
@@ -173,20 +308,22 @@ export default function RegisterScreen() {
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
-                  color={colors.neutral[700]}
+                  color={colors.neutral[500]}
                 />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.passwordWrapper}>
-              <Input
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
                 placeholder="Confirmar senha"
+                placeholderTextColor={colors.neutral[500]}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
-                icon="lock"
-                iconPosition="left"
-                disabled={loading}
+                autoCorrect={false}
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword((s) => !s)}
@@ -195,7 +332,7 @@ export default function RegisterScreen() {
                 <Ionicons
                   name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
-                  color={colors.neutral[700]}
+                  color={colors.neutral[500]}
                 />
               </TouchableOpacity>
             </View>
@@ -203,25 +340,26 @@ export default function RegisterScreen() {
             {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Button
-              title={loading ? "A criar conta..." : "Crear conta"}
+              title={loading ? "Criando conta..." : "Criar conta"}
               onPress={handleRegister}
               loading={loading}
               disabled={loading}
             />
 
-            <View style={styles.loginLink}>
-              <Text style={styles.linkText}>Já tem conta? </Text>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Já tem conta? </Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                <Text style={styles.linkHighlight}>Entre aqui</Text>
+                <Text style={styles.footerLink}>Entre aqui</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.termsCard}>
+          <View style={styles.termsSection}>
             <Text style={styles.termsText}>
               Ao criar uma conta, você concorda com nossos{" "}
-              <Text style={styles.linkHighlight}>Termos de Serviço</Text> e{" "}
-              <Text style={styles.linkHighlight}>Política de Privacidade</Text>.
+              <Text style={styles.termsLink}>Termos de Serviço</Text> e{" "}
+              <Text style={styles.termsLink}>Política de Privacidade</Text>.
             </Text>
           </View>
         </ScrollView>
@@ -229,90 +367,3 @@ export default function RegisterScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
-  heroCard: {
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.onSurface,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.neutral[700],
-  },
-  formCard: {
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: 20,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-    gap: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    color: colors.neutral[500],
-  },
-  passwordWrapper: {
-    position: "relative",
-  },
-  eyeButton: {
-    position: "absolute",
-    right: 12,
-    top: "50%",
-    transform: [{ translateY: -10 }],
-    padding: spacing.sm,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: spacing.sm,
-  },
-  loginLink: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: spacing.md,
-  },
-  linkText: {
-    fontSize: 14,
-    color: colors.neutral[700],
-  },
-  linkHighlight: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary[500],
-  },
-  termsCard: {
-    backgroundColor: colors.surfaceContainer,
-    borderRadius: 16,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  termsText: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.neutral[700],
-  },
-});

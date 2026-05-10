@@ -1,15 +1,20 @@
-export const colors = {
+// Tema Light (padrão)
+export const lightColors = {
   primary: {
-    500: '#f95a0d',
+    700: '#C44A0B',
     600: '#E04E0A',
+    500: '#f95a0d',
     400: '#FF7A3A',
     100: '#FFF0E8',
+    50: '#FFF8F5',
   },
   secondary: {
-    500: '#fbac1d',
+    700: '#C88A0F',
     600: '#E89A10',
+    500: '#fbac1d',
     400: '#FFC04D',
     100: '#FFF5E0',
+    50: '#FFFBF0',
   },
   neutral: {
     900: '#292929',
@@ -19,6 +24,8 @@ export const colors = {
     200: '#E8E8E8',
     100: '#F5F5F5',
     50: '#FAFAFA',
+    600: '#6A6A6A',
+    400: '#B0B0B0',
   },
   background: '#ffffff',
   surface: '#ffffff',
@@ -36,6 +43,63 @@ export const colors = {
   warning: '#FF9800',
   info: '#2196F3',
 };
+
+// Tema Dark
+export const darkColors = {
+  primary: {
+    700: '#C44A0B',
+    600: '#E04E0A',
+    500: '#f95a0d',
+    400: '#FF7A3A',
+    100: '#4D2D1A',
+    50: '#3D2212',
+  },
+  secondary: {
+    700: '#C88A0F',
+    600: '#E89A10',
+    500: '#fbac1d',
+    400: '#FFC04D',
+    100: '#4D3D10',
+    50: '#3D3010',
+  },
+  neutral: {
+    900: '#FFFFFF',
+    700: '#E0E0E0',
+    600: '#A0A0A0',
+    500: '#B0B0B0',
+    400: '#909090',
+    300: '#707070',
+    200: '#505050',
+    100: '#383838',
+    50: '#2C2C2C',
+  },
+  background: '#121212',
+  surface: '#1E1E1E',
+  surfaceContainerLowest: '#1E1E1E',
+  surfaceContainer: '#2C2C2C',
+  surfaceContainerHigh: '#383838',
+  surfaceContainerHighet: '#424242',
+  surfaceVariant: '#424242',
+  onSurface: '#FFFFFF',
+  onSurfaceVariant: '#E0E0E0',
+  onBackground: '#FFFFFF',
+  white: '#FFFFFF',
+  error: '#FF6B6B',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  info: '#2196F3',
+};
+
+// Tipo das cores
+export type ThemeColors = typeof lightColors;
+
+// Função para obter cores baseadas no tema
+export function getThemeColors(isDark: boolean): ThemeColors {
+  return isDark ? darkColors : lightColors;
+}
+
+// Exportação padrão (light) para compatibilidade
+export const colors = lightColors;
 
 export const typography = {
   h1: { fontSize: 32, fontWeight: '700' as const, lineHeight: 38.4 },

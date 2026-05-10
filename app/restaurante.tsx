@@ -13,9 +13,10 @@ import {
 } from "react-native";
 
 import { ProductCard } from "../src/components/ui";
-import { colors, spacing, formatPrice } from "../src/theme";
+import { spacing, formatPrice } from "../src/theme";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { addItem, selectCartCount, selectCartSubtotal } from "../src/store/cartSlice";
+import { useTheme } from "../src/hooks/useTheme";
 
 const RESTAURANT = {
   name: "Burger Station",
@@ -158,6 +159,282 @@ export default function RestaurantScreen() {
   const dispatch = useAppDispatch();
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingBottom: 96,
+    },
+    heroContainer: {
+      height: 300,
+      position: "relative",
+    },
+    heroImage: {
+      width: "100%",
+      height: "100%",
+    },
+    topActions: {
+      position: "absolute",
+      top: 50,
+      left: 16,
+      right: 16,
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
+    actionButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(255,255,255,0.92)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    rightActions: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    badgeRow: {
+      position: "absolute",
+      left: 16,
+      right: 16,
+      bottom: 16,
+      flexDirection: "row",
+      gap: 8,
+    },
+    openBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: "rgba(255,255,255,0.92)",
+    },
+    openBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    deliveryChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: "rgba(255,255,255,0.92)",
+    },
+    deliveryChipText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    infoSection: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 16,
+      paddingTop: 24,
+      paddingBottom: 16,
+      marginTop: -24,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -8 },
+      shadowOpacity: 0.05,
+      shadowRadius: 20,
+    },
+    restaurantName: {
+      fontSize: 28,
+      fontWeight: "800",
+      color: colors.onSurface,
+    },
+    restaurantCuisine: {
+      fontSize: 14,
+      color: colors.neutral[500],
+      marginTop: 4,
+    },
+    infoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 16,
+      flexWrap: "wrap",
+    },
+    ratingBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "rgba(251,172,29,0.1)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    ratingText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.secondary[500],
+    },
+    infoItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      flexShrink: 1,
+    },
+    infoText: {
+      fontSize: 13,
+      color: colors.onSurfaceVariant,
+    },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceContainerHighet,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.onSurface,
+      paddingVertical: 0,
+    },
+    tagsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 12,
+    },
+    tagChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: colors.surfaceContainer,
+    },
+    tagChipText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    tabs: {
+      flexDirection: "row",
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceVariant,
+      paddingHorizontal: 16,
+    },
+    activeTab: {
+      paddingVertical: 16,
+      borderBottomWidth: 3,
+      borderBottomColor: colors.primary[500],
+    },
+    activeTabText: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    inactiveTab: {
+      paddingVertical: 16,
+      borderBottomWidth: 3,
+      borderBottomColor: "transparent",
+    },
+    inactiveTabText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.neutral[500],
+    },
+    menuContent: {
+      paddingHorizontal: 16,
+      paddingTop: 24,
+      paddingBottom: 32,
+    },
+    section: {
+      marginBottom: 32,
+    },
+    sectionTitle: {
+      fontSize: 22,
+      fontWeight: "800",
+      color: colors.onSurface,
+    },
+    sectionSubtitle: {
+      fontSize: 13,
+      color: colors.neutral[500],
+      marginTop: 4,
+      marginBottom: 12,
+    },
+    productWrap: {
+      marginBottom: 12,
+    },
+    emptyState: {
+      alignItems: "center",
+      paddingVertical: 32,
+      paddingHorizontal: 16,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceContainerLowest,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    emptyTitle: {
+      marginTop: 12,
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    emptyText: {
+      marginTop: 4,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: "center",
+      color: colors.neutral[700],
+    },
+    cartBar: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.surfaceContainerLowest,
+      borderTopWidth: 1,
+      borderTopColor: colors.surfaceVariant,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    cartButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.primary[500],
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 16,
+    },
+    cartCount: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cartCountText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.white,
+    },
+    cartButtonText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.white,
+      flex: 1,
+      marginLeft: 12,
+    },
+    cartTotal: {
+      fontSize: 16,
+      fontWeight: "800",
+      color: colors.secondary[500],
+    },
+  }), [colors]);
 
   const menuItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -360,278 +637,3 @@ export default function RestaurantScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingBottom: 96,
-  },
-  heroContainer: {
-    height: 300,
-    position: "relative",
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-  },
-  topActions: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    right: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rightActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  badgeRow: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 16,
-    flexDirection: "row",
-    gap: 8,
-  },
-  openBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.92)",
-  },
-  openBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  deliveryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.92)",
-  },
-  deliveryChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  infoSection: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 16,
-    marginTop: -24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-  },
-  restaurantName: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  restaurantCuisine: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: 4,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 16,
-    flexWrap: "wrap",
-  },
-  ratingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(251,172,29,0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.secondary[500],
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 1,
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceContainerHighet,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.onSurface,
-    paddingVertical: 0,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 12,
-  },
-  tagChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surfaceContainer,
-  },
-  tagChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  tabs: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceVariant,
-    paddingHorizontal: 16,
-  },
-  activeTab: {
-    paddingVertical: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.primary[500],
-  },
-  activeTabText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.primary[500],
-  },
-  inactiveTab: {
-    paddingVertical: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-  },
-  inactiveTabText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.neutral[500],
-  },
-  menuContent: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  productWrap: {
-    marginBottom: 12,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceContainerLowest,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  emptyTitle: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  emptyText: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center",
-    color: colors.neutral[700],
-  },
-  cartBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surfaceContainerLowest,
-    borderTopWidth: 1,
-    borderTopColor: colors.surfaceVariant,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  cartButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.primary[500],
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-  },
-  cartCount: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartCountText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.white,
-  },
-  cartButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.white,
-    flex: 1,
-    marginLeft: 12,
-  },
-  cartTotal: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: colors.secondary[500],
-  },
-});

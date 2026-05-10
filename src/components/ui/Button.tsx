@@ -1,7 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
-import { colors, spacing, borderRadius } from '../../theme';
+import { spacing, borderRadius } from '../../theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ButtonProps {
   title: string;
@@ -13,6 +14,7 @@ interface ButtonProps {
 }
 
 export function Button({ title, onPress, variant = 'primary', size = 'medium', disabled = false, loading = false }: ButtonProps) {
+  const { colors } = useTheme();
   const getBg = () => disabled ? colors.neutral[300] : variant === 'primary' ? colors.primary[500] : 'transparent';
   const getText = () => disabled ? colors.neutral[500] : variant === 'primary' ? colors.white : colors.primary[500];
   const pad = size === 'small' ? spacing.sm : size === 'large' ? spacing.lg : spacing.md;

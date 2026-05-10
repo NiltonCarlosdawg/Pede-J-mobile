@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, TextInput } from "react-native";
+import { useMemo } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Header } from "../src/components/ui/Header";
-import { colors, spacing } from "../src/theme";
+import { spacing } from "../src/theme";
+import { useTheme } from "../src/hooks/useTheme";
 
 const ADDRESSES = [
   { id: "1", label: "Casa", address: "Rua das Flores, 123 - Apto 45", neighborhood: "Centro, Luanda", default: true },
@@ -12,6 +14,101 @@ const ADDRESSES = [
 
 export default function AddressScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingBottom: 80,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.gutter,
+      paddingTop: spacing.lg,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.onBackground,
+      marginBottom: spacing.lg,
+    },
+    addressesList: {
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    addressCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 16,
+      padding: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    defaultAddress: {
+      borderColor: colors.primary[500],
+      borderWidth: 2,
+    },
+    addressIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addressInfo: {
+      flex: 1,
+    },
+    addressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: 4,
+    },
+    addressLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.onSurface,
+    },
+    defaultBadge: {
+      backgroundColor: colors.primary[100],
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+    },
+    defaultText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: colors.primary[500],
+    },
+    addressText: {
+      fontSize: 14,
+      color: colors.onSurface,
+    },
+    neighborhoodText: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: spacing.md,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.primary[500],
+      borderStyle: 'dashed',
+    },
+    addButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary[500],
+    },
+  }), [colors]);
 
   return (
     <View style={styles.container}>
@@ -55,97 +152,3 @@ export default function AddressScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingBottom: 80,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.gutter,
-    paddingTop: spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.onBackground,
-    marginBottom: spacing.lg,
-  },
-  addressesList: {
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  addressCard: {
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: 16,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  defaultAddress: {
-    borderColor: colors.primary[500],
-    borderWidth: 2,
-  },
-  addressIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressInfo: {
-    flex: 1,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: 4,
-  },
-  addressLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.onSurface,
-  },
-  defaultBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  defaultText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  addressText: {
-    fontSize: 14,
-    color: colors.onSurface,
-  },
-  neighborhoodText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary[500],
-    borderStyle: 'dashed',
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-});

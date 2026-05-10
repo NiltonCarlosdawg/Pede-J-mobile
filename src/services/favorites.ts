@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeGetItem, safeRemoveItem, safeSetItem } from "../utils/storage";
 
 const FAVORITES_KEY = "favoriteRestaurants";
 
@@ -6,7 +6,7 @@ let memoryFavorites = new Set<string>();
 
 async function readFavoriteIds(): Promise<string[]> {
   try {
-    const raw = await AsyncStorage.getItem(FAVORITES_KEY);
+    const raw = await safeGetItem(FAVORITES_KEY);
 
     if (!raw) {
       return Array.from(memoryFavorites);
@@ -30,7 +30,7 @@ async function writeFavoriteIds(ids: string[]) {
   memoryFavorites = new Set(ids);
 
   try {
-    await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+    await safeSetItem(FAVORITES_KEY, JSON.stringify(ids));
   } catch (error) {
     console.warn("[favorites] falling back to in-memory storage", error);
   }
@@ -69,7 +69,7 @@ export async function clearFavoriteRestaurants() {
   memoryFavorites = new Set();
 
   try {
-    await AsyncStorage.removeItem(FAVORITES_KEY);
+    await safeRemoveItem(FAVORITES_KEY);
   } catch (error) {
     console.warn("[favorites] clear fallback", error);
   }

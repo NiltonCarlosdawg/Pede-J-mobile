@@ -1,8 +1,11 @@
+import React from "react";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, spacing } from "../../theme";
+import { spacing } from "../../theme";
+import { useTheme } from "../../hooks/useTheme";
+import { NotificationBell } from "./NotificationBell";
 
 interface HeaderProps {
   showBack?: boolean;
@@ -15,6 +18,8 @@ interface HeaderProps {
   showAvatar?: boolean;
   showLogo?: boolean;
   avatarUrl?: string;
+  onBackPress?: () => void;
+  showNotifications?: boolean;
 }
 
 export function Header({ 
@@ -27,18 +32,21 @@ export function Header({
   cartTotal = "Kz 0",
   showAvatar = true,
   showLogo = false,
-  avatarUrl
+  avatarUrl,
+  onBackPress,
+  showNotifications = true,
 }: HeaderProps) {
   const router = useRouter() as any;
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? insets.top : 0, backgroundColor: colors.surface, borderBottomColor: colors.neutral[100] }]}>
       <View style={styles.leftSection}>
         {showBack ? (
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => router.back()}
+            onPress={onBackPress || (() => router.back())}
           >
             <MaterialCommunityIcons 
               name="arrow-left" 
@@ -56,7 +64,7 @@ export function Header({
               size={20} 
               color={colors.primary[500]} 
             />
-            <Text style={styles.address} numberOfLines={1}>
+            <Text style={[styles.address, { color: colors.neutral[900] }]} numberOfLines={1}>
               {address}
             </Text>
             <MaterialCommunityIcons 
@@ -66,11 +74,13 @@ export function Header({
             />
           </TouchableOpacity>
         ) : (
-          title && <Text style={styles.title}>{title}</Text>
+          title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
         )}
       </View>
 
       <View style={styles.rightSection}>
+        {showNotifications && <NotificationBell />}
+        
         <TouchableOpacity 
           style={styles.cartIconButton}
           onPress={() => router.push('/carrinho')}
@@ -81,8 +91,8 @@ export function Header({
             color={colors.primary[500]} 
           />
           {cartItems > 0 && (
-            <View style={styles.cartDot}>
-              <Text style={styles.cartDotText}>{cartItems}</Text>
+            <View style={[styles.cartDot, { backgroundColor: colors.primary[500] }]}>
+              <Text style={[styles.cartDotText, { color: colors.white }]}>{cartItems}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -98,7 +108,7 @@ export function Header({
               <MaterialCommunityIcons
                 name="account-circle"
                 size={36}
-                color={colors.neutral[300]}
+                color={colors.primary[500]}
               />
             )}
           </TouchableOpacity>
@@ -115,9 +125,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
   },
   leftSection: {
     flex: 1,
@@ -143,12 +151,10 @@ const styles = StyleSheet.create({
   address: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[900],
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.onSurface,
   },
   cartIconButton: {
     position: 'relative',
@@ -161,14 +167,12 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.primary[500],
     alignItems: 'center',
     justifyContent: 'center',
   },
   cartDotText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.white,
   },
   avatarButton: {
     padding: spacing.xs,
@@ -177,6 +181,5 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.neutral[100],
   },
 });

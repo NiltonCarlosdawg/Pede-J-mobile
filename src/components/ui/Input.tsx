@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { borderRadius, colors, spacing } from '../../theme';
+import { borderRadius, spacing } from '../../theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface InputProps {
   placeholder?: string;
@@ -9,7 +10,7 @@ interface InputProps {
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  icon?: string;
+  icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   iconPosition?: 'left' | 'right';
   error?: boolean;
   disabled?: boolean;
@@ -32,8 +33,43 @@ export function Input({
   multiline = false,
   maxLength,
 }: InputProps) {
+  const { colors } = useTheme();
   const borderColor = error ? colors.error : colors.neutral[200];
-  const backgroundColor = disabled ? colors.neutral[100] : colors.white;
+  const backgroundColor = disabled ? colors.neutral[100] : colors.surface;
+
+  const styles = StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+      minHeight: 48,
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      paddingVertical: spacing.sm,
+      color: colors.onSurface,
+    },
+    multilineInput: {
+      minHeight: 100,
+      verticalAlign: 'top',
+    },
+    inputWithLeftIcon: {
+      paddingLeft: spacing.sm,
+    },
+    inputWithRightIcon: {
+      paddingRight: spacing.sm,
+    },
+    iconLeft: {
+      marginRight: spacing.sm,
+    },
+    iconRight: {
+      marginLeft: spacing.sm,
+    },
+  });
 
   return (
     <View style={[styles.container, { borderColor, backgroundColor }]}>
@@ -41,7 +77,7 @@ export function Input({
         <MaterialCommunityIcons
           name={icon}
           size={20}
-          color={colors.neutral[400]}
+          color={colors.neutral[500]}
           style={styles.iconLeft}
         />
       )}
@@ -67,44 +103,10 @@ export function Input({
         <MaterialCommunityIcons
           name={icon}
           size={20}
-          color={colors.neutral[400]}
+          color={colors.neutral[500]}
           style={styles.iconRight}
         />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    minHeight: 48,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: spacing.sm,
-    color: colors.neutral[900],
-  },
-  multilineInput: {
-    minHeight: 100,
-    verticalAlign: 'top',
-  },
-  inputWithLeftIcon: {
-    paddingLeft: spacing.sm,
-  },
-  inputWithRightIcon: {
-    paddingRight: spacing.sm,
-  },
-  iconLeft: {
-    marginRight: spacing.sm,
-  },
-  iconRight: {
-    marginLeft: spacing.sm,
-  },
-});

@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
     FlatList,
     KeyboardAvoidingView,
@@ -13,41 +13,43 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button } from "../../src/components/ui/Button";
-import { Header } from "../../src/components/ui/Header";
-import { Input } from "../../src/components/ui/Input";
-import { PaymentMethodCard } from "../../src/components/ui/PaymentMethodCard";
-import { colors, spacing } from "../../src/theme";
-import type { PaymentMethod } from "../../src/types";
+import { Button, Header, Input, PaymentMethodCard } from "../src/components/ui";
+import { spacing } from "../src/theme";
+import { useTheme } from "../src/hooks/useTheme";
+import type { PaymentMethod } from "../src/types";
 
 // Mock data
 const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "pm1",
     type: "credit_card",
-    label: "Visa Pessoal",
+    label: "MCX",
     isDefault: true,
     cardNumber: "4242",
     cardHolder: "JOÃO SILVA",
     expiryDate: "12/25",
-    brand: "Visa",
+    brand: "MCX",
   },
   {
     id: "pm2",
-    type: "pix",
-    label: "Chave CPF",
+    type: "wallet",
+    label: "Unitel Money",
     isDefault: false,
-    pixKey: "123.456.789-00",
+    pixKey: "+244923456789",
   },
   {
     id: "pm3",
-    type: "debit_card",
-    label: "Débito BFA",
+    type: "wallet",
+    label: "PAYPAY",
     isDefault: false,
-    cardNumber: "5678",
-    cardHolder: "JOÃO SILVA",
-    expiryDate: "08/24",
-    brand: "Mastercard",
+    pixKey: "paypay@email.com",
+  },
+  {
+    id: "pm4",
+    type: "wallet",
+    label: "Kwik",
+    isDefault: false,
+    pixKey: "+244943456789",
   },
 ];
 
@@ -62,10 +64,62 @@ type AddPaymentFormData = {
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [methods, setMethods] = useState<PaymentMethod[]>(INITIAL_PAYMENT_METHODS);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentMethod["type"]>("credit_card");
   const [formData, setFormData] = useState<AddPaymentFormData>({ type: "credit_card" });
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { flex: 1, paddingHorizontal: spacing.gutter },
+    header: { paddingVertical: spacing.md },
+    headerTitle: { fontSize: 24, fontWeight: "800", color: colors.onSurface },
+    headerSubtitle: { fontSize: 14, color: colors.neutral[500], marginTop: 4 },
+    card: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 20, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.surfaceVariant },
+    cardSelected: { borderColor: colors.primary[500] },
+    cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
+    cardLabel: { fontSize: 16, fontWeight: "700", color: colors.onSurface },
+    cardNumber: { fontSize: 14, color: colors.neutral[500] },
+    cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+    cardIcon: { fontSize: 12, color: colors.neutral[500] },
+    fab: { position: "absolute", right: spacing.gutter, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary[500], alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modalContent: { backgroundColor: colors.surfaceContainerLowest, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg },
+    modalHandle: { width: 40, height: 4, backgroundColor: colors.neutral[300], borderRadius: 2, alignSelf: "center", marginBottom: spacing.lg },
+    modalTitle: { fontSize: 20, fontWeight: "800", color: colors.onSurface, marginBottom: spacing.lg },
+    typeSelector: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg },
+    typeButton: { flex: 1, paddingVertical: spacing.sm, borderRadius: 12, backgroundColor: colors.surfaceContainer, alignItems: "center" },
+    typeButtonActive: { backgroundColor: colors.primary[100] },
+    typeButtonText: { fontSize: 14, fontWeight: "600", color: colors.neutral[500] },
+    typeButtonTextActive: { color: colors.primary[500] },
+    buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg },
+    cancelButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 16, backgroundColor: colors.surfaceContainer, alignItems: "center" },
+    cancelButtonText: { fontSize: 16, fontWeight: "600", color: colors.neutral[700] },
+    saveButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 16, backgroundColor: colors.primary[500], alignItems: "center" },
+    saveButtonText: { fontSize: 16, fontWeight: "600", color: colors.white },
+    formGroup: { marginBottom: spacing.md },
+    formLabel: { fontSize: 14, fontWeight: "600", color: colors.neutral[700], marginBottom: spacing.xs },
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    cardWrapper: { marginBottom: spacing.sm },
+    listContent: { paddingHorizontal: spacing.gutter, paddingBottom: spacing.xl },
+    emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxl },
+    emptyText: { fontSize: 16, fontWeight: "700", color: colors.onSurface, marginTop: spacing.md },
+    emptySubtext: { fontSize: 14, color: colors.neutral[500], marginTop: spacing.xs },
+    footerActions: { paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.surfaceVariant },
+    modalContainer: { flex: 1, backgroundColor: colors.background },
+    modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.surfaceVariant },
+    modalCloseButton: { fontSize: 16, fontWeight: "600", color: colors.primary[500] },
+    modalPlaceholder: { width: 60 },
+    paymentTypesContainer: { marginBottom: spacing.lg },
+    sectionTitle: { fontSize: 18, fontWeight: "800", color: colors.onSurface, marginBottom: spacing.md },
+    typesGrid: { flexDirection: "row", gap: spacing.sm },
+    typeLabel: { fontSize: 12, fontWeight: "600", color: colors.neutral[500], marginTop: spacing.xs },
+    typeLabelActive: { color: colors.primary[500] },
+    formContainer: { gap: spacing.md },
+    rowInputs: { flexDirection: "row", gap: spacing.sm },
+    flexInput: { flex: 1 },
+  }), [colors]);
 
   const handleSelectMethod = (id: string) => {
     setMethods((prev) =>
@@ -118,13 +172,9 @@ export default function PaymentMethodsScreen() {
   const getPaymentMethodLabel = (type: PaymentMethod["type"]) => {
     switch (type) {
       case "credit_card":
-        return "Cartão de Crédito";
-      case "debit_card":
-        return "Cartão de Débito";
-      case "pix":
-        return "Pix";
+        return "Cartão MCX";
       case "wallet":
-        return "Carteira";
+        return "Carteira Digital";
       case "cash":
         return "Dinheiro";
       default:
@@ -132,11 +182,9 @@ export default function PaymentMethodsScreen() {
     }
   };
 
-  const paymentTypes: Array<{ type: PaymentMethod["type"]; icon: string }> = [
+  const paymentTypes: Array<{ type: PaymentMethod["type"]; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }> = [
     { type: "credit_card", icon: "credit-card" },
-    { type: "debit_card", icon: "credit-card" },
-    { type: "pix", icon: "qrcode" },
-    { type: "wallet", icon: "wallet" },
+    { type: "wallet", icon: "cellphone" },
     { type: "cash", icon: "cash" },
   ];
 
@@ -305,125 +353,3 @@ export default function PaymentMethodsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  listContent: {
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  cardWrapper: {
-    marginBottom: spacing.sm,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.neutral[900],
-    marginTop: spacing.md,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing.sm,
-  },
-  footerActions: {
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalCloseButton: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: "600",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.neutral[900],
-  },
-  modalPlaceholder: {
-    width: 80,
-  },
-  paymentTypesContainer: {
-    padding: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.neutral[900],
-    marginBottom: spacing.md,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  typesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
-  },
-  typeButton: {
-    flex: 1,
-    minWidth: "45%",
-    aspectRatio: 1,
-    borderRadius: 16,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    justifyContent: "center",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  typeButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.neutral[700],
-    textAlign: "center",
-  },
-  typeLabelActive: {
-    color: colors.white,
-  },
-  formContainer: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  rowInputs: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  flexInput: {
-    flex: 1,
-  },
-});

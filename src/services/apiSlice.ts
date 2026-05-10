@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createApi,
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query/react';
+import { safeGetItem } from '../utils/storage';
 
 import { BASE_URL } from './api';
 import type {
@@ -65,7 +65,7 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithAuth = async (args: Parameters<typeof rawBaseQuery>[0], api: Parameters<typeof rawBaseQuery>[1], extraOptions: Parameters<typeof rawBaseQuery>[2]) => {
-  const token = await AsyncStorage.getItem('authToken');
+  const token = await safeGetItem('authToken');
 
   if (!token) {
     return rawBaseQuery(args, api, extraOptions);

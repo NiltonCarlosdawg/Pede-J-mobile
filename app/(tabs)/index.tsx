@@ -1,22 +1,26 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useEffect, useMemo, useState } from "react";
 
 import { CategoryCard, RestaurantCard } from "../../src/components/ui";
 import { Header } from "../../src/components/ui/Header";
+import {
+    loadFavoriteRestaurantIds,
+    toggleFavoriteRestaurant,
+} from "../../src/services/favorites";
 import { useAppSelector } from "../../src/store";
 import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSlice";
-import { colors, spacing, formatPrice, borderRadius } from "../../src/theme";
-import { loadFavoriteRestaurantIds, toggleFavoriteRestaurant } from "../../src/services/favorites";
+import { borderRadius, formatPrice, spacing } from "../../src/theme";
+import { useTheme } from "../../src/hooks/useTheme";
 
 const CATEGORIES = [
   {
@@ -81,13 +85,11 @@ const FEATURED_OFFERS = [
     id: "1",
     title: "Frete grátis hoje",
     subtitle: "Em restaurantes selecionados até às 20h.",
-    accent: colors.primary[100],
   },
   {
     id: "2",
     title: "2x pontos",
     subtitle: "Ganhe mais em pedidos acima de Kz 25.000.",
-    accent: colors.secondary[100],
   },
 ];
 
@@ -112,9 +114,355 @@ export default function HomeScreen() {
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const { colors } = useTheme();
 
   const firstName = user?.name?.split(" ")[0] ?? "Alexandre";
   const avatarUrl = user?.avatar;
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingBottom: 16,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.gutter,
+    },
+    heroCard: {
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+      backgroundColor: colors.primary[100],
+      borderRadius: 24,
+      padding: spacing.lg,
+    },
+    heroTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+    },
+    heroTextBlock: {
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    kicker: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.neutral[700],
+      marginBottom: 4,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 12,
+      gap: 4,
+    },
+    heroBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    heroStatsRow: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+      gap: spacing.md,
+    },
+    heroStat: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: spacing.sm,
+      alignItems: "center",
+    },
+    heroStatValue: {
+      fontSize: 20,
+      fontWeight: "800",
+      color: colors.primary[500],
+    },
+    heroStatLabel: {
+      fontSize: 10,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
+    searchContainer: {
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.lg,
+    },
+    searchHint: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.neutral[500],
+      marginLeft: spacing.sm,
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionLink: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
+    offersScroll: {
+      paddingRight: spacing.gutter,
+    },
+    offerCardContent: {
+      flex: 1,
+    },
+    categoryWrapper: {
+      marginRight: spacing.md,
+    },
+    categoryCard: {
+      width: 80,
+      height: 80,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceContainer,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    categoryCardActive: {
+      backgroundColor: colors.primary[100],
+    },
+    categoryLabel: {
+      marginTop: spacing.xs,
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.onSurface,
+      textAlign: "center",
+    },
+    restaurantCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 24,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    restaurantHeader: {
+      flexDirection: "row",
+      marginBottom: spacing.sm,
+    },
+    restaurantImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 16,
+      marginRight: spacing.sm,
+    },
+    restaurantInfo: {
+      flex: 1,
+      justifyContent: "center",
+    },
+    restaurantName: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    restaurantCuisine: {
+      fontSize: 13,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
+    restaurantRating: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: 4,
+    },
+    restaurantRatingText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.onSurface,
+    },
+    restaurantMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    restaurantMetaText: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    restaurantDelivery: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    restaurantDeliveryFee: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    favoriteButton: {
+      position: "absolute",
+      top: spacing.sm,
+      right: spacing.sm,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    sectionAction: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
+    categoryList: {
+      marginBottom: spacing.lg,
+    },
+    categoryItem: {
+      alignItems: "center",
+      marginRight: spacing.md,
+    },
+    categoryImage: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      marginBottom: spacing.xs,
+    },
+    categoryName: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.onSurface,
+    },
+    restaurantList: {
+      marginBottom: spacing.lg,
+    },
+    restaurantItem: {
+      marginBottom: spacing.md,
+    },
+    offerCard: {
+      marginRight: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 16,
+      width: 200,
+    },
+    offerTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    offerSubtitle: {
+      fontSize: 12,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
+    orderItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.neutral[100],
+    },
+    orderImage: {
+      width: 60,
+      height: 60,
+      borderRadius: 12,
+      marginRight: spacing.sm,
+    },
+    orderInfo: {
+      flex: 1,
+    },
+    orderTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.onSurface,
+    },
+    orderStatus: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    orderTotal: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    heroTitle: {
+      fontSize: 28,
+      fontWeight: "800",
+      color: colors.onSurface,
+      marginBottom: spacing.xs,
+    },
+    heroSubtitle: {
+      fontSize: 16,
+      color: colors.neutral[700],
+    },
+    offerKicker: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: colors.primary[500],
+      marginBottom: 4,
+    },
+    sectionMeta: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    categoriesScroll: {
+      paddingRight: spacing.gutter,
+    },
+    lastSection: {
+      marginBottom: 100,
+    },
+    orderCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 16,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    orderIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: colors.primary[100],
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.sm,
+    },
+    orderContent: {
+      flex: 1,
+    },
+    orderMeta: {
+      fontSize: 12,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
+    orderPriceBlock: {
+      alignItems: "flex-end",
+    },
+    orderPrice: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    orderAction: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.primary[500],
+      marginTop: 2,
+    },
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -137,7 +485,7 @@ export default function HomeScreen() {
         ...restaurant,
         favorite: favoriteIds.includes(restaurant.id),
       })),
-    [favoriteIds]
+    [favoriteIds],
   );
 
   async function handleToggleFavorite(id: string) {
@@ -149,6 +497,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header
         showLogo={true}
+        showAvatar={true}
         showCartBadge={cartCount > 0}
         cartItems={cartCount}
         cartTotal={formatPrice(cartSubtotal)}
@@ -232,7 +581,7 @@ export default function HomeScreen() {
             {FEATURED_OFFERS.map((offer) => (
               <TouchableOpacity
                 key={offer.id}
-                style={[styles.offerCard, { backgroundColor: offer.accent }]}
+                style={styles.offerCard}
                 onPress={() => router.push("/restaurantes")}
               >
                 <Text style={styles.offerKicker}>Destaque</Text>
@@ -280,16 +629,16 @@ export default function HomeScreen() {
               <RestaurantCard
                 title={item.name}
                 subtitle={item.cuisine}
-              image={item.image}
-              rating={item.rating}
-              distance={item.distance}
+                image={item.image}
+                rating={item.rating}
+                distance={item.distance}
                 deliveryTime={item.deliveryTime}
                 deliveryFee={item.deliveryFee}
                 favorite={item.favorite}
                 onFavoritePress={() => handleToggleFavorite(item.id)}
                 onPress={() => router.push("/restaurante")}
-            />
-          )}
+              />
+            )}
             scrollEnabled={false}
           />
         </View>
@@ -328,220 +677,5 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
+);
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingBottom: 16,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.gutter,
-  },
-  heroCard: {
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 28,
-    backgroundColor: colors.primary[100],
-    borderWidth: 1,
-    borderColor: colors.secondary[100],
-  },
-  heroTopRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  heroTextBlock: {
-    flex: 1,
-  },
-  kicker: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    color: colors.primary[600],
-    marginBottom: spacing.xs,
-  },
-  heroTitle: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  heroSubtitle: {
-    marginTop: spacing.sm,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.neutral[700],
-  },
-  heroBadge: {
-    minWidth: 76,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceContainerLowest,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  heroBadgeText: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  heroStatsRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  heroStat: {
-    flex: 1,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceContainerLowest,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  heroStatValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  heroStatLabel: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.neutral[700],
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surfaceContainerHighet,
-    borderRadius: 18,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  searchHint: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    fontSize: 16,
-    color: colors.neutral[900],
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  lastSection: {
-    paddingBottom: spacing.xxl,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  sectionMeta: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.neutral[500],
-  },
-  sectionLink: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.primary[500],
-  },
-  offersScroll: {
-    paddingRight: spacing.gutter,
-    gap: spacing.md,
-  },
-  offerCard: {
-    width: 240,
-    padding: spacing.md,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  offerKicker: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.neutral[500],
-    textTransform: "uppercase",
-  },
-  offerTitle: {
-    marginTop: spacing.xs,
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  offerSubtitle: {
-    marginTop: spacing.xs,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.neutral[700],
-  },
-  categoriesScroll: {
-    paddingRight: spacing.gutter,
-    gap: spacing.sm,
-  },
-  categoryItem: {
-    marginRight: spacing.sm,
-    alignItems: "center",
-  },
-  orderCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.surfaceContainerLowest,
-    borderWidth: 1,
-    borderColor: colors.surfaceVariant,
-  },
-  orderIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: colors.primary[100],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  orderContent: {
-    flex: 1,
-  },
-  orderTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.onSurface,
-  },
-  orderMeta: {
-    marginTop: 2,
-    fontSize: 13,
-    color: colors.neutral[700],
-  },
-  orderPriceBlock: {
-    alignItems: "flex-end",
-  },
-  orderPrice: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  orderAction: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary[500],
-  },
-});
