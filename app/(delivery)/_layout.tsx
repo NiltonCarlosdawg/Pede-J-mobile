@@ -9,6 +9,7 @@ export default function DeliveryLayout() {
       <Stack.Screen name="perfil" options={{ headerShown: false }} />
       <Stack.Screen name="historico" options={{ headerShown: false }} />
       <Stack.Screen name="ganhos" options={{ headerShown: false }} />
+      <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }

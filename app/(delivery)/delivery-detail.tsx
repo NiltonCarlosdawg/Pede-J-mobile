@@ -305,10 +305,19 @@ export default function DeliveryDetailScreen() {
               <Text style={styles.infoText}>{RESTAURANT_INFO.address}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.contactButton}>
-            <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
-            <Text style={styles.contactText}>Ligar restaurante</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: spacing.md }}>
+            <TouchableOpacity style={styles.contactButton}>
+              <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
+              <Text style={styles.contactText}>Ligar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
+            >
+              <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
+              <Text style={styles.contactText}>Chat</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Customer Info */}
@@ -329,10 +338,19 @@ export default function DeliveryDetailScreen() {
               <Text style={styles.notesText}>{CUSTOMER_INFO.notes}</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.contactButton}>
-            <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
-            <Text style={styles.contactText}>Ligar cliente</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: spacing.md }}>
+            <TouchableOpacity style={styles.contactButton}>
+              <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
+              <Text style={styles.contactText}>Ligar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
+            >
+              <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
+              <Text style={styles.contactText}>Chat</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Action Button */}

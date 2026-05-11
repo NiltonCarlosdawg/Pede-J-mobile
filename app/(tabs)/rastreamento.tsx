@@ -203,13 +203,32 @@ export default function TrackingScreen() {
       fontSize: 14,
       color: colors.neutral[500],
     },
-    callButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.secondary[500],
+    actionButtonsContainer: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    actionButton: {
       alignItems: "center",
       justifyContent: "center",
+      gap: 4,
+    },
+    actionButtonCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary[500],
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: colors.primary[500],
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    actionButtonText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.primary[500],
     },
     timeline: {
       position: "relative",
@@ -531,9 +550,23 @@ export default function TrackingScreen() {
                     Pedido #{selectedOrder.id.slice(-4)}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.callButton}>
-                  <MaterialCommunityIcons name="phone" size={20} color={colors.secondary[500]} />
-                </TouchableOpacity>
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => router.push({ pathname: "/chat", params: { orderId: selectedOrder.id } })}
+                  >
+                    <View style={styles.actionButtonCircle}>
+                      <MaterialCommunityIcons name="chat" size={22} color={colors.white} />
+                    </View>
+                    <Text style={styles.actionButtonText}>Chat</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <View style={styles.actionButtonCircle}>
+                      <MaterialCommunityIcons name="phone" size={22} color={colors.white} />
+                    </View>
+                    <Text style={styles.actionButtonText}>Ligar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {renderTimeline()}

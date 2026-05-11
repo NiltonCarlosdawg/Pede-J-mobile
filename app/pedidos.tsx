@@ -98,7 +98,10 @@ export default function OrdersScreen() {
         </View>
 
         {isActive && (
-          <TouchableOpacity style={styles.trackButton}>
+          <TouchableOpacity
+            style={styles.trackButton}
+            onPress={() => router.push({ pathname: "/(tabs)/rastreamento", params: { orderId: order.id } })}
+          >
             <Text style={styles.trackButtonText}>Acompanhar</Text>
           </TouchableOpacity>
         )}

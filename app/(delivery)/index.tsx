@@ -12,6 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { borderRadius, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
+import { useAppSelector } from "../../src/store";
+import { selectActiveChats, selectUnreadMessages } from "../../src/store/chatSlice";
 
 const DELIVERY_JOBS = [
   {
@@ -279,6 +281,64 @@ export default function DeliveryDashboard() {
       fontWeight: "800",
       color: colors.onSurface,
     },
+    chatCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 24,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    chatItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceVariant,
+    },
+    chatAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary[100],
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    chatContent: {
+      flex: 1,
+    },
+    chatTitle: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    chatText: {
+      fontSize: 13,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
+    chatBadge: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.error,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    chatBadgeText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.white,
+    },
+    actionButtonCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary[500],
+      alignItems: "center",
+      justifyContent: "center",
+    },
   }), [colors]);
 
   return (
@@ -345,6 +405,32 @@ export default function DeliveryDashboard() {
           </View>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.chatCard}
+          onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
+          activeOpacity={0.8}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              <MaterialCommunityIcons name="message-text" size={24} color={colors.primary[500]} />
+              <Text style={styles.sectionTitle}>Mensagens</Text>
+            </View>
+            <Text style={styles.sectionAction}>Ver tudo</Text>
+          </View>
+          <View style={styles.chatItem}>
+            <View style={styles.chatAvatar}>
+              <MaterialCommunityIcons name="account" size={24} color={colors.primary[500]} />
+            </View>
+            <View style={styles.chatContent}>
+              <Text style={styles.chatTitle}>Pedido #0005</Text>
+              <Text style={styles.chatText}>Cliente: Pode deixar na portaria se eu não estiver.</Text>
+            </View>
+            <View style={styles.chatBadge}>
+              <Text style={styles.chatBadgeText}>2</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Disponíveis agora</Text>
@@ -406,8 +492,16 @@ export default function DeliveryDashboard() {
                 <Text style={styles.historyMeta}>{delivery.route}</Text>
                 <Text style={[styles.historyStatus, { color: delivery.status === "Concluída" ? colors.primary[500] : colors.secondary[500] }]}>{delivery.status}</Text>
               </View>
-              <View style={styles.historyValueBlock}>
-                <Text style={styles.historyValue}>{delivery.value}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <TouchableOpacity
+                  style={styles.actionButtonCircle}
+                  onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: `order-00${delivery.id}` } })}
+                >
+                  <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
+                </TouchableOpacity>
+                <View style={styles.historyValueBlock}>
+                  <Text style={styles.historyValue}>{delivery.value}</Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
