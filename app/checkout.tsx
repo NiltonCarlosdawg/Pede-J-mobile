@@ -17,6 +17,13 @@ import { Input } from "../src/components/ui/Input";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { clearCart, selectCartItems, selectCartSubtotal } from "../src/store/cartSlice";
 import { addOrder } from "../src/store/ordersSlice";
+import {
+  applyCoupon,
+  removeCoupon,
+  selectAppliedCoupon,
+  calculateDiscount,
+  selectActiveCoupons,
+} from "../src/store/promotionsSlice";
 import { notifyOrderConfirmed } from "../src/services/notifications";
 import { spacing, formatPrice } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
@@ -81,13 +88,17 @@ export default function CheckoutScreen() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
   const subtotal = useAppSelector(selectCartSubtotal);
+  const appliedCoupon = useAppSelector(selectAppliedCoupon);
+  const activeCoupons = useAppSelector(selectActiveCoupons);
   const { colors } = useTheme();
-  
+
   const [selectedAddress, setSelectedAddress] = useState<string>(MOCK_ADDRESSES[0].id);
   const [selectedPayment, setSelectedPayment] = useState<string>(MOCK_PAYMENT_METHODS[0].id);
-  const [coupon, setCoupon] = useState("");
-  const [discount, setDiscount] = useState(0);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const discount = calculateDiscount(subtotal, appliedCoupon);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingBottom: 16 },
@@ -163,17 +174,38 @@ export default function CheckoutScreen() {
   const currentPayment = MOCK_PAYMENT_METHODS.find((p) => p.id === selectedPayment);
 
   const handleApplyCoupon = () => {
-    if (!coupon) return;
-    
-    // Simple demo: apply 10% discount if coupon is "DESCONTO10"
-    if (coupon.toUpperCase() === "DESCONTO10") {
-      const discountAmount = Math.round(subtotal * 0.1);
-      setDiscount(discountAmount);
-      Alert.alert("Sucesso", `Cupão aplicado! Desconto de Kz ${discountAmount}`);
-      setCoupon("");
-    } else {
-      Alert.alert("Erro", "Cupão inválido");
+    if (!couponCode.trim()) return;
+
+    const coupon = activeCoupons.find(
+      (c) => c.code.toUpperCase() === couponCode.trim().toUpperCase()
+    );
+
+    if (!coupon) {
+      setCouponError("Cupão inválido ou expirado");
+      return;
     }
+
+    if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
+      setCouponError(`Pedido mínimo de Kz ${coupon.minOrderValue}`);
+      return;
+    }
+
+    dispatch(applyCoupon(couponCode.trim()));
+    setCouponError("");
+    setCouponCode("");
+    Alert.alert(
+      "Sucesso",
+      `${coupon.description}\nDesconto: ${
+        coupon.discountType === "percentage"
+          ? `${coupon.discountValue}%`
+          : `Kz ${coupon.discountValue}`
+      }`
+    );
+  };
+
+  const handleRemoveCoupon = () => {
+    dispatch(removeCoupon());
+    setCouponError("");
   };
 
   async function handleConfirmOrder() {
@@ -377,8 +409,8 @@ export default function CheckoutScreen() {
               <View style={styles.couponRow}>
                 <Input
                   placeholder="Inserir código"
-                  value={coupon}
-                  onChangeText={setCoupon}
+                  value={couponCode}
+                  onChangeText={setCouponCode}
                   icon="ticket-percent"
                   iconPosition="left"
                 />
@@ -389,11 +421,21 @@ export default function CheckoutScreen() {
                   size="small"
                 />
               </View>
-              {discount > 0 && (
-                <Text style={styles.discountApplied}>
-                  ✓ Desconto de Kz {discount.toFixed(2)} aplicado
+              {couponError ? (
+                <Text style={[styles.discountApplied, { color: colors.error }]}>
+                  {couponError}
                 </Text>
-              )}
+              ) : null}
+              {appliedCoupon ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.xs }}>
+                  <Text style={[styles.discountApplied, { color: colors.primary[500] }]}>
+                    ✓ {appliedCoupon.description} (-Kz {discount.toFixed(2)})
+                  </Text>
+                  <TouchableOpacity onPress={handleRemoveCoupon}>
+                    <MaterialCommunityIcons name="close-circle" size={18} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </View>
 
             {/* Order Summary */}

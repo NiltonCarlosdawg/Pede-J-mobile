@@ -172,6 +172,7 @@ function RootLayoutNavContent() {
         <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="delivery" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>

@@ -7,6 +7,7 @@ import { cartReducer } from './cartSlice';
 import { chatReducer } from './chatSlice';
 import { notificationsReducer } from './notificationsSlice';
 import { ordersReducer } from './ordersSlice';
+import { promotionsReducer } from './promotionsSlice';
 import { ratingsReducer } from './ratingsSlice';
 
 export const store = configureStore({
@@ -17,6 +18,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     chat: chatReducer,
     ratings: ratingsReducer,
+    promotions: promotionsReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

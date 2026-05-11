@@ -1,5 +1,5 @@
 # PedeJá Mobile — Estado Actual do Projecto
-> Atualizado em 2026-05-08
+> Atualizado em 2026-05-11
 
 ## 1. Resumo
 
@@ -11,16 +11,7 @@ O produto está pensado em **duas camadas de experiência**:
 - **Cliente**: navegação, ecrãs e fluxos para pedir comida, acompanhar pedidos, gerir carrinho e endereço.
 - **Entregador**: navegação, ecrãs e fluxos diferentes para aceitar entregas, ver ganhos e acompanhar rotas.
 
-Estas camadas devem ter **telas distintas** e **fluxos distintos**. O código actual ainda não implementa essa separação completa, mas o modelo do produto já é esse.
-
-O estado actual do código é este:
-- A navegação principal usa `app/(tabs)` com 3 tabs: `index`, `restaurantes` e `rastreamento`.
-- Existem ecrãs standalone para `perfil`, `carrinho`, `restaurante` e `endereco`.
-- O grupo `app/(auth)` tem apenas `login.tsx` e `_layout.tsx`.
-- O grupo `app/(delivery)` já existe para o dashboard do entregador.
-- O projecto já tem design system, componentes UI, camada de API, Redux e RTK Query ligados.
-- Há login demo local com seleção de perfil `client` ou `delivery`.
-- Os ecrãs principais do cliente e do entregador já estão ligados por navegação.
+Estas camadas devem ter **telas distintas** e **fluxos distintos**. O código actual implementa essa separação completa com navegação condicional baseada no perfil.
 
 ## 2. Stack Real
 
@@ -36,214 +27,312 @@ Dependências e escolhas que existem no repositório hoje:
 - RTK Query via `@reduxjs/toolkit`
 - `@expo/vector-icons`
 - `@sentry/react-native`
-
-Nota:
-- o histórico do projecto pode ainda conter referências a TanStack Query, mas a direcção documentada para os hooks do frontend é RTK Query.
+- `expo-notifications` — notificações push locais
+- `react-native-maps` — mapas nativos (iOS/Android)
+- `expo-location` — geolocalização e permissões
 
 Configuração real relevante:
 - `app.json` usa `scheme: "pedejmobile"`
+- Permissões de localização configuradas para iOS e Android
+- Canal de notificações configurado para Android
 - `tsconfig.json` tem aliases `@/*` e `src/*`
-- `app/_layout.tsx` carrega `SpaceMono` e `FontAwesome`
 
 ## 3. Navegação Actual
 
 ### Root
 
-[app/_layout.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/_layout.tsx) define:
-- `initialRouteName: "(tabs)"`
-- `Stack.Screen` para:
-  - `(tabs)`
-  - `restaurante`
-  - `carrinho`
-  - `perfil`
-  - `endereco`
-  - `delivery`
-  - `(auth)`
-
-O layout raiz também:
-- usa `SafeAreaProvider`
-- usa `ThemeProvider` do React Navigation
-- controla `SplashScreen.preventAutoHideAsync()`
-- esconde o splash quando as fontes terminam de carregar
+[app/_layout.tsx](app/_layout.tsx) define:
+- Roteamento dinâmico baseado em autenticação (cliente/entregador)
+- Inicialização de notificações push
+- ThemeProvider com suporte a dark/light mode
+- Listener de notificações recebidas
 
 ### Auth
 
-O grupo [app/(auth)/_layout.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(auth)/_layout.tsx) só declara o ecrã `login`.
+O grupo `app/(auth)/` contém:
+- [app/(auth)/login.tsx](app/(auth)/login.tsx) — Login com seleção de perfil
+- [app/(auth)/register.tsx](app/(auth)/register.tsx) — Registro
+- [app/(auth)/onboarding.tsx](app/(auth)/onboarding.tsx) — Onboarding 3 slides
+- [app/(auth)/profile-select.tsx](app/(auth)/profile-select.tsx) — Seleção cliente/entregador
+- [app/(auth)/order-success.tsx](app/(auth)/order-success.tsx) — Confirmação de pedido
 
-Existe apenas:
-- [app/(auth)/login.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(auth)/login.tsx)
+### Tabs (Cliente)
 
-### Tabs
-
-[app/(tabs)/_layout.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(tabs)/_layout.tsx) define 3 tabs:
+`app/(tabs)/` define 3 tabs:
 - Home
 - Restaurantes
-- Acompanhar
+- Rastreamento
 
-Ecrãs reais dentro deste grupo:
-- [app/(tabs)/index.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(tabs)/index.tsx)
-- [app/(tabs)/restaurantes.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(tabs)/restaurantes.tsx)
-- [app/(tabs)/rastreamento.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/(tabs)/rastreamento.tsx)
+### Entregador
+
+`app/(delivery)/` contém:
+- Dashboard de entregas
+- Detalhe de entrega
+- Histórico com filtros
+- Ganhos
+- Perfil do entregador
+- Chat
 
 ### Screens Standalone
 
-Existem também:
-- [app/perfil.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/perfil.tsx)
-- [app/carrinho.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/carrinho.tsx)
-- [app/restaurante.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/restaurante.tsx)
-- [app/endereco.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/endereco.tsx)
+- `app/carrinho.tsx` — Carrinho global
+- `app/checkout.tsx` — Checkout com cupons
+- `app/restaurante.tsx` — Detalhe do restaurante com reviews
+- `app/endereco.tsx` — Gestão de endereços
+- `app/perfil.tsx` — Perfil do cliente
+- `app/pedidos.tsx` — Histórico de pedidos
+- `app/search.tsx` — Pesquisa
+- `app/payment-methods.tsx` — Métodos de pagamento
+- `app/notifications.tsx` — Centro de notificações
+- `app/chat.tsx` — Chat cliente-entregador
+- `app/avaliacao.tsx` — Avaliação de pedido
+- `app/promocoes.tsx` — Promoções e cupons
 
-E ficheiros auxiliares:
-- [app/+html.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/+html.tsx)
-- [app/+not-found.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/+not-found.tsx)
-- [app/modal.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/app/modal.tsx)
+## 4. Fases Implementadas
 
-## 4. O Que Já Existe No Código
+### Fase 1 — Auth Foundation ✅
+- [x] Onboarding com 3 slides
+- [x] Seleção de perfil (Cliente/Entregador)
+- [x] Login com role toggle e quick-fill demo
+- [x] Registro
+- [x] SplashScreen animado
+- [x] ConfirmDialog reutilizável
+- [x] Root layout com auth state hydration
+- [x] Safe storage wrapper (AsyncStorage fallback)
 
-### 4.1 Design System
+### Fase 2 — Client Flows ✅
+- [x] Order success screen com animações
+- [x] Redux ordersSlice com mock data
+- [x] Checkout integrado com orders
+- [x] Order history (pedidos.tsx) com status badges
+- [x] Favorites com AsyncStorage
+- [x] Address management screen
 
-O design system actual está concentrado em [src/theme/index.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/theme/index.ts).
+### Fase 3 — Delivery Flows ✅
+- [x] Delivery dashboard
+- [x] Delivery detail com timeline
+- [x] Delivery profile (perfil)
+- [x] History com filtros (Today/Week/Month/All)
+- [x] Earnings dashboard com charts
+- [x] Logout para entregador
 
-Ele fornece:
-- `colors`
-- `typography`
-- `spacing`
-- `borderRadius`
-- `shadows`
+### Fase 4 — Theme System ✅
+- [x] Theme reestruturado (lightColors/darkColors/getThemeColors)
+- [x] useTheme hook com setTheme, useCallback, default light
+- [x] Todas as páginas atualizadas para useTheme + useMemo styles
+- [x] Header aceita onBackPress
+- [x] Input aceita typed icons
+- [x] Todos os índices de cor adicionados ao tema
+
+### Fase 5 — Tracking & Orders ✅
+- [x] Histórico de pedidos na tela de rastreamento
+- [x] Seleção de múltiplos pedidos ativos (chips)
+- [x] Mock data com 3 pedidos ativos simultâneos
+- [x] Timeline dinâmica baseada no status real
+
+### Fase 6 — Bug Fixes ✅
+- [x] Fix: Redirecionamento automático após login
+- [x] Fix: Erros TypeScript em carrinho/checkout
+- [x] Fix: Styles faltando em payment-methods
+
+### Fase 7 — Notificações Push ✅
+- [x] Serviço de notificações (expo-notifications)
+- [x] Redux notificationsSlice com mock data
+- [x] NotificationBell no Header com badge
+- [x] Tela de notificações
+- [x] Integração no fluxo de pedidos (confirmado, entregador a caminho, entregue)
+- [x] Fallback web para notificações
+
+### Fase 8 — Geolocalização Real ✅
+- [x] Permissões no app.json (iOS/Android)
+- [x] Serviço de localização (expo-location)
+- [x] Mapa real com react-native-maps
+- [x] Localização em tempo real do usuário
+- [x] Botão "Minha Localização"
+- [x] Tracking ao vivo do entregador
+- [x] Fallback web para mapa
+- [x] Toggle de compartilhamento de localização no perfil do entregador
+
+### Fase 9 — Chat ✅
+- [x] Redux chatSlice com mensagens por pedido
+- [x] Tela de chat para cliente
+- [x] Tela de chat para entregador
+- [x] Mensagens rápidas (quick replies)
+- [x] Simulação de respostas
+- [x] Integração em rastreamento e delivery detail
+- [x] Badges de mensagens não lidas
+
+### Fase 10 — Avaliações ✅
+- [x] Redux ratingsSlice com mock reviews
+- [x] Tela de avaliação de pedido (5 estrelas + comentário + tags)
+- [x] Botão "Avaliar" nos pedidos entregues
+- [x] Média de avaliações na tela do restaurante
+- [x] Lista de reviews no restaurante
+- [x] Cálculo de média dinâmica
+
+### Fase 11 — Promoções ✅
+- [x] Redux promotionsSlice com cupons e promoções
+- [x] Cupons: PEDEJA20, ENTREGA0, PRIMEIRA50
+- [x] Promoções: Combo Família, Quarta de Pizza, Entrega Grátis
+- [x] Input de cupom no checkout com validação real
+- [x] Cálculo de desconto (% e valor fixo)
+- [x] Banner de promoções na Home
+- [x] Tela de promoções ativas
+- [x] Fallback web para notificações
+
+## 5. Design System
+
+O design system está em [src/theme/index.ts](src/theme/index.ts):
+- `lightColors` e `darkColors`
+- `getThemeColors(isDark)`
+- `spacing`, `borderRadius`, `shadows`
 - `formatPrice()`
+- Paleta laranja/amarelo da marca
 
-Observações:
-- A paleta usa laranja/amarelo da marca.
-- A tipografia está definida como tokens, mas não há um sistema global de fonte Inter ligado no app.
+## 6. Componentes UI
 
-### 4.2 Componentes UI
+[src/components/ui/](src/components/ui/):
+- `Button.tsx` — primary/secondary/ghost, loading, disabled
+- `RestaurantCard.tsx` — card de restaurante
+- `ProductCard.tsx` — produtos normais e destacados
+- `Header.tsx` — localização, carrinho, avatar, back, notificações
+- `CategoryCard.tsx` / `CategoryIcon.tsx`
+- `SplashScreen.tsx` — splash animado
+- `ConfirmDialog.tsx` — modal de confirmação
+- `NotificationBell.tsx` — sino com badge
+- `ChatBadge.tsx` — chat com badge
+- `TrackingMap.tsx` — mapa real (native) + fallback web
+- `TrackingMap.web.tsx` — mapa simulado para web
+- `Input.tsx` — input com ícone tipado
+- `SearchBar.tsx` — barra de pesquisa
 
-Os componentes UI existentes estão em [src/components/ui/](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui).
+## 7. Store (Redux)
 
-Componentes reais:
-- [Button.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/Button.tsx)
-- [RestaurantCard.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/RestaurantCard.tsx)
-- [ProductCard.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/ProductCard.tsx)
-- [Header.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/Header.tsx)
-- [CategoryCard.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/CategoryCard.tsx)
-- [CategoryIcon.tsx](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/CategoryIcon.tsx)
-- [index.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/components/ui/index.ts)
+[src/store/index.ts](src/store/index.ts):
+- `auth` — sessão demo
+- `cart` — carrinho global
+- `orders` — pedidos com mock data
+- `notifications` — notificações
+- `chat` — mensagens
+- `ratings` — avaliações
+- `promotions` — cupons e promoções
+- `apiSlice` — RTK Query
 
-O que estes componentes fazem hoje:
-- `Button`: variantes `primary`, `secondary` e `ghost`, com `loading`, `disabled` e tamanhos.
-- `RestaurantCard`: card de restaurante com imagem, rating, entrega e favorito.
-- `ProductCard`: versão normal e versão destacada para produtos.
-- `Header`: localização, carrinho e avatar, com suporte a voltar.
-- `CategoryCard` e `CategoryIcon`: cartões e ícones de categoria.
+## 8. Serviços
 
-### 4.3 Serviços
+- `src/services/api.ts` — Axios com interceptors
+- `src/services/sentry.ts` — Sentry com DSN placeholder
+- `src/services/demoAuth.ts` — Auth demo com roles
+- `src/services/favorites.ts` — Favoritos com AsyncStorage
+- `src/services/notifications.ts` / `.web.ts` — Notificações push
+- `src/services/location.ts` — Geolocalização e coordenadas
 
-O ficheiro [src/services/api.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/services/api.ts) contém:
-- instância Axios com `timeout: 30000`
-- interceptor de request que injeta `Bearer token` a partir do `AsyncStorage`
-- interceptor de response que limpa `authToken` e `user` em `401`
-- `authApi`
-- `restaurantApi`
-- `orderApi`
-- `userApi`
-- `deliveryApi`
+## 9. Hooks
 
-O ficheiro [src/services/sentry.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/services/sentry.ts) existe e inicializa Sentry com um DSN placeholder.
+- `src/hooks/useTheme.tsx` — tema com dark mode, persistência
+- `src/hooks/useApi.ts` — hooks RTK Query
 
-### 4.4 Hooks
+## 10. Telas do Entregador
 
-A abordagem prevista para o frontend é usar **RTK Query** dentro do ecossistema Redux Toolkit.
+- Dashboard com earnings preview
+- Delivery detail com timeline
+- Chat com cliente
+- Perfil com toggle de localização
+- Histórico com filtros
+- Ganhos com períodos
 
-Estrutura esperada:
-- `src/services/apiSlice.ts` ou equivalente, com `createApi`
-- `baseQuery` com Axios ou `fetchBaseQuery`
-- endpoints por domínio:
-  - `auth`
-  - `restaurants`
-  - `orders`
-  - `users`
-  - `delivery`
-- hooks gerados automaticamente pelo RTK Query, por exemplo:
-  - `useLoginMutation`
-  - `useGetRestaurantsQuery`
-  - `useGetRestaurantByIdQuery`
-  - `useGetRestaurantProductsQuery`
-  - `useGetOrdersQuery`
-  - `useCreateOrderMutation`
-  - `useGetAddressesQuery`
-  - `useAddAddressMutation`
-  - `useUpdateProfileMutation`
+## 11. Telas do Cliente
 
-Nesta fase, a base de RTK Query já está ligada ao store e os hooks estão exportados em [src/hooks/useApi.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/hooks/useApi.ts).
-As telas do app ainda usam mocks locais em várias áreas, porque o backend não existe.
+- Home com promoções, categorias, restaurantes
+- Restaurantes com filtros
+- Restaurante com menu, reviews, avaliações
+- Carrinho global
+- Checkout com cupons
+- Rastreamento com mapa real
+- Chat com entregador
+- Pedidos com avaliação
+- Perfil
+- Endereços
+- Notificações
 
-### 4.5 Store E Tipos
-
-O store actual está em [src/store/index.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/store/index.ts).
-
-Estado real:
-- o `configureStore()` existe
-- existe slice `auth` para a sessão demo
-- existe slice `cart` com estado global do carrinho
-- `apiSlice` está registado no store
-- ainda não há slice real de `location`
-
-Os tipos base estão em [src/types/index.ts](/home/niltoncosta/Documentos/Projetos/Milvendas/Pede%20Já/pedeja-mobile/src/types/index.ts):
-- `User`
-- `Address`
-- `Restaurant`
-- `Category`
-- `Product`
-- `CartItem`
-- `Order`
-- `AuthResponse`
-- `ApiError`
-
-## 5. Estrutura de Ficheiros Real
+## 12. Estrutura de Ficheiros Real
 
 ```text
 pedeja-mobile/
 ├── app/
-│   ├── _layout.tsx            ✅ existe
+│   ├── _layout.tsx            ✅ root layout com auth, tema, notificações
 │   ├── +html.tsx              ✅ existe
 │   ├── +not-found.tsx         ✅ existe
-│   ├── modal.tsx              ✅ existe
 │   ├── (auth)/
 │   │   ├── _layout.tsx        ✅ existe
-│   │   └── login.tsx          ✅ existe
+│   │   ├── login.tsx          ✅ existe
+│   │   ├── register.tsx       ✅ existe
+│   │   ├── onboarding.tsx     ✅ existe
+│   │   ├── profile-select.tsx ✅ existe
+│   │   └── order-success.tsx  ✅ existe
 │   ├── (delivery)/
 │   │   ├── _layout.tsx        ✅ existe
-│   │   ├── delivery.tsx       ✅ existe
-│   │   └── index.tsx          ✅ existe
+│   │   ├── index.tsx          ✅ dashboard
+│   │   ├── delivery-detail.tsx✅ existe
+│   │   ├── perfil.tsx         ✅ existe
+│   │   ├── historico.tsx      ✅ existe
+│   │   ├── ganhos.tsx         ✅ existe
+│   │   └── chat.tsx           ✅ existe
 │   ├── (tabs)/
 │   │   ├── _layout.tsx        ✅ existe
-│   │   ├── index.tsx          ✅ existe
+│   │   ├── index.tsx          ✅ home com promoções
 │   │   ├── restaurantes.tsx   ✅ existe
-│   │   └── rastreamento.tsx   ✅ existe
+│   │   └── rastreamento.tsx   ✅ mapa real + chat
 │   ├── carrinho.tsx           ✅ existe
+│   ├── checkout.tsx           ✅ com cupons
+│   ├── restaurante.tsx        ✅ com reviews
 │   ├── endereco.tsx           ✅ existe
 │   ├── perfil.tsx             ✅ existe
-│   └── restaurante.tsx        ✅ existe
+│   ├── pedidos.tsx            ✅ com avaliação
+│   ├── search.tsx             ✅ existe
+│   ├── payment-methods.tsx    ✅ existe
+│   ├── notifications.tsx      ✅ existe
+│   ├── chat.tsx               ✅ existe
+│   ├── avaliacao.tsx          ✅ existe
+│   └── promocoes.tsx          ✅ existe
 ├── src/
 │   ├── components/ui/
 │   │   ├── Button.tsx         ✅ existe
+│   │   ├── RestaurantCard.tsx ✅ existe
+│   │   ├── ProductCard.tsx    ✅ existe
+│   │   ├── Header.tsx         ✅ existe
 │   │   ├── CategoryCard.tsx   ✅ existe
 │   │   ├── CategoryIcon.tsx   ✅ existe
-│   │   ├── Header.tsx         ✅ existe
-│   │   ├── ProductCard.tsx    ✅ existe
-│   │   ├── RestaurantCard.tsx ✅ existe
-│   │   └── index.ts           ✅ existe
-│   ├── hooks/
-│   │   └── useApi.ts          ✅ existe
+│   │   ├── SplashScreen.tsx   ✅ existe
+│   │   ├── ConfirmDialog.tsx  ✅ existe
+│   │   ├── NotificationBell.tsx ✅ existe
+│   │   ├── ChatBadge.tsx      ✅ existe
+│   │   ├── TrackingMap.tsx    ✅ existe
+│   │   ├── TrackingMap.web.tsx ✅ existe
+│   │   ├── Input.tsx          ✅ existe
+│   │   └── SearchBar.tsx      ✅ existe
 │   ├── services/
 │   │   ├── api.ts             ✅ existe
-│   │   └── sentry.ts          ✅ existe
+│   │   ├── sentry.ts          ✅ existe
+│   │   ├── demoAuth.ts        ✅ existe
+│   │   ├── favorites.ts       ✅ existe
+│   │   ├── notifications.ts   ✅ existe
+│   │   ├── notifications.web.ts ✅ existe
+│   │   └── location.ts        ✅ existe
 │   ├── store/
-│   │   ├── cartSlice.ts       ✅ existe
+│   │   ├── index.ts           ✅ existe
 │   │   ├── authSlice.ts       ✅ existe
-│   │   └── index.ts           ✅ existe
+│   │   ├── cartSlice.ts       ✅ existe
+│   │   ├── ordersSlice.ts     ✅ existe
+│   │   ├── notificationsSlice.ts ✅ existe
+│   │   ├── chatSlice.ts       ✅ existe
+│   │   ├── ratingsSlice.ts    ✅ existe
+│   │   └── promotionsSlice.ts ✅ existe
 │   ├── theme/
 │   │   └── index.ts           ✅ existe
+│   ├── hooks/
+│   │   ├── useTheme.tsx       ✅ existe
+│   │   └── useApi.ts          ✅ existe
 │   └── types/
 │       └── index.ts           ✅ existe
 ├── app.json                   ✅ existe
@@ -251,112 +340,43 @@ pedeja-mobile/
 └── tsconfig.json              ✅ existe
 ```
 
-## 6. O Que Ainda Falta
-
-Isto é backlog real, não implementação actual.
-
-### Auth / Conta
-- [x] login demo local com seleção de `client` ou `delivery`
-- [x] redirecionamento por papel após autenticação
-- [x] logout demo com limpeza de sessão local
-- [x] `register.tsx`
-- [ ] `profile-select.tsx`
-- [ ] autenticação JWT ligada ao fluxo de UI
-- [ ] logout real com limpeza de estado
-
-### Cliente
-- [x] Home / descoberta de restaurantes
-- [x] pesquisa de restaurantes e pratos
-- [x] perfil
-- [x] gestão de endereços
-- [x] carrinho base
-- [x] detalhe do restaurante base
-- [x] checkout base
-- [x] tracking base na navegação principal
-- [x] favoritos persistidos na Home e em Restaurantes
-- [x] ecrã de pedidos/histórico dedicado
-- [x] carrinho com estado global
-- [x] ecrã de pesquisa dedicado
-- [x] método de pagamento
-- [x] checkout completo
-
-### Restaurante / Carrinho
-- [x] telas base de restaurante e carrinho existem
-- [x] navegação entre Home, restaurantes, restaurante, carrinho e endereço
-- [x] checkout base com confirmação
-- [ ] dados reais vindos do backend
-- [ ] detalhe do restaurante com menu dinâmico
-- [x] carrinho com estado global
-- [x] cálculo de totais e taxas
-- [x] confirmação de pedido
-
-### Tracking
-- [x] tela de tracking existe na navegação principal
-- [ ] tracking com dados reais do pedido
-- [ ] polling ou realtime ligado ao backend
-- [ ] mapa real de entrega com geolocalização
-- [ ] serviço de mapas/localização para acompanhar a posição do entregador
-- [ ] stack sugerida: `expo-location` para obter localização e permissões, `react-native-maps` para renderizar o mapa e marcadores, e backend para enviar a posição do entregador em tempo real ou quase em tempo real
-
-### Entregador
-- [x] grupo `app/(delivery)`
-- [x] dashboard do entregador
-- [x] lista de entregas disponíveis
-- [x] ganhos do entregador
-
-### Separação Por Perfil
-- [x] o cliente não vê as telas do entregador
-- [x] o entregador não vê as telas do cliente
-- [x] a navegação inicial encaminha cada utilizador para o seu fluxo após autenticação/seleção de perfil
-- [x] os componentes e estados podem ser partilhados, mas as rotas são distintas por papel
-
-### Rotas Esperadas Por Perfil
-
-#### Cliente
-- [x] Home / descoberta de restaurantes
-- [x] pesquisa de restaurantes e pratos
-- [x] detalhe do restaurante
-- [x] carrinho
-- [ ] checkout
-- [ ] acompanhamento de pedido com mapa e geolocalização
-- [x] perfil
-- [x] gestão de endereços
-- [x] tracking do pedido com estado base e navegação
-
-#### Entregador
-- [x] dashboard de entregas
-- [x] lista de entregas disponíveis
-- [ ] detalhe de entrega
-- [ ] mapa/rota
-- [ ] ganhos
-- [ ] histórico de entregas
-- [ ] perfil do entregador
-- [ ] mapa de rota com geolocalização, posição actual e navegação até ao destino
-
-### Onde A Stack Entra
-
-- **Cliente**: `expo-location` pode ser usado para obter permissões e localização actual do utilizador quando isso for necessário para checkout, endereço ou tracking. `react-native-maps` deve apresentar o mapa de acompanhamento do pedido com o marcador do entregador.
-- **Entregador**: `expo-location` deve fornecer a posição actual do entregador. `react-native-maps` deve exibir a rota, o destino e os marcadores relevantes durante a entrega.
-- Esta documentação assume que os dados necessários ao mapa já chegam às telas via API ou mocks, sem detalhar o backend.
+## 13. O Que Ainda Falta (Backlog Futuro)
 
 ### Infra e Qualidade
-- [x] `Redux` com slice de auth/demo e store ligado
-- [x] integração do `Provider` do Redux
-- [x] integração de RTK Query
-- [x] integração do `Sentry` no root
-- [ ] testes
-- [ ] push notifications
-- [ ] integração de serviço de geolocalização/mapas para tracking de pedidos
-- [ ] alternativa de mapa: Google Maps ou Mapbox, caso a equipa prefira um provedor externo em vez de apenas o mapa nativo
+- [ ] Testes unitários e de integração
+- [ ] Push notifications reais (OneSignal ou Firebase)
+- [ ] Integração com backend real
+- [ ] Refresh tokens JWT
+- [ ] Offline support / caching
+- [ ] Deep linking
+- [ ] Analytics (Firebase/Amplitude)
 
-## 7. Nota Sobre O Documento Antigo
+### Funcionalidades Futuras
+- [ ] Sistema de cashback
+- [ ] Programa de fidelidade
+- [ ] Split de conta
+- [ ] Agendamento de pedidos
+- [ ] Assinaturas (ex: marmita semanal)
+- [ ] Multi-restaurante no mesmo pedido
+- [ ] Recomendações com ML
+- [ ] Real-time updates via WebSocket
+- [ ] Mapa com rota otimizada (Directions API)
+- [ ] Reconhecimento de voz para pedidos
 
-As versões anteriores deste ficheiro descreviam uma arquitectura-alvo mais avançada:
-- `app/(client)` e `app/(delivery)`
-- `register.tsx` e `profile-select.tsx`
-- `Input.tsx`, `SearchBar.tsx` e `Badge.tsx`
-- slices Redux completos
-- integração de React Query no root
-- separação explícita de rotas por perfil de utilizador
+## 14. Notas Técnicas
 
-Isso não corresponde ao código actual. Este documento foi ajustado para reflectir o repositório real, não o plano desejado.
+### Web vs Native
+O app suporta execução na web através do Expo Web, com fallbacks para:
+- `TrackingMap.web.tsx` — mapa simulado (não usa react-native-maps)
+- `notifications.web.ts` — stubs no-op (não usa expo-notifications)
+- `expo-location` retorna coordenadas mock na web
+
+### Tema
+- Tema claro por padrão
+- Persistência via AsyncStorage
+- Todas as telas usam `useTheme()` + `useMemo(() => StyleSheet.create(...), [colors])`
+
+### TypeScript
+- `npx tsc --noEmit` passa sem erros
+- Tipos strict habilitados
+- Alias `@/*` e `src/*` configurados

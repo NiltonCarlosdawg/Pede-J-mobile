@@ -19,6 +19,7 @@ import {
 } from "../../src/services/favorites";
 import { useAppSelector } from "../../src/store";
 import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSlice";
+import { selectActivePromotions } from "../../src/store/promotionsSlice";
 import { borderRadius, formatPrice, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
@@ -113,11 +114,12 @@ export default function HomeScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const activePromotions = useAppSelector(selectActivePromotions);
   const { colors } = useTheme();
 
   const firstName = user?.name?.split(" ")[0] ?? "Alexandre";
   const avatarUrl = user?.avatar;
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const styles = StyleSheet.create({
     container: {
@@ -591,6 +593,40 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
         </View>
+
+        {activePromotions.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Promoções ativas</Text>
+              <TouchableOpacity onPress={() => router.push("/promocoes")}>
+                <Text style={styles.sectionLink}>Ver todas</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.offersScroll}
+            >
+              {activePromotions.slice(0, 3).map((promo) => (
+                <TouchableOpacity
+                  key={promo.id}
+                  style={[styles.offerCard, { backgroundColor: colors.primary[100], borderColor: colors.primary[500], borderWidth: 1 }]}
+                  onPress={() => router.push("/restaurantes")}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <MaterialCommunityIcons name="tag" size={14} color={colors.primary[500]} />
+                    <Text style={[styles.offerKicker, { color: colors.primary[500] }]}>{promo.badge}</Text>
+                  </View>
+                  <Text style={styles.offerTitle}>{promo.title}</Text>
+                  <Text style={styles.offerSubtitle}>{promo.description}</Text>
+                  <View style={{ marginTop: 8, backgroundColor: colors.primary[500], paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" }}>
+                    <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{promo.discount}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
