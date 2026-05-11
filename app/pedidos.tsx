@@ -105,6 +105,14 @@ export default function OrdersScreen() {
             <Text style={styles.trackButtonText}>Acompanhar</Text>
           </TouchableOpacity>
         )}
+        {!isActive && order.status === "delivered" && (
+          <TouchableOpacity
+            style={[styles.trackButton, { backgroundColor: themeColors.secondary[500] }]}
+            onPress={() => router.push({ pathname: "/avaliacao", params: { orderId: order.id } })}
+          >
+            <Text style={styles.trackButtonText}>Avaliar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }

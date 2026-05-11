@@ -16,13 +16,12 @@ import { ProductCard } from "../src/components/ui";
 import { spacing, formatPrice } from "../src/theme";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { addItem, selectCartCount, selectCartSubtotal } from "../src/store/cartSlice";
+import { selectAverageRating, selectRatingsByRestaurant, selectRatingCount } from "../src/store/ratingsSlice";
 import { useTheme } from "../src/hooks/useTheme";
 
 const RESTAURANT = {
   name: "Burger Station",
   cuisine: "Hambúrgueres • Americana • Lanches",
-  rating: 4.9,
-  ratingCount: "500+",
   deliveryTime: "30-45 min",
   deliveryFee: "Grátis",
   heroImage:
@@ -159,6 +158,9 @@ export default function RestaurantScreen() {
   const dispatch = useAppDispatch();
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
+  const avgRating = useAppSelector((state: any) => selectAverageRating(state, "rest-001"));
+  const ratingCount = useAppSelector((state: any) => selectRatingCount(state, "rest-001"));
+  const reviews = useAppSelector((state: any) => selectRatingsByRestaurant(state, "rest-001"));
   const { colors } = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
@@ -434,6 +436,86 @@ export default function RestaurantScreen() {
       fontWeight: "800",
       color: colors.secondary[500],
     },
+    ratingSummary: {
+      alignItems: "center",
+      marginBottom: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    ratingBig: {
+      fontSize: 48,
+      fontWeight: "800",
+      color: colors.onSurface,
+    },
+    ratingStars: {
+      flexDirection: "row",
+      gap: 4,
+      marginVertical: spacing.xs,
+    },
+    ratingCount: {
+      fontSize: 14,
+      color: colors.neutral[500],
+    },
+    reviewCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 16,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    reviewHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    reviewAvatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary[100],
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    reviewMeta: {
+      flex: 1,
+    },
+    reviewName: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    reviewStars: {
+      flexDirection: "row",
+      gap: 2,
+      marginTop: 2,
+    },
+    reviewDate: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    reviewComment: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      lineHeight: 20,
+    },
+    reviewTags: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    reviewTagChip: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: colors.primary[100],
+    },
+    reviewTagText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
   }), [colors]);
 
   const menuItems = useMemo(() => {
@@ -532,7 +614,7 @@ export default function RestaurantScreen() {
             <View style={styles.ratingBadge}>
               <MaterialCommunityIcons name="star" size={16} color={colors.secondary[500]} />
               <Text style={styles.ratingText}>
-                {RESTAURANT.rating} ({RESTAURANT.ratingCount})
+                {avgRating.toFixed(1)} ({ratingCount})
               </Text>
             </View>
             <View style={styles.infoItem}>
@@ -622,6 +704,62 @@ export default function RestaurantScreen() {
               </Text>
             </View>
           ) : null}
+
+          {/* Reviews Section */}
+          {reviews.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Avaliações</Text>
+              <View style={styles.ratingSummary}>
+                <Text style={styles.ratingBig}>{avgRating.toFixed(1)}</Text>
+                <View style={styles.ratingStars}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <MaterialCommunityIcons
+                      key={star}
+                      name={star <= Math.round(avgRating) ? "star" : "star-outline"}
+                      size={20}
+                      color={colors.secondary[500]}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.ratingCount}>{ratingCount} avaliações</Text>
+              </View>
+              {reviews.slice(0, 3).map((review) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewAvatar}>
+                      <MaterialCommunityIcons name="account" size={18} color={colors.primary[500]} />
+                    </View>
+                    <View style={styles.reviewMeta}>
+                      <Text style={styles.reviewName}>{review.userName}</Text>
+                      <View style={styles.reviewStars}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <MaterialCommunityIcons
+                            key={star}
+                            name={star <= review.rating ? "star" : "star-outline"}
+                            size={12}
+                            color={colors.secondary[500]}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.timestamp).toLocaleDateString("pt-BR")}
+                    </Text>
+                  </View>
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                  {review.tags.length > 0 && (
+                    <View style={styles.reviewTags}>
+                      {review.tags.map((tag) => (
+                        <View key={tag} style={styles.reviewTagChip}>
+                          <Text style={styles.reviewTagText}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
 
