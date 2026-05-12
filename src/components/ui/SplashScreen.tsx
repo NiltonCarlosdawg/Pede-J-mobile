@@ -5,7 +5,6 @@ import {
     Easing,
     Image,
     StyleSheet,
-    Text,
     View,
 } from "react-native";
 
@@ -22,8 +21,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const textTranslateY = useRef(new Animated.Value(30)).current;
+
   const containerOpacity = useRef(new Animated.Value(1)).current;
   const loadingOpacity = useRef(new Animated.Value(0)).current;
 
@@ -50,23 +48,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
           useNativeDriver: true,
         }),
       ]),
-      // Delay antes de mostrar o texto
-      Animated.delay(300),
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 600,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(textTranslateY, {
-          toValue: 0,
-          duration: 600,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(200),
+      Animated.delay(500),
       Animated.timing(loadingOpacity, {
         toValue: 1,
         duration: 400,
@@ -157,19 +139,6 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
             />
           </Animated.View>
         </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.textContainer,
-            {
-              opacity: textOpacity,
-              transform: [{ translateY: textTranslateY }],
-            },
-          ]}
-        >
-          <Text style={styles.title}>PedeJá</Text>
-          <Text style={styles.subtitle}>Comida deliciosa, entrega rápida</Text>
-        </Animated.View>
       </View>
 
       <Animated.View style={[styles.footer, { opacity: loadingOpacity }]}>
@@ -202,25 +171,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   logoImage: {
-    width: 180,
-    height: 180,
+    width: 260,
+    height: 260,
     borderRadius: 40,
-  },
-  textContainer: {
-    alignItems: "center",
-    marginTop: spacing.md,
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: "800",
-    color: colors.onSurface,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    marginTop: spacing.sm,
-    letterSpacing: 0.3,
   },
   footer: {
     position: "absolute",

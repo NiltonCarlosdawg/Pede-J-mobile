@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type ChatParticipant = "client" | "delivery" | "system";
 
@@ -105,11 +105,18 @@ export const { sendMessage, markMessagesAsRead, addSystemMessage, clearChat } =
 
 export const chatReducer = chatSlice.reducer;
 
-export const selectMessagesByOrder = (state: { chat: ChatState }, orderId: string) =>
-  state.chat.messages.filter((m) => m.orderId === orderId);
+const selectChatMessages = (state: { chat: ChatState }) => state.chat.messages;
 
-export const selectUnreadMessages = (state: { chat: ChatState }, orderId: string) =>
-  state.chat.messages.filter((m) => m.orderId === orderId && !m.read && m.sender !== "client");
+export const selectMessagesByOrder = createSelector(
+  [selectChatMessages, (state: { chat: ChatState }, orderId: string) => orderId],
+  (messages, orderId) => messages.filter((m) => m.orderId === orderId)
+);
+
+export const selectUnreadMessages = createSelector(
+  [selectChatMessages, (state: { chat: ChatState }, orderId: string) => orderId],
+  (messages, orderId) =>
+    messages.filter((m) => m.orderId === orderId && !m.read && m.sender !== "client")
+);
 
 export const selectActiveChats = (state: { chat: ChatState }) => state.chat.activeChats;
 

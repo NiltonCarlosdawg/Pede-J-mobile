@@ -120,7 +120,7 @@ function RootLayoutNavContent() {
       return;
     }
 
-    const target = role === "delivery" ? "/(delivery)/delivery" : "/(tabs)";
+    const target = role === "delivery" ? "/(delivery)" : "/(tabs)";
     router.replace(target as never);
   }, [isAuthenticated, role]);
 
@@ -173,7 +173,7 @@ function RootLayoutNavContent() {
         <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="delivery" options={{ headerShown: false }} />
+        <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
     </NavigationThemeProvider>

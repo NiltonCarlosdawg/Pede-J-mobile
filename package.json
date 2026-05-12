@@ -4,9 +4,18 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "dev:build:android": "npx eas build --profile development --platform android",
+    "dev:build:ios": "npx eas build --profile development --platform ios",
+    "dev:build:android:sim": "npx eas build --profile development-simulator --platform android",
+    "dev:build:ios:sim": "npx eas build --profile development-simulator --platform ios",
+    "eas:login": "npx eas login",
+    "eas:init": "npx eas init",
+    "dev:prebuild": "expo prebuild",
+    "dev:run:android": "expo run:android",
+    "dev:run:ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -18,6 +27,7 @@
     "axios": "^1.16.0",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
+    "expo-dev-client": "~6.0.21",
     "expo-font": "~14.0.11",
     "expo-linking": "~8.0.11",
     "expo-location": "~19.0.8",
@@ -42,6 +52,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "eas-cli": "^18.12.1",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },

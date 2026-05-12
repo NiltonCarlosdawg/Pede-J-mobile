@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "pedej-mobile",
-    "slug": "pedej-mobile",
+    "slug": "pede-ja",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pedejmobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -18,7 +18,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "O PedeJá precisa da sua localização para mostrar o mapa e calcular rotas de entrega.",
         "NSLocationAlwaysUsageDescription": "O PedeJá precisa da sua localização em segundo plano para acompanhar entregas em tempo real."
-      }
+      },
+      "bundleIdentifier": "com.iamcarlos182.pedejmobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +31,8 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "package": "com.iamcarlos182.pedejmobile"
     },
     "web": {
       "bundler": "metro",
@@ -38,11 +40,17 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "@sentry/react-native"
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f73490d-2210-47f2-b029-e08117e8a13f"
+      }
+    },
+    "owner": "iamcarlos182s-organization"
   }
 }

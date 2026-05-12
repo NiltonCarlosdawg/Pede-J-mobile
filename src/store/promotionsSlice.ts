@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface Coupon {
   id: string;
@@ -149,18 +149,24 @@ export const promotionsReducer = promotionsSlice.reducer;
 export const selectCoupons = (state: { promotions: PromotionsState }) =>
   state.promotions.coupons;
 
-export const selectActiveCoupons = (state: { promotions: PromotionsState }) =>
-  state.promotions.coupons.filter(
-    (c) => c.isActive && new Date(c.expiresAt) > new Date()
-  );
+export const selectActiveCoupons = createSelector(
+  [selectCoupons],
+  (coupons) =>
+    coupons.filter(
+      (c) => c.isActive && new Date(c.expiresAt) > new Date()
+    )
+);
 
 export const selectPromotions = (state: { promotions: PromotionsState }) =>
   state.promotions.promotions;
 
-export const selectActivePromotions = (state: { promotions: PromotionsState }) =>
-  state.promotions.promotions.filter(
-    (p) => p.isActive && new Date(p.expiresAt) > new Date()
-  );
+export const selectActivePromotions = createSelector(
+  [selectPromotions],
+  (promotions) =>
+    promotions.filter(
+      (p) => p.isActive && new Date(p.expiresAt) > new Date()
+    )
+);
 
 export const selectAppliedCoupon = (state: { promotions: PromotionsState }) =>
   state.promotions.appliedCoupon;

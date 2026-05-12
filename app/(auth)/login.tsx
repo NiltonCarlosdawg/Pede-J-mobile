@@ -67,15 +67,10 @@ export default function LoginScreen() {
       marginBottom: spacing.md,
     },
     logo: {
-      width: 80,
-      height: 80,
-      marginBottom: spacing.md,
-    },
-    appName: {
-      fontSize: 28,
-      fontWeight: "800",
-      color: colors.onSurface,
-      letterSpacing: -0.5,
+      width: 200,
+      height: 200,
+      marginTop: -spacing.md,
+      marginBottom: -spacing.md,
     },
     tagline: {
       fontSize: 14,
@@ -265,7 +260,6 @@ export default function LoginScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.appName}>PedeJá</Text>
             <Text style={styles.tagline}>Entre e aproveite</Text>
           </View>
 

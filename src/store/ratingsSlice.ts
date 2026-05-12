@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface Rating {
   id: string;
@@ -77,17 +77,26 @@ const ratingsSlice = createSlice({
 export const { addRating, removeRating } = ratingsSlice.actions;
 export const ratingsReducer = ratingsSlice.reducer;
 
-export const selectRatingsByRestaurant = (state: { ratings: RatingsState }, restaurantId: string) =>
-  state.ratings.ratings.filter((r) => r.restaurantId === restaurantId);
+const selectAllRatings = (state: { ratings: RatingsState }) => state.ratings.ratings;
 
-export const selectAverageRating = (state: { ratings: RatingsState }, restaurantId: string) => {
-  const ratings = state.ratings.ratings.filter((r) => r.restaurantId === restaurantId);
-  if (ratings.length === 0) return 0;
-  return ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-};
+export const selectRatingsByRestaurant = createSelector(
+  [selectAllRatings, (state: { ratings: RatingsState }, restaurantId: string) => restaurantId],
+  (ratings, restaurantId) => ratings.filter((r) => r.restaurantId === restaurantId)
+);
 
-export const selectRatingCount = (state: { ratings: RatingsState }, restaurantId: string) =>
-  state.ratings.ratings.filter((r) => r.restaurantId === restaurantId).length;
+export const selectAverageRating = createSelector(
+  [selectAllRatings, (state: { ratings: RatingsState }, restaurantId: string) => restaurantId],
+  (ratings, restaurantId) => {
+    const filtered = ratings.filter((r) => r.restaurantId === restaurantId);
+    if (filtered.length === 0) return 0;
+    return filtered.reduce((sum, r) => sum + r.rating, 0) / filtered.length;
+  }
+);
+
+export const selectRatingCount = createSelector(
+  [selectAllRatings, (state: { ratings: RatingsState }, restaurantId: string) => restaurantId],
+  (ratings, restaurantId) => ratings.filter((r) => r.restaurantId === restaurantId).length
+);
 
 export const selectRatingByOrder = (state: { ratings: RatingsState }, orderId: string) =>
   state.ratings.ratings.find((r) => r.orderId === orderId);
