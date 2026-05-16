@@ -228,7 +228,7 @@ export default function DeliveryDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Detalhe da Entrega" showBack />
+      <Header title="Detalhe da Entrega" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {/* Status Timeline */}

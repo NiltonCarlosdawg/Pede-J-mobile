@@ -143,7 +143,7 @@ export default function DeliveryHistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Histórico de Entregas" showBack />
+      <Header title="Histórico de Entregas" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {/* Filters */}

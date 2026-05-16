@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../../theme';
+import { spacing } from '../../theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ProductCardProps {
   title: string;
@@ -24,6 +25,147 @@ export function ProductCard({
   onAdd,
   isAvailable = true 
 }: ProductCardProps) {
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    card: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 12,
+      padding: spacing.md,
+      flexDirection: 'row',
+      gap: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.surfaceContainer,
+    },
+    content: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    textContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    imageContainer: {
+      width: 100,
+      height: 100,
+      borderRadius: 8,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.onSurface,
+    },
+    description: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    price: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.secondary[500],
+    },
+    addButtonSmall: {
+      position: 'absolute',
+      bottom: -8,
+      right: -8,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary[500],
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.surfaceContainerLowest,
+    },
+    featuredCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 12,
+      overflow: 'hidden',
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderColor: colors.surfaceContainer,
+    },
+    featuredImageContainer: {
+      width: '50%',
+      height: 180,
+      position: 'relative',
+    },
+    featuredImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    featuredContent: {
+      flex: 1,
+      padding: spacing.md,
+      justifyContent: 'space-between',
+    },
+    featuredTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+    featuredDescription: {
+      fontSize: 14,
+      color: colors.neutral[500],
+      marginTop: spacing.sm,
+    },
+    badge: {
+      position: 'absolute',
+      top: spacing.sm,
+      left: spacing.sm,
+      backgroundColor: colors.secondary[500],
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 6,
+    },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.surfaceContainerLowest,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: spacing.lg,
+    },
+    featuredPrice: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.secondary[500],
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.primary[500],
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
+    },
+    addButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.white,
+    },
+    disabled: {
+      opacity: 0.6,
+    },
+    soldOut: {
+      fontSize: 14,
+      color: colors.neutral[500],
+    },
+  }), [colors]);
+
   if (isFeatured) {
     return (
       <TouchableOpacity style={[styles.featuredCard, !isAvailable && styles.disabled]}>
@@ -80,142 +222,3 @@ export function ProductCard({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: 12,
-    padding: spacing.md,
-    flexDirection: 'row',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceContainer,
-  },
-  content: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  textContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  imageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.onSurface,
-  },
-  description: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.secondary[500],
-  },
-  addButtonSmall: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.surfaceContainerLowest,
-  },
-  featuredCard: {
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: 12,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: colors.surfaceContainer,
-  },
-  featuredImageContainer: {
-    width: '50%',
-    height: 180,
-    position: 'relative',
-  },
-  featuredImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  featuredContent: {
-    flex: 1,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-  },
-  featuredTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.onSurface,
-  },
-  featuredDescription: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing.sm,
-  },
-  badge: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    backgroundColor: colors.secondary[500],
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.surfaceContainerLowest,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-  },
-  featuredPrice: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.secondary[500],
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  soldOut: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-});

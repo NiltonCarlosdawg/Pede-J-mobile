@@ -315,7 +315,7 @@ export default function DeliveryProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Meu Perfil" showBack />
+      <Header title="Meu Perfil" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {/* Profile Header */}

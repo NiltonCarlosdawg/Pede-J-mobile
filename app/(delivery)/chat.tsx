@@ -295,6 +295,7 @@ export default function DeliveryChatScreen() {
         title={`Chat - Pedido #${orderNumber}`}
         showBack
         showNotifications={false}
+        showCart={false}
       />
 
       <KeyboardAvoidingView

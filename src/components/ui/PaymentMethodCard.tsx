@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { borderRadius, colors, spacing } from '../../theme';
+import { borderRadius, spacing } from '../../theme';
+import { useTheme } from '../../hooks/useTheme';
 import type { PaymentMethod } from '../../types';
 
 interface PaymentMethodCardProps {
@@ -19,6 +20,92 @@ export function PaymentMethodCard({
   onDelete,
   isSelected = false,
 }: PaymentMethodCardProps) {
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 2,
+      borderColor: colors.neutral[200],
+      alignItems: 'center',
+    },
+    containerSelected: {
+      borderColor: colors.primary[500],
+      backgroundColor: colors.primary[50],
+    },
+    content: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    iconContainer: {
+      width: 50,
+      height: 50,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary[100],
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconContainerSelected: {
+      backgroundColor: colors.primary[500],
+    },
+    details: {
+      flex: 1,
+    },
+    methodType: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.neutral[900],
+      marginBottom: spacing.xs / 2,
+    },
+    cardHolder: {
+      fontSize: 13,
+      color: colors.neutral[600],
+      marginBottom: spacing.xs / 2,
+    },
+    cardNumber: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.neutral[700],
+      marginBottom: spacing.xs / 2,
+    },
+    expiryDate: {
+      fontSize: 12,
+      color: colors.neutral[500],
+    },
+    defaultBadge: {
+      backgroundColor: colors.primary[100],
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs / 2,
+      borderRadius: borderRadius.full,
+      marginLeft: spacing.sm,
+    },
+    defaultText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primary[700],
+      textTransform: 'uppercase',
+    },
+    checkmark: {
+      marginLeft: spacing.sm,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginLeft: spacing.md,
+    },
+    actionButton: {
+      padding: spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  }), [colors]);
+
   const getIcon = () => {
     switch (method.type) {
       case 'credit_card':
@@ -141,87 +228,3 @@ export function PaymentMethodCard({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    alignItems: 'center',
-  },
-  containerSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50] || colors.neutral[50],
-  },
-  content: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconContainerSelected: {
-    backgroundColor: colors.primary[500],
-  },
-  details: {
-    flex: 1,
-  },
-  methodType: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing.xs / 2,
-  },
-  cardHolder: {
-    fontSize: 13,
-    color: colors.neutral[600],
-    marginBottom: spacing.xs / 2,
-  },
-  cardNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing.xs / 2,
-  },
-  expiryDate: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  defaultBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: borderRadius.full,
-    marginLeft: spacing.sm,
-  },
-  defaultText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary[700],
-    textTransform: 'uppercase',
-  },
-  checkmark: {
-    marginLeft: spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginLeft: spacing.md,
-  },
-  actionButton: {
-    padding: spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

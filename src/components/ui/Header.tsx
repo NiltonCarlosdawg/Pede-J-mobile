@@ -20,6 +20,7 @@ interface HeaderProps {
   avatarUrl?: string;
   onBackPress?: () => void;
   showNotifications?: boolean;
+  showCart?: boolean;
 }
 
 export function Header({ 
@@ -35,6 +36,7 @@ export function Header({
   avatarUrl,
   onBackPress,
   showNotifications = true,
+  showCart = true,
 }: HeaderProps) {
   const router = useRouter() as any;
   const insets = useSafeAreaInsets();
@@ -81,21 +83,23 @@ export function Header({
       <View style={styles.rightSection}>
         {showNotifications && <NotificationBell />}
         
-        <TouchableOpacity 
-          style={styles.cartIconButton}
-          onPress={() => router.push('/carrinho')}
-        >
-          <MaterialCommunityIcons 
-            name="cart" 
-            size={24} 
-            color={colors.primary[500]} 
-          />
-          {cartItems > 0 && (
-            <View style={[styles.cartDot, { backgroundColor: colors.primary[500] }]}>
-              <Text style={[styles.cartDotText, { color: colors.white }]}>{cartItems}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {showCart && (
+          <TouchableOpacity 
+            style={styles.cartIconButton}
+            onPress={() => router.push('/carrinho')}
+          >
+            <MaterialCommunityIcons 
+              name="cart" 
+              size={24} 
+              color={colors.primary[500]} 
+            />
+            {cartItems > 0 && (
+              <View style={[styles.cartDot, { backgroundColor: colors.primary[500] }]}>
+                <Text style={[styles.cartDotText, { color: colors.white }]}>{cartItems}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
         
         {showAvatar ? (
           <TouchableOpacity

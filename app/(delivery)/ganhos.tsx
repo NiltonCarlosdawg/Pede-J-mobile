@@ -102,7 +102,7 @@ export default function EarningsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Meus Ganhos" showBack />
+      <Header title="Meus Ganhos" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {/* Period Selector */}
