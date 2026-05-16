@@ -1,9 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     FlatList,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -18,9 +17,9 @@ import {
     toggleFavoriteRestaurant,
 } from "../../src/services/favorites";
 import { useAppSelector } from "../../src/store";
-import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSlice";
+import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSelectors";
 import { selectActivePromotions } from "../../src/store/promotionsSlice";
-import { borderRadius, formatPrice, spacing } from "../../src/theme";
+import { borderRadius, formatPrice, spacing, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
 const CATEGORIES = [
@@ -148,8 +147,7 @@ export default function HomeScreen() {
       marginRight: spacing.sm,
     },
     kicker: {
-      fontSize: 14,
-      fontWeight: "600",
+      ...typography.labelLg,
       color: colors.neutral[700],
       marginBottom: 4,
     },
@@ -163,8 +161,7 @@ export default function HomeScreen() {
       gap: 4,
     },
     heroBadgeText: {
-      fontSize: 12,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.primary[500],
     },
     heroStatsRow: {
@@ -180,12 +177,11 @@ export default function HomeScreen() {
       alignItems: "center",
     },
     heroStatValue: {
-      fontSize: 20,
-      fontWeight: "800",
+      ...typography.h3,
       color: colors.primary[500],
     },
     heroStatLabel: {
-      fontSize: 10,
+      ...typography.labelCaps,
       color: colors.neutral[500],
       marginTop: 2,
     },
@@ -200,7 +196,7 @@ export default function HomeScreen() {
     },
     searchHint: {
       flex: 1,
-      fontSize: 16,
+      ...typography.bodyMd,
       color: colors.neutral[500],
       marginLeft: spacing.sm,
     },
@@ -208,8 +204,7 @@ export default function HomeScreen() {
       marginBottom: spacing.lg,
     },
     sectionLink: {
-      fontSize: 14,
-      fontWeight: "600",
+      ...typography.labelLg,
       color: colors.primary[500],
     },
     offersScroll: {
@@ -234,8 +229,7 @@ export default function HomeScreen() {
     },
     categoryLabel: {
       marginTop: spacing.xs,
-      fontSize: 12,
-      fontWeight: "600",
+      ...typography.labelCaps,
       color: colors.onSurface,
       textAlign: "center",
     },
@@ -262,12 +256,11 @@ export default function HomeScreen() {
       justifyContent: "center",
     },
     restaurantName: {
-      fontSize: 16,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.onSurface,
     },
     restaurantCuisine: {
-      fontSize: 13,
+      ...typography.bodySm,
       color: colors.neutral[500],
       marginTop: 2,
     },
@@ -278,7 +271,7 @@ export default function HomeScreen() {
       marginTop: 4,
     },
     restaurantRatingText: {
-      fontSize: 13,
+      ...typography.bodySm,
       fontWeight: "600",
       color: colors.onSurface,
     },
@@ -289,7 +282,7 @@ export default function HomeScreen() {
       marginTop: spacing.sm,
     },
     restaurantMetaText: {
-      fontSize: 12,
+      ...typography.bodySm,
       color: colors.neutral[500],
     },
     restaurantDelivery: {
@@ -298,8 +291,7 @@ export default function HomeScreen() {
       gap: 4,
     },
     restaurantDeliveryFee: {
-      fontSize: 12,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.primary[500],
     },
     favoriteButton: {
@@ -320,13 +312,11 @@ export default function HomeScreen() {
       marginBottom: spacing.md,
     },
     sectionTitle: {
-      fontSize: 20,
-      fontWeight: "700",
+      ...typography.h3,
       color: colors.onSurface,
     },
     sectionAction: {
-      fontSize: 14,
-      fontWeight: "600",
+      ...typography.labelLg,
       color: colors.primary[500],
     },
     categoryList: {
@@ -343,8 +333,7 @@ export default function HomeScreen() {
       marginBottom: spacing.xs,
     },
     categoryName: {
-      fontSize: 12,
-      fontWeight: "600",
+      ...typography.labelCaps,
       color: colors.onSurface,
     },
     restaurantList: {
@@ -360,12 +349,11 @@ export default function HomeScreen() {
       width: 200,
     },
     offerTitle: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.onSurface,
     },
     offerSubtitle: {
-      fontSize: 12,
+      ...typography.bodySm,
       color: colors.neutral[500],
       marginTop: 2,
     },
@@ -386,37 +374,33 @@ export default function HomeScreen() {
       flex: 1,
     },
     orderTitle: {
-      fontSize: 14,
-      fontWeight: "600",
+      ...typography.labelLg,
       color: colors.onSurface,
     },
     orderStatus: {
-      fontSize: 12,
+      ...typography.bodySm,
       color: colors.neutral[500],
     },
     orderTotal: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.primary[500],
     },
     heroTitle: {
-      fontSize: 28,
-      fontWeight: "800",
+      ...typography.h1,
       color: colors.onSurface,
       marginBottom: spacing.xs,
     },
     heroSubtitle: {
-      fontSize: 16,
+      ...typography.bodyMd,
       color: colors.neutral[700],
     },
     offerKicker: {
-      fontSize: 10,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.primary[500],
       marginBottom: 4,
     },
     sectionMeta: {
-      fontSize: 12,
+      ...typography.bodySm,
       color: colors.neutral[500],
     },
     categoriesScroll: {
@@ -495,6 +479,212 @@ export default function HomeScreen() {
     setFavoriteIds(nextIds);
   }
 
+  const headerList = useMemo(() => (
+    <View>
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.kicker}>Olá, {firstName}</Text>
+            <Text style={styles.heroTitle}>O que vamos pedir hoje?</Text>
+            <Text style={styles.heroSubtitle}>
+              Seleção demo com restaurantes, ofertas e atalhos prontos para
+              explorar.
+            </Text>
+          </View>
+          <View style={styles.heroBadge}>
+            <MaterialCommunityIcons
+              name="flash"
+              size={22}
+              color={colors.primary[500]}
+            />
+            <Text style={styles.heroBadgeText}>20 min</Text>
+          </View>
+        </View>
+
+        <View style={styles.heroStatsRow}>
+          <TouchableOpacity
+            style={styles.heroStat}
+            onPress={() => router.push("/restaurantes")}
+          >
+            <Text style={styles.heroStatValue}>3</Text>
+            <Text style={styles.heroStatLabel}>Pratos favoritos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.heroStat}
+            onPress={() => router.push("/restaurantes")}
+          >
+            <Text style={styles.heroStatValue}>12</Text>
+            <Text style={styles.heroStatLabel}>Restaurantes perto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.heroStat}
+            onPress={() => router.push("/carrinho")}
+          >
+            <Text style={styles.heroStatValue}>{cartCount}</Text>
+            <Text style={styles.heroStatLabel}>Itens no carrinho</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.searchContainer}
+        onPress={() => router.push("/restaurantes")}
+        activeOpacity={0.9}
+      >
+        <MaterialCommunityIcons
+          name="magnify"
+          size={24}
+          color={colors.neutral[500]}
+        />
+        <Text style={styles.searchHint}>
+          Pratos, restaurantes ou tipos...
+        </Text>
+      </TouchableOpacity>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Ofertas do dia</Text>
+          <TouchableOpacity onPress={() => router.push("/restaurantes")}>
+            <Text style={styles.sectionLink}>Ver restaurantes</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={FEATURED_OFFERS}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.offersScroll}
+          renderItem={({ item: offer }) => (
+            <TouchableOpacity
+              key={offer.id}
+              style={styles.offerCard}
+              onPress={() => router.push("/restaurantes")}
+            >
+              <Text style={styles.offerKicker}>Destaque</Text>
+              <Text style={styles.offerTitle}>{offer.title}</Text>
+              <Text style={styles.offerSubtitle}>{offer.subtitle}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      {activePromotions.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Promoções ativas</Text>
+            <TouchableOpacity onPress={() => router.push("/promocoes")}>
+              <Text style={styles.sectionLink}>Ver todas</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={activePromotions.slice(0, 3)}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.offersScroll}
+            renderItem={({ item: promo }) => (
+              <TouchableOpacity
+                style={[styles.offerCard, { backgroundColor: colors.primary[100], borderColor: colors.primary[500], borderWidth: 1 }]}
+                onPress={() => router.push("/restaurantes")}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <MaterialCommunityIcons name="tag" size={14} color={colors.primary[500]} />
+                  <Text style={[styles.offerKicker, { color: colors.primary[500] }]}>{promo.badge}</Text>
+                </View>
+                <Text style={styles.offerTitle}>{promo.title}</Text>
+                <Text style={styles.offerSubtitle}>{promo.description}</Text>
+                <View style={{ marginTop: 8, backgroundColor: colors.primary[500], paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" }}>
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{promo.discount}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Categorias em alta</Text>
+          <Text style={styles.sectionMeta}>seleção local</Text>
+        </View>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={CATEGORIES}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.categoriesScroll}
+          renderItem={({ item: cat }) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={styles.categoryItem}
+              onPress={() => router.push("/restaurantes")}
+            >
+              <CategoryCard name={cat.name} image={cat.image} />
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Restaurantes próximos</Text>
+          <TouchableOpacity onPress={() => router.push("/restaurantes")}>
+            <Text style={styles.sectionLink}>Ver lista</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={[styles.section, styles.lastSection]}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Pedidos recentes</Text>
+          <TouchableOpacity onPress={() => router.push("/pedidos")}>
+            <Text style={styles.sectionLink}>Ver histórico</Text>
+          </TouchableOpacity>
+        </View>
+
+        {RECENT_ORDERS.map((order) => (
+          <TouchableOpacity
+            key={order.id}
+            style={styles.orderCard}
+            onPress={() => router.push("/pedidos")}
+          >
+            <View style={styles.orderIcon}>
+              <MaterialCommunityIcons
+                name="receipt-text-outline"
+                size={20}
+                color={colors.primary[500]}
+              />
+            </View>
+            <View style={styles.orderContent}>
+              <Text style={styles.orderTitle}>{order.title}</Text>
+              <Text style={styles.orderMeta}>{order.status}</Text>
+            </View>
+            <View style={styles.orderPriceBlock}>
+              <Text style={styles.orderPrice}>{order.total}</Text>
+              <Text style={styles.orderAction}>Repetir</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  ), [styles, colors, firstName, cartCount, activePromotions, router]);
+
+  const renderRestaurantItem = useCallback(({ item }: { item: typeof restaurants[0] }) => (
+    <RestaurantCard
+      title={item.name}
+      subtitle={item.cuisine}
+      image={item.image}
+      rating={item.rating}
+      distance={item.distance}
+      deliveryTime={item.deliveryTime}
+      deliveryFee={item.deliveryFee}
+      favorite={item.favorite}
+      onFavoritePress={() => handleToggleFavorite(item.id)}
+      onPress={() => router.push("/restaurante")}
+    />
+  ), [handleToggleFavorite, router]);
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header
@@ -506,212 +696,18 @@ export default function HomeScreen() {
         avatarUrl={avatarUrl}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        <View style={styles.heroCard}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroTextBlock}>
-              <Text style={styles.kicker}>Olá, {firstName}</Text>
-              <Text style={styles.heroTitle}>O que vamos pedir hoje?</Text>
-              <Text style={styles.heroSubtitle}>
-                Seleção demo com restaurantes, ofertas e atalhos prontos para
-                explorar.
-              </Text>
-            </View>
-            <View style={styles.heroBadge}>
-              <MaterialCommunityIcons
-                name="flash"
-                size={22}
-                color={colors.primary[500]}
-              />
-              <Text style={styles.heroBadgeText}>20 min</Text>
-            </View>
-          </View>
-
-          <View style={styles.heroStatsRow}>
-            <TouchableOpacity
-              style={styles.heroStat}
-              onPress={() => router.push("/restaurantes")}
-            >
-              <Text style={styles.heroStatValue}>3</Text>
-              <Text style={styles.heroStatLabel}>Pratos favoritos</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.heroStat}
-              onPress={() => router.push("/restaurantes")}
-            >
-              <Text style={styles.heroStatValue}>12</Text>
-              <Text style={styles.heroStatLabel}>Restaurantes perto</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.heroStat}
-              onPress={() => router.push("/carrinho")}
-            >
-              <Text style={styles.heroStatValue}>{cartCount}</Text>
-              <Text style={styles.heroStatLabel}>Itens no carrinho</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.searchContainer}
-          onPress={() => router.push("/restaurantes")}
-          activeOpacity={0.9}
-        >
-          <MaterialCommunityIcons
-            name="magnify"
-            size={24}
-            color={colors.neutral[500]}
-          />
-          <Text style={styles.searchHint}>
-            Pratos, restaurantes ou tipos...
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Ofertas do dia</Text>
-            <TouchableOpacity onPress={() => router.push("/restaurantes")}>
-              <Text style={styles.sectionLink}>Ver restaurantes</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.offersScroll}
-          >
-            {FEATURED_OFFERS.map((offer) => (
-              <TouchableOpacity
-                key={offer.id}
-                style={styles.offerCard}
-                onPress={() => router.push("/restaurantes")}
-              >
-                <Text style={styles.offerKicker}>Destaque</Text>
-                <Text style={styles.offerTitle}>{offer.title}</Text>
-                <Text style={styles.offerSubtitle}>{offer.subtitle}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {activePromotions.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Promoções ativas</Text>
-              <TouchableOpacity onPress={() => router.push("/promocoes")}>
-                <Text style={styles.sectionLink}>Ver todas</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.offersScroll}
-            >
-              {activePromotions.slice(0, 3).map((promo) => (
-                <TouchableOpacity
-                  key={promo.id}
-                  style={[styles.offerCard, { backgroundColor: colors.primary[100], borderColor: colors.primary[500], borderWidth: 1 }]}
-                  onPress={() => router.push("/restaurantes")}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                    <MaterialCommunityIcons name="tag" size={14} color={colors.primary[500]} />
-                    <Text style={[styles.offerKicker, { color: colors.primary[500] }]}>{promo.badge}</Text>
-                  </View>
-                  <Text style={styles.offerTitle}>{promo.title}</Text>
-                  <Text style={styles.offerSubtitle}>{promo.description}</Text>
-                  <View style={{ marginTop: 8, backgroundColor: colors.primary[500], paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" }}>
-                    <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{promo.discount}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Categorias em alta</Text>
-            <Text style={styles.sectionMeta}>seleção local</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesScroll}
-          >
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={styles.categoryItem}
-                onPress={() => router.push("/restaurantes")}
-              >
-                <CategoryCard name={cat.name} image={cat.image} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Restaurantes próximos</Text>
-            <TouchableOpacity onPress={() => router.push("/restaurantes")}>
-              <Text style={styles.sectionLink}>Ver lista</Text>
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            data={restaurants}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <RestaurantCard
-                title={item.name}
-                subtitle={item.cuisine}
-                image={item.image}
-                rating={item.rating}
-                distance={item.distance}
-                deliveryTime={item.deliveryTime}
-                deliveryFee={item.deliveryFee}
-                favorite={item.favorite}
-                onFavoritePress={() => handleToggleFavorite(item.id)}
-                onPress={() => router.push("/restaurante")}
-              />
-            )}
-            scrollEnabled={false}
-          />
-        </View>
-
-        <View style={[styles.section, styles.lastSection]}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Pedidos recentes</Text>
-            <TouchableOpacity onPress={() => router.push("/pedidos")}>
-              <Text style={styles.sectionLink}>Ver histórico</Text>
-            </TouchableOpacity>
-          </View>
-
-          {RECENT_ORDERS.map((order) => (
-            <TouchableOpacity
-              key={order.id}
-              style={styles.orderCard}
-              onPress={() => router.push("/pedidos")}
-            >
-              <View style={styles.orderIcon}>
-                <MaterialCommunityIcons
-                  name="receipt-text-outline"
-                  size={20}
-                  color={colors.primary[500]}
-                />
-              </View>
-              <View style={styles.orderContent}>
-                <Text style={styles.orderTitle}>{order.title}</Text>
-                <Text style={styles.orderMeta}>{order.status}</Text>
-              </View>
-              <View style={styles.orderPriceBlock}>
-                <Text style={styles.orderPrice}>{order.total}</Text>
-                <Text style={styles.orderAction}>Repetir</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      <FlatList
+        data={restaurants}
+        keyExtractor={(item) => item.id}
+        renderItem={renderRestaurantItem}
+        ListHeaderComponent={headerList}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews={true}
+      />
     </SafeAreaView>
-);
+  );
 }

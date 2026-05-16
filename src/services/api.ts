@@ -39,15 +39,22 @@ export const authApi = {
 };
 
 export const restaurantApi = {
-  list: (params?: { category?: string; search?: string }) => api.get('/restaurants', { params }),
+  list: (params?: { category?: string; search?: string; page?: number; limit?: number }) =>
+    api.get('/restaurants', { params }),
   getById: (id: string) => api.get(`/restaurants/${id}`),
-  getProducts: (id: string) => api.get(`/restaurants/${id}/products`),
+  getProducts: (id: string, params?: { page?: number; limit?: number }) =>
+    api.get(`/restaurants/${id}/products`, { params }),
   getCategories: (id: string) => api.get(`/restaurants/${id}/categories`),
 };
 
 export const orderApi = {
-  create: (data: any) => api.post('/orders', data),
-  list: () => api.get('/orders'),
+  create: (data: Record<string, unknown>, idempotencyKey?: string) =>
+    api.post('/orders', data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      timeout: 45000,
+    }),
+  list: (params?: { page?: number; limit?: number; status?: string }) =>
+    api.get('/orders', { params }),
   getById: (id: string) => api.get(`/orders/${id}`),
   updateStatus: (id: string, status: string) => api.put(`/orders/${id}/status`, { status }),
 };
@@ -59,7 +66,8 @@ export const userApi = {
 };
 
 export const deliveryApi = {
-  getAvailable: () => api.get('/deliveries/available'),
+  getAvailable: (params?: { page?: number; limit?: number }) =>
+    api.get('/deliveries/available', { params }),
   acceptDelivery: (id: string) => api.post(`/deliveries/${id}/accept`),
   getEarnings: (params?: { startDate?: string; endDate?: string }) => api.get('/deliveries/earnings', { params }),
 };

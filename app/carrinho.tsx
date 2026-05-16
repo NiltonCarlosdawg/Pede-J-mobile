@@ -9,10 +9,12 @@ import { useAppDispatch, useAppSelector } from "../src/store";
 import {
   decrementItem,
   incrementItem,
+} from "../src/store/cartSlice";
+import {
   selectCartItems,
   selectCartSubtotal,
-} from "../src/store/cartSlice";
-import { spacing, formatPrice } from "../src/theme";
+} from "../src/store/cartSelectors";
+import { spacing, formatPrice, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 
 export default function CarrinhoScreen() {
@@ -23,50 +25,50 @@ export default function CarrinhoScreen() {
   const { colors } = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, paddingBottom: 16 },
+    container: { flex: 1, backgroundColor: colors.background, paddingBottom: spacing.md },
     content: { flex: 1, paddingHorizontal: spacing.gutter },
     emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxl * 2 },
     emptyIcon: { marginBottom: spacing.md, opacity: 0.5 },
-    emptyTitle: { fontSize: 20, fontWeight: "700", color: colors.onSurface, marginBottom: spacing.sm },
-    emptyText: { fontSize: 14, color: colors.neutral[500], textAlign: "center", marginBottom: spacing.lg },
+    emptyTitle: { ...typography.h3, color: colors.onSurface, marginBottom: spacing.sm },
+    emptyText: { ...typography.bodySm, color: colors.neutral[500], textAlign: "center", marginBottom: spacing.lg },
     itemCard: { flexDirection: "row", backgroundColor: colors.surfaceContainerLowest, borderRadius: 20, padding: spacing.sm, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.surfaceVariant },
     itemImage: { width: 80, height: 80, borderRadius: 16, backgroundColor: colors.surfaceContainer },
     itemInfo: { flex: 1, marginLeft: spacing.sm, justifyContent: "center" },
-    itemName: { fontSize: 16, fontWeight: "700", color: colors.onSurface, marginBottom: 4 },
-    itemPrice: { fontSize: 14, fontWeight: "600", color: colors.primary[500], marginBottom: spacing.sm },
+    itemName: { ...typography.labelLg, color: colors.onSurface, marginBottom: 4 },
+    itemPrice: { ...typography.bodySm, fontWeight: "600", color: colors.primary[500], marginBottom: spacing.sm },
     itemControls: { flexDirection: "row", alignItems: "center" },
     quantityButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceContainer, alignItems: "center", justifyContent: "center" },
-    quantityText: { fontSize: 16, fontWeight: "700", color: colors.onSurface, marginHorizontal: spacing.md },
+    quantityText: { ...typography.labelLg, color: colors.onSurface, marginHorizontal: spacing.md },
     subtotalCard: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 24, padding: spacing.md, borderWidth: 1, borderColor: colors.surfaceVariant },
     subtotalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm },
-    subtotalLabel: { fontSize: 16, color: colors.neutral[700] },
-    subtotalValue: { fontSize: 16, fontWeight: "700", color: colors.onSurface },
+    subtotalLabel: { ...typography.bodySm, color: colors.neutral[700] },
+    subtotalValue: { ...typography.labelLg, color: colors.onSurface },
     totalRow: { flexDirection: "row", justifyContent: "space-between", marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.surfaceVariant },
-    totalLabel: { fontSize: 18, fontWeight: "700", color: colors.onSurface },
-    totalValue: { fontSize: 20, fontWeight: "800", color: colors.primary[500] },
-    checkoutButton: { backgroundColor: colors.primary[500], paddingVertical: 16, borderRadius: 20, alignItems: "center", marginTop: spacing.md },
-    checkoutText: { fontSize: 16, fontWeight: "800", color: colors.white },
+    totalLabel: { ...typography.h3, color: colors.onSurface },
+    totalValue: { ...typography.h3, fontWeight: "800", color: colors.primary[500] },
+    checkoutButton: { backgroundColor: colors.primary[500], paddingVertical: spacing.md, borderRadius: 20, alignItems: "center", marginTop: spacing.md },
+    checkoutText: { ...typography.labelLg, fontWeight: "800", color: colors.white },
     bottomSpacer: { height: 100 },
     addressCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceContainerLowest, borderRadius: 16, padding: spacing.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.surfaceVariant },
     addressIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary[100], alignItems: "center", justifyContent: "center", marginRight: spacing.sm },
     addressContent: { flex: 1 },
-    addressLabel: { fontSize: 12, fontWeight: "700", color: colors.neutral[500], marginBottom: 2 },
-    address: { fontSize: 14, fontWeight: "600", color: colors.onSurface },
-    addressNeighborhood: { fontSize: 13, color: colors.neutral[500] },
-    changeButton: { fontSize: 14, fontWeight: "700", color: colors.primary[500] },
+    addressLabel: { ...typography.labelCaps, color: colors.neutral[500], marginBottom: 2 },
+    address: { ...typography.bodySm, fontWeight: "600", color: colors.onSurface },
+    addressNeighborhood: { ...typography.bodySm, color: colors.neutral[500] },
+    changeButton: { ...typography.labelLg, color: colors.primary[500] },
     itemsSection: { gap: spacing.sm },
     itemContent: { flex: 1, justifyContent: "center" },
     itemFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.sm },
     quantityControl: { flexDirection: "row", alignItems: "center" },
     addMoreButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, gap: spacing.sm },
-    addMoreText: { fontSize: 14, fontWeight: "600", color: colors.primary[500] },
-    emptyButton: { backgroundColor: colors.primary[500], paddingVertical: 12, paddingHorizontal: spacing.lg, borderRadius: 16 },
-    emptyButtonText: { fontSize: 16, fontWeight: "700", color: colors.white },
+    addMoreText: { ...typography.labelLg, color: colors.primary[500] },
+    emptyButton: { backgroundColor: colors.primary[500], paddingVertical: spacing.sm + 4, paddingHorizontal: spacing.lg, borderRadius: 16 },
+    emptyButtonText: { ...typography.labelLg, fontWeight: "700", color: colors.white },
     summaryCard: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 24, padding: spacing.md, marginTop: spacing.md, borderWidth: 1, borderColor: colors.surfaceVariant },
-    summaryTitle: { fontSize: 16, fontWeight: "700", color: colors.onSurface, marginBottom: spacing.sm },
+    summaryTitle: { ...typography.labelLg, color: colors.onSurface, marginBottom: spacing.sm },
     summaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm },
-    summaryLabel: { fontSize: 14, color: colors.neutral[500] },
-    summaryValue: { fontSize: 14, fontWeight: "700", color: colors.onSurface },
+    summaryLabel: { ...typography.bodySm, color: colors.neutral[500] },
+    summaryValue: { ...typography.bodySm, fontWeight: "700", color: colors.onSurface },
     freeDelivery: { color: colors.success },
     divider: { height: 1, backgroundColor: colors.surfaceVariant, marginVertical: spacing.sm },
     checkoutContainer: { paddingHorizontal: spacing.gutter, paddingBottom: spacing.lg, backgroundColor: colors.background },
@@ -206,4 +208,3 @@ export default function CarrinhoScreen() {
     </SafeAreaView>
   );
 }
-

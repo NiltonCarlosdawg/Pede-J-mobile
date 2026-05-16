@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-    ScrollView,
+    ActivityIndicator,
+    FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -13,7 +14,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "../src/components/ui/Header";
 import { useAppSelector } from "../src/store";
 import { selectOrders, selectCurrentOrder } from "../src/store/ordersSlice";
-import { spacing, formatPrice } from "../src/theme";
+import type { Order } from "../src/store/ordersSlice";
+import { spacing, formatPrice, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 
 const STATUS_CONFIG = {
@@ -24,37 +26,68 @@ const STATUS_CONFIG = {
   cancelled: { label: "Cancelado", icon: "close-circle", color: "#BA1A1A" },
 };
 
+const ROW_HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
+
+const PAGE_SIZE = 10;
+
 export default function OrdersScreen() {
   const router = useRouter();
-  const orders = useAppSelector(selectOrders);
+  const allOrders = useAppSelector(selectOrders);
   const currentOrder = useAppSelector(selectCurrentOrder);
   const { colors: themeColors } = useTheme();
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: themeColors.background },
     content: { flex: 1, paddingHorizontal: spacing.gutter },
     emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxl },
     emptyIcon: { marginBottom: spacing.md, opacity: 0.5 },
-    emptyTitle: { fontSize: 20, fontWeight: "700", color: themeColors.onSurface, marginBottom: spacing.sm },
-    emptyText: { fontSize: 14, color: themeColors.neutral[500], textAlign: "center", marginBottom: spacing.lg, paddingHorizontal: spacing.xl },
-    sectionTitle: { fontSize: 18, fontWeight: "800", color: themeColors.onSurface, marginBottom: spacing.md, marginTop: spacing.lg },
+    emptyTitle: { ...typography.h3, color: themeColors.onSurface, marginBottom: spacing.sm },
+    emptyText: { ...typography.bodySm, color: themeColors.neutral[500], textAlign: "center", marginBottom: spacing.lg, paddingHorizontal: spacing.xl },
+    sectionTitle: { ...typography.h3, color: themeColors.onSurface, marginBottom: spacing.md, marginTop: spacing.lg },
     orderCard: { backgroundColor: themeColors.surfaceContainerLowest, borderRadius: 20, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: themeColors.surfaceVariant },
     activeCard: { borderColor: themeColors.primary[500], borderWidth: 2 },
     orderHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
-    orderId: { fontSize: 14, fontWeight: "700", color: themeColors.neutral[500] },
+    orderId: { ...typography.bodySm, fontWeight: "700", color: themeColors.neutral[500] },
     statusBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 8 },
-    statusText: { fontSize: 12, fontWeight: "700" },
+    statusText: { ...typography.labelCaps, fontWeight: "700" },
     orderItems: { marginBottom: spacing.sm },
-    itemText: { fontSize: 14, color: themeColors.onSurface, marginBottom: 2 },
+    itemText: { ...typography.bodySm, color: themeColors.onSurface, marginBottom: 2 },
     orderFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: themeColors.surfaceVariant },
-    orderDate: { fontSize: 12, color: themeColors.neutral[500] },
-    orderTotal: { fontSize: 16, fontWeight: "800", color: themeColors.primary[500] },
+    orderDate: { ...typography.bodySm, color: themeColors.neutral[500] },
+    orderTotal: { ...typography.labelLg, fontWeight: "800", color: themeColors.primary[500] },
     trackButton: { backgroundColor: themeColors.primary[500], paddingVertical: 8, paddingHorizontal: spacing.md, borderRadius: 12, marginTop: spacing.sm },
-    trackButtonText: { color: themeColors.white, fontSize: 13, fontWeight: "700" },
+    trackButtonText: { color: themeColors.white, ...typography.labelCaps, fontWeight: "700" },
+    listContent: { paddingBottom: spacing.xl },
   }), [themeColors]);
 
-  const activeOrders = orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
-  const pastOrders = orders.filter((o) => o.status === "delivered" || o.status === "cancelled");
+  const activeOrders: Order[] = useMemo(
+    () => allOrders.filter((o) => o.status !== "delivered" && o.status !== "cancelled"),
+    [allOrders]
+  );
+  const pastOrders: Order[] = useMemo(
+    () => allOrders.filter((o) => o.status === "delivered" || o.status === "cancelled"),
+    [allOrders]
+  );
+
+  const sections = useMemo(() => {
+    const result: Array<{ title: string; data: Order[]; isActive: boolean }> = [];
+    if (activeOrders.length > 0) result.push({ title: "Em andamento", data: activeOrders, isActive: true });
+    if (pastOrders.length > 0) result.push({ title: "Histórico", data: pastOrders, isActive: false });
+    return result;
+  }, [activeOrders, pastOrders]);
+
+  const flatData = useMemo(() => {
+    const items: Array<{ type: "header" | "order"; title?: string; order?: Order; isActive?: boolean }> = [];
+    for (const section of sections) {
+      items.push({ type: "header", title: section.title });
+      for (const order of section.data.slice(0, page * PAGE_SIZE)) {
+        items.push({ type: "order", order, isActive: section.isActive });
+      }
+    }
+    return items;
+  }, [sections, page]);
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
@@ -66,11 +99,17 @@ export default function OrdersScreen() {
     });
   }
 
-  function renderOrder(order: typeof orders[0], isActive = false) {
+  const renderItem = useCallback(({ item }: { item: typeof flatData[0] }) => {
+    if (item.type === "header") {
+      return <Text style={styles.sectionTitle}>{item.title}</Text>;
+    }
+
+    const order = item.order!;
+    const isActive = item.isActive!;
     const status = STATUS_CONFIG[order.status];
 
     return (
-      <View key={order.id} style={[styles.orderCard, isActive && styles.activeCard]}>
+      <View style={[styles.orderCard, isActive && styles.activeCard]}>
         <View style={styles.orderHeader}>
           <Text style={styles.orderId}>Pedido #{order.id.slice(-4)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: status.color + "20" }]}>
@@ -100,6 +139,7 @@ export default function OrdersScreen() {
         {isActive && (
           <TouchableOpacity
             style={styles.trackButton}
+            hitSlop={ROW_HIT_SLOP}
             onPress={() => router.push({ pathname: "/(tabs)/rastreamento", params: { orderId: order.id } })}
           >
             <Text style={styles.trackButtonText}>Acompanhar</Text>
@@ -108,6 +148,7 @@ export default function OrdersScreen() {
         {!isActive && order.status === "delivered" && (
           <TouchableOpacity
             style={[styles.trackButton, { backgroundColor: themeColors.secondary[500] }]}
+            hitSlop={ROW_HIT_SLOP}
             onPress={() => router.push({ pathname: "/avaliacao", params: { orderId: order.id } })}
           >
             <Text style={styles.trackButtonText}>Avaliar</Text>
@@ -115,9 +156,24 @@ export default function OrdersScreen() {
         )}
       </View>
     );
-  }
+  }, [styles, themeColors, router]);
 
-  if (orders.length === 0) {
+  const keyExtractor = useCallback((item: typeof flatData[0], index: number) =>
+    item.type === "header" ? `header-${item.title}` : item.order!.id,
+  []);
+
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore) return;
+    const totalVisible = flatData.filter((d) => d.type === "order").length;
+    if (totalVisible >= allOrders.length) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setPage((prev) => prev + 1);
+      setLoadingMore(false);
+    }, 300);
+  }, [loadingMore, flatData, allOrders.length]);
+
+  if (allOrders.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <Header title="Meus Pedidos" />
@@ -148,21 +204,26 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header title="Meus Pedidos" />
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {activeOrders.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Em andamento</Text>
-            {activeOrders.map((order) => renderOrder(order, true))}
-          </>
-        )}
-
-        {pastOrders.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Histórico</Text>
-            {pastOrders.map((order) => renderOrder(order))}
-          </>
-        )}
-      </ScrollView>
+      <FlatList
+        data={flatData}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        contentContainerStyle={[styles.content, styles.listContent]}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: spacing.md, alignItems: "center" }}>
+              <ActivityIndicator size="small" color={themeColors.primary[500]} />
+            </View>
+          ) : null
+        }
+      />
     </SafeAreaView>
   );
 }

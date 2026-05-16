@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { apiSlice } from '../services/apiSlice';
@@ -7,8 +7,31 @@ import { cartReducer } from './cartSlice';
 import { chatReducer } from './chatSlice';
 import { notificationsReducer } from './notificationsSlice';
 import { ordersReducer } from './ordersSlice';
+import {
+  addPaymentMethod,
+  persistPaymentMethods,
+  paymentMethodsReducer,
+  removePaymentMethod,
+  replacePaymentMethods,
+  setDefaultPaymentMethod,
+} from './paymentMethodsSlice';
 import { promotionsReducer } from './promotionsSlice';
 import { ratingsReducer } from './ratingsSlice';
+
+const paymentPersistListener = createListenerMiddleware();
+
+paymentPersistListener.startListening({
+  matcher: isAnyOf(
+    addPaymentMethod,
+    removePaymentMethod,
+    setDefaultPaymentMethod,
+    replacePaymentMethods
+  ),
+  effect: async (_action, listenerApi) => {
+    const methods = (listenerApi.getState() as RootState).paymentMethods.methods;
+    await persistPaymentMethods(methods);
+  },
+});
 
 export const store = configureStore({
   reducer: {
@@ -19,10 +42,13 @@ export const store = configureStore({
     chat: chatReducer,
     ratings: ratingsReducer,
     promotions: promotionsReducer,
+    paymentMethods: paymentMethodsReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+    getDefaultMiddleware()
+      .prepend(paymentPersistListener.middleware)
+      .concat(apiSlice.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

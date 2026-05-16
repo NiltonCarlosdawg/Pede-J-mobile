@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../../src/components/ui/Header";
-import { spacing } from "../../src/theme";
+import { spacing, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
 const FILTERS = ["Todas", "Hoje", "Semana", "Mês"];
@@ -80,23 +80,23 @@ export default function DeliveryHistoryScreen() {
     filterContainer: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md, paddingTop: spacing.md },
     filterButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 12, backgroundColor: themeColors.surfaceContainer, borderWidth: 1, borderColor: themeColors.surfaceVariant },
     filterButtonActive: { backgroundColor: themeColors.primary[500], borderColor: themeColors.primary[500] },
-    filterText: { fontSize: 14, fontWeight: "600", color: themeColors.neutral[500] },
+    filterText: { ...typography.bodySm, fontWeight: "600", color: themeColors.neutral[500] },
     filterTextActive: { color: themeColors.white },
     summaryCard: { backgroundColor: themeColors.surfaceContainerLowest, borderRadius: 24, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1, borderColor: themeColors.surfaceVariant },
     summaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm },
     summaryItem: { alignItems: "center" },
-    summaryValue: { fontSize: 20, fontWeight: "800", color: themeColors.primary[500] },
-    summaryLabel: { fontSize: 12, color: themeColors.neutral[500], marginTop: 2 },
+    summaryValue: { ...typography.h3, fontWeight: "800", color: themeColors.primary[500] },
+    summaryLabel: { ...typography.bodySm, color: themeColors.neutral[500], marginTop: 2 },
     deliveryCard: { backgroundColor: themeColors.surfaceContainerLowest, borderRadius: 20, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: themeColors.surfaceVariant },
     deliveryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacing.sm },
     deliveryInfo: { flex: 1 },
-    deliveryTitle: { fontSize: 15, fontWeight: "700", color: themeColors.onSurface, marginBottom: 2 },
-    deliveryMeta: { fontSize: 13, color: themeColors.neutral[500] },
-    deliveryFee: { fontSize: 16, fontWeight: "800", color: themeColors.primary[500] },
+    deliveryTitle: { ...typography.labelLg, color: themeColors.onSurface, marginBottom: 2 },
+    deliveryMeta: { ...typography.bodySm, color: themeColors.neutral[500] },
+    deliveryFee: { ...typography.labelLg, fontWeight: "800", color: themeColors.primary[500] },
     deliveryFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: themeColors.surfaceVariant },
-    deliveryDate: { fontSize: 12, color: themeColors.neutral[500] },
+    deliveryDate: { ...typography.bodySm, color: themeColors.neutral[500] },
     statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 8 },
-    statusText: { fontSize: 11, fontWeight: "700" },
+    statusText: { ...typography.labelCaps, fontWeight: "700" },
     ratingContainer: { flexDirection: "row", gap: 2 },
   }), [themeColors]);
 

@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { borderRadius, spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -10,6 +10,8 @@ interface InputProps {
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+  onSubmitEditing?: () => void;
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   iconPosition?: 'left' | 'right';
   error?: boolean;
@@ -25,6 +27,8 @@ export function Input({
   onChangeText,
   secureTextEntry = false,
   keyboardType = 'default',
+  returnKeyType,
+  onSubmitEditing,
   icon,
   iconPosition = 'left',
   error = false,
@@ -94,6 +98,8 @@ export function Input({
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
+        returnKeyType={returnKeyType ?? "done"}
+        onSubmitEditing={onSubmitEditing ?? (() => Keyboard.dismiss())}
         editable={!disabled}
         numberOfLines={numberOfLines}
         multiline={multiline}

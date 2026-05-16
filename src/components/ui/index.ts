@@ -1,5 +1,6 @@
 export { Badge } from './Badge';
 export { Button } from './Button';
+export { CachedImage } from './CachedImage';
 export { CategoryCard } from './CategoryCard';
 export { CategoryIcon } from './CategoryIcon';
 export { Header } from './Header';

@@ -308,6 +308,10 @@ export default function DeliveryChatScreen() {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
+          initialNumToRender={20}
+          maxToRenderPerBatch={15}
+          windowSize={7}
+          removeClippedSubviews={true}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }

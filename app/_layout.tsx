@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
     DarkTheme,
@@ -21,6 +22,7 @@ import "../src/services/sentry";
 import { store, useAppDispatch, useAppSelector } from "../src/store";
 import { clearSession, hydrateSession } from "../src/store/authSlice";
 import { addNotification } from "../src/store/notificationsSlice";
+import { hydratePaymentMethods } from "../src/store/paymentMethodsSlice";
 import { ThemeProvider } from "../src/hooks/useTheme";
 import { useTheme } from "../src/hooks/useTheme";
 
@@ -29,6 +31,13 @@ export {
 } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, retry: 2 },
+    mutations: { retry: 1 },
+  },
+});
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -47,9 +56,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-        <ThemeProvider>
-          <RootLayoutNav />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <RootLayoutNav />
+          </ThemeProvider>
+        </QueryClientProvider>
       </Provider>
     </SafeAreaProvider>
   );
@@ -77,6 +88,8 @@ function RootLayoutNav() {
       } else {
         dispatch(clearSession());
       }
+
+      dispatch(hydratePaymentMethods());
 
       setIsLoading(false);
     })();

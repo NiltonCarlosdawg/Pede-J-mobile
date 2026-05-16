@@ -8,11 +8,11 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Button } from "../../src/components/ui/Button";
-import { spacing } from "../../src/theme";
+import { formatPrice, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -24,12 +24,28 @@ interface OrderSuccessScreenProps {
 
 export default function OrderSuccessScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    orderId?: string;
+    total?: string;
+    sync?: string;
+    syncMessage?: string;
+  }>();
   const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const buttonTranslate = useRef(new Animated.Value(50)).current;
+  const readParam = (value?: string | string[]) =>
+    Array.isArray(value) ? value[0] : value;
+  const syncPending = readParam(params.sync) === "pending";
+  const orderId = readParam(params.orderId) ?? "Pedido";
+  const orderTotal = Number(readParam(params.total));
+  const syncMessageValue = readParam(params.syncMessage);
+  const syncMessage =
+    typeof syncMessageValue === "string" && syncMessageValue.trim().length > 0
+      ? syncMessageValue
+      : "A confirmação no servidor falhou temporariamente. O pedido foi guardado neste dispositivo e será reenviado assim que houver ligação.";
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -124,6 +140,32 @@ export default function OrderSuccessScreen() {
       fontSize: 15,
       fontWeight: "700",
       color: colors.onSurface,
+    },
+    warningCard: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.warning + "18",
+      borderWidth: 1,
+      borderColor: colors.warning + "55",
+      marginBottom: spacing.lg,
+      width: "100%",
+    },
+    warningTextWrap: {
+      flex: 1,
+    },
+    warningTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.onSurface,
+      marginBottom: 2,
+    },
+    warningText: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.neutral[700],
     },
     divider: {
       height: 1,
@@ -227,6 +269,20 @@ export default function OrderSuccessScreen() {
           </Text>
         </Animated.View>
 
+        {syncPending ? (
+          <View style={styles.warningCard}>
+            <MaterialCommunityIcons
+              name="cloud-alert"
+              size={20}
+              color={colors.warning}
+            />
+            <View style={styles.warningTextWrap}>
+              <Text style={styles.warningTitle}>Sincronização pendente</Text>
+              <Text style={styles.warningText}>{syncMessage}</Text>
+            </View>
+          </View>
+        ) : null}
+
         {/* Order Info Card */}
         <Animated.View
           style={[
@@ -247,6 +303,17 @@ export default function OrderSuccessScreen() {
             <View style={styles.orderInfoContent}>
               <Text style={styles.orderInfoLabel}>Status</Text>
               <Text style={styles.orderInfoValue}>Preparando seu pedido</Text>
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.orderInfoRow}>
+            <MaterialCommunityIcons name="receipt-text-outline" size={20} color={colors.primary[500]} />
+            <View style={styles.orderInfoContent}>
+              <Text style={styles.orderInfoLabel}>Pedido</Text>
+              <Text style={styles.orderInfoValue}>
+                {orderId}
+                {Number.isFinite(orderTotal) && orderTotal > 0 ? ` • ${formatPrice(orderTotal)}` : ""}
+              </Text>
             </View>
           </View>
         </Animated.View>

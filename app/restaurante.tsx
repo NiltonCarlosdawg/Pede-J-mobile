@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   Image,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -13,9 +13,10 @@ import {
 } from "react-native";
 
 import { ProductCard } from "../src/components/ui";
-import { spacing, formatPrice } from "../src/theme";
+import { spacing, formatPrice, typography } from "../src/theme";
 import { useAppDispatch, useAppSelector } from "../src/store";
-import { addItem, selectCartCount, selectCartSubtotal } from "../src/store/cartSlice";
+import { selectCartCount, selectCartSubtotal } from "../src/store/cartSelectors";
+import { addItem } from "../src/store/cartSlice";
 import { selectAverageRating, selectRatingsByRestaurant, selectRatingCount } from "../src/store/ratingsSlice";
 import { useTheme } from "../src/hooks/useTheme";
 
@@ -153,7 +154,7 @@ const QUICK_TAGS = ["Mais pedidos", "Combos", "Sem lactose", "Sem glúten"];
 
 export default function RestaurantScreen() {
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const dispatch = useAppDispatch();
   const cartCount = useAppSelector(selectCartCount);
@@ -215,8 +216,7 @@ export default function RestaurantScreen() {
       backgroundColor: "rgba(255,255,255,0.92)",
     },
     openBadgeText: {
-      fontSize: 12,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.onSurface,
     },
     deliveryChip: {
@@ -229,8 +229,7 @@ export default function RestaurantScreen() {
       backgroundColor: "rgba(255,255,255,0.92)",
     },
     deliveryChipText: {
-      fontSize: 12,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.onSurface,
     },
     infoSection: {
@@ -247,12 +246,11 @@ export default function RestaurantScreen() {
       shadowRadius: 20,
     },
     restaurantName: {
-      fontSize: 28,
-      fontWeight: "800",
+      ...typography.h1,
       color: colors.onSurface,
     },
     restaurantCuisine: {
-      fontSize: 14,
+      ...typography.bodySm,
       color: colors.neutral[500],
       marginTop: 4,
     },
@@ -273,8 +271,7 @@ export default function RestaurantScreen() {
       borderRadius: 12,
     },
     ratingText: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.secondary[500],
     },
     infoItem: {
@@ -284,7 +281,7 @@ export default function RestaurantScreen() {
       flexShrink: 1,
     },
     infoText: {
-      fontSize: 13,
+      ...typography.bodySm,
       color: colors.onSurfaceVariant,
     },
     searchBar: {
@@ -299,7 +296,7 @@ export default function RestaurantScreen() {
     },
     searchInput: {
       flex: 1,
-      fontSize: 15,
+      ...typography.bodyMd,
       color: colors.onSurface,
       paddingVertical: 0,
     },
@@ -316,8 +313,7 @@ export default function RestaurantScreen() {
       backgroundColor: colors.surfaceContainer,
     },
     tagChipText: {
-      fontSize: 12,
-      fontWeight: "700",
+      ...typography.labelCaps,
       color: colors.onSurface,
     },
     tabs: {
@@ -333,8 +329,7 @@ export default function RestaurantScreen() {
       borderBottomColor: colors.primary[500],
     },
     activeTabText: {
-      fontSize: 16,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.primary[500],
     },
     inactiveTab: {
@@ -343,8 +338,7 @@ export default function RestaurantScreen() {
       borderBottomColor: "transparent",
     },
     inactiveTabText: {
-      fontSize: 16,
-      fontWeight: "600",
+      ...typography.labelLg,
       color: colors.neutral[500],
     },
     menuContent: {
@@ -356,12 +350,11 @@ export default function RestaurantScreen() {
       marginBottom: 32,
     },
     sectionTitle: {
-      fontSize: 22,
-      fontWeight: "800",
+      ...typography.h2,
       color: colors.onSurface,
     },
     sectionSubtitle: {
-      fontSize: 13,
+      ...typography.bodySm,
       color: colors.neutral[500],
       marginTop: 4,
       marginBottom: 12,
@@ -380,13 +373,12 @@ export default function RestaurantScreen() {
     },
     emptyTitle: {
       marginTop: 12,
-      fontSize: 16,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.onSurface,
     },
     emptyText: {
       marginTop: 4,
-      fontSize: 13,
+      ...typography.bodySm,
       lineHeight: 18,
       textAlign: "center",
       color: colors.neutral[700],
@@ -420,20 +412,17 @@ export default function RestaurantScreen() {
       justifyContent: "center",
     },
     cartCountText: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.white,
     },
     cartButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.white,
       flex: 1,
       marginLeft: 12,
     },
     cartTotal: {
-      fontSize: 16,
-      fontWeight: "800",
+      ...typography.h3,
       color: colors.secondary[500],
     },
     ratingSummary: {
@@ -442,8 +431,7 @@ export default function RestaurantScreen() {
       paddingVertical: spacing.md,
     },
     ratingBig: {
-      fontSize: 48,
-      fontWeight: "800",
+      ...typography.h1,
       color: colors.onSurface,
     },
     ratingStars: {
@@ -452,7 +440,7 @@ export default function RestaurantScreen() {
       marginVertical: spacing.xs,
     },
     ratingCount: {
-      fontSize: 14,
+      ...typography.bodySm,
       color: colors.neutral[500],
     },
     reviewCard: {
@@ -481,8 +469,7 @@ export default function RestaurantScreen() {
       flex: 1,
     },
     reviewName: {
-      fontSize: 14,
-      fontWeight: "700",
+      ...typography.labelLg,
       color: colors.onSurface,
     },
     reviewStars: {
@@ -491,11 +478,11 @@ export default function RestaurantScreen() {
       marginTop: 2,
     },
     reviewDate: {
-      fontSize: 12,
+      ...typography.bodySm,
       color: colors.neutral[500],
     },
     reviewComment: {
-      fontSize: 14,
+      ...typography.bodySm,
       color: colors.onSurfaceVariant,
       lineHeight: 20,
     },
@@ -512,8 +499,7 @@ export default function RestaurantScreen() {
       backgroundColor: colors.primary[100],
     },
     reviewTagText: {
-      fontSize: 11,
-      fontWeight: "600",
+      ...typography.labelCaps,
       color: colors.primary[500],
     },
   }), [colors]);
@@ -534,7 +520,7 @@ export default function RestaurantScreen() {
   }, [searchQuery]);
 
   function handleSearch() {
-    scrollRef.current?.scrollTo({ y: 320, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: 320, animated: true });
   }
 
   function parsePrice(value: string) {
@@ -557,211 +543,252 @@ export default function RestaurantScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroContainer}>
-          <Image source={{ uri: RESTAURANT.heroImage }} style={styles.heroImage} />
+  const reviewsComponent = useMemo(() => {
+    if (reviews.length === 0) return null;
 
-          <View style={styles.topActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.onSurface} />
-            </TouchableOpacity>
-            <View style={styles.rightActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleSearch}>
-                <MaterialCommunityIcons name="magnify" size={24} color={colors.onSurface} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={async () => {
-                  try {
-                    await Share.share({
-                      message: `Vê o menu do ${RESTAURANT.name}: ${RESTAURANT.heroImage}`,
-                    });
-                  } catch (error) {
-                    console.log(error);
-                  }
-                }}
-              >
-                <MaterialCommunityIcons name="share-variant" size={24} color={colors.onSurface} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.badgeRow}>
-            <View style={styles.openBadge}>
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Avaliações</Text>
+        <View style={styles.ratingSummary}>
+          <Text style={styles.ratingBig}>{avgRating.toFixed(1)}</Text>
+          <View style={styles.ratingStars}>
+            {[1, 2, 3, 4, 5].map((star) => (
               <MaterialCommunityIcons
-                name={RESTAURANT.openNow ? "checkbox-marked-circle" : "clock-outline"}
-                size={14}
-                color={RESTAURANT.openNow ? colors.primary[500] : colors.neutral[500]}
+                key={star}
+                name={star <= Math.round(avgRating) ? "star" : "star-outline"}
+                size={20}
+                color={colors.secondary[500]}
               />
-              <Text style={styles.openBadgeText}>
-                {RESTAURANT.openNow ? "Aberto agora" : "Fechado"}
-              </Text>
-            </View>
-            <View style={styles.deliveryChip}>
-              <MaterialCommunityIcons name="moped" size={14} color={colors.primary[500]} />
-              <Text style={styles.deliveryChipText}>{RESTAURANT.deliveryFee}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.restaurantName}>{RESTAURANT.name}</Text>
-          <Text style={styles.restaurantCuisine}>{RESTAURANT.cuisine}</Text>
-
-          <View style={styles.infoRow}>
-            <View style={styles.ratingBadge}>
-              <MaterialCommunityIcons name="star" size={16} color={colors.secondary[500]} />
-              <Text style={styles.ratingText}>
-                {avgRating.toFixed(1)} ({ratingCount})
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="clock-outline" size={18} color={colors.onSurfaceVariant} />
-              <Text style={styles.infoText}>{RESTAURANT.deliveryTime}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="map-marker" size={18} color={colors.onSurfaceVariant} />
-              <Text style={styles.infoText}>{RESTAURANT.address}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.searchBar} onPress={handleSearch}>
-            <MaterialCommunityIcons name="magnify" size={20} color={colors.neutral[500]} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Pesquisar no menu..."
-              placeholderTextColor={colors.neutral[500]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </TouchableOpacity>
-
-          <View style={styles.tagsRow}>
-            {QUICK_TAGS.map((tag) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagChipText}>{tag}</Text>
-              </View>
             ))}
           </View>
+          <Text style={styles.ratingCount}>{ratingCount} avaliações</Text>
         </View>
-
-        <View style={styles.tabs}>
-          <TouchableOpacity style={styles.activeTab}>
-            <Text style={styles.activeTabText}>Menu</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.inactiveTab}>
-            <Text style={styles.inactiveTabText}>Avaliações</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.inactiveTab}>
-            <Text style={styles.inactiveTabText}>Info</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.menuContent}>
-          {MENU_SECTIONS.map((section) => {
-            const sectionProducts = menuItems.filter(
-              (product) => product.section === section.id
-            );
-
-            if (!sectionProducts.length) {
-              return null;
-            }
-
-            return (
-              <View key={section.id} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
-                {sectionProducts.map((product) => (
-                  <View key={product.id} style={styles.productWrap}>
-                    <ProductCard
-                      title={product.title}
-                      description={product.description}
-                      price={product.price}
-                      image={product.image}
-                      badge={product.badge}
-                      isFeatured={product.isFeatured}
-                      isAvailable={product.isAvailable}
-                      onAdd={() => handleAddToCart(product)}
-                    />
-                  </View>
-                ))}
+        {reviews.slice(0, 3).map((review) => (
+          <View key={review.id} style={styles.reviewCard}>
+            <View style={styles.reviewHeader}>
+              <View style={styles.reviewAvatar}>
+                <MaterialCommunityIcons name="account" size={18} color={colors.primary[500]} />
               </View>
-            );
-          })}
-
-          {!menuItems.length ? (
-            <View style={styles.emptyState}>
-              <MaterialCommunityIcons
-                name="magnify-close"
-                size={32}
-                color={colors.neutral[500]}
-              />
-              <Text style={styles.emptyTitle}>Nenhum item encontrado</Text>
-              <Text style={styles.emptyText}>
-                Tenta outra pesquisa para encontrar pratos no menu.
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Reviews Section */}
-          {reviews.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Avaliações</Text>
-              <View style={styles.ratingSummary}>
-                <Text style={styles.ratingBig}>{avgRating.toFixed(1)}</Text>
-                <View style={styles.ratingStars}>
+              <View style={styles.reviewMeta}>
+                <Text style={styles.reviewName}>{review.userName}</Text>
+                <View style={styles.reviewStars}>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <MaterialCommunityIcons
                       key={star}
-                      name={star <= Math.round(avgRating) ? "star" : "star-outline"}
-                      size={20}
+                      name={star <= review.rating ? "star" : "star-outline"}
+                      size={12}
                       color={colors.secondary[500]}
                     />
                   ))}
                 </View>
-                <Text style={styles.ratingCount}>{ratingCount} avaliações</Text>
               </View>
-              {reviews.slice(0, 3).map((review) => (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewAvatar}>
-                      <MaterialCommunityIcons name="account" size={18} color={colors.primary[500]} />
-                    </View>
-                    <View style={styles.reviewMeta}>
-                      <Text style={styles.reviewName}>{review.userName}</Text>
-                      <View style={styles.reviewStars}>
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <MaterialCommunityIcons
-                            key={star}
-                            name={star <= review.rating ? "star" : "star-outline"}
-                            size={12}
-                            color={colors.secondary[500]}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                    <Text style={styles.reviewDate}>
-                      {new Date(review.timestamp).toLocaleDateString("pt-BR")}
-                    </Text>
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                  {review.tags.length > 0 && (
-                    <View style={styles.reviewTags}>
-                      {review.tags.map((tag) => (
-                        <View key={tag} style={styles.reviewTagChip}>
-                          <Text style={styles.reviewTagText}>{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              ))}
+              <Text style={styles.reviewDate}>
+                {new Date(review.timestamp).toLocaleDateString("pt-BR")}
+              </Text>
             </View>
-          )}
+            <Text style={styles.reviewComment}>{review.comment}</Text>
+            {review.tags.length > 0 && (
+              <View style={styles.reviewTags}>
+                {review.tags.map((tag) => (
+                  <View key={tag} style={styles.reviewTagChip}>
+                    <Text style={styles.reviewTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  }, [reviews, avgRating, ratingCount, styles, colors]);
+
+  const headerComponent = useMemo(() => (
+    <View>
+      <View style={styles.heroContainer}>
+        <Image source={{ uri: RESTAURANT.heroImage }} style={styles.heroImage} />
+
+        <View style={styles.topActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.back()}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.onSurface} />
+          </TouchableOpacity>
+          <View style={styles.rightActions}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleSearch}>
+              <MaterialCommunityIcons name="magnify" size={24} color={colors.onSurface} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={async () => {
+                try {
+                  await Share.share({
+                    message: `Vê o menu do ${RESTAURANT.name}: ${RESTAURANT.heroImage}`,
+                  });
+                } catch (error) {
+                  console.log(error);
+                }
+              }}
+            >
+              <MaterialCommunityIcons name="share-variant" size={24} color={colors.onSurface} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
+
+        <View style={styles.badgeRow}>
+          <View style={styles.openBadge}>
+            <MaterialCommunityIcons
+              name={RESTAURANT.openNow ? "checkbox-marked-circle" : "clock-outline"}
+              size={14}
+              color={RESTAURANT.openNow ? colors.primary[500] : colors.neutral[500]}
+            />
+            <Text style={styles.openBadgeText}>
+              {RESTAURANT.openNow ? "Aberto agora" : "Fechado"}
+            </Text>
+          </View>
+          <View style={styles.deliveryChip}>
+            <MaterialCommunityIcons name="moped" size={14} color={colors.primary[500]} />
+            <Text style={styles.deliveryChipText}>{RESTAURANT.deliveryFee}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.infoSection}>
+        <Text style={styles.restaurantName}>{RESTAURANT.name}</Text>
+        <Text style={styles.restaurantCuisine}>{RESTAURANT.cuisine}</Text>
+
+        <View style={styles.infoRow}>
+          <View style={styles.ratingBadge}>
+            <MaterialCommunityIcons name="star" size={16} color={colors.secondary[500]} />
+            <Text style={styles.ratingText}>
+              {avgRating.toFixed(1)} ({ratingCount})
+            </Text>
+          </View>
+          <View style={styles.infoItem}>
+            <MaterialCommunityIcons name="clock-outline" size={18} color={colors.onSurfaceVariant} />
+            <Text style={styles.infoText}>{RESTAURANT.deliveryTime}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <MaterialCommunityIcons name="map-marker" size={18} color={colors.onSurfaceVariant} />
+            <Text style={styles.infoText}>{RESTAURANT.address}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.searchBar} onPress={handleSearch}>
+          <MaterialCommunityIcons name="magnify" size={20} color={colors.neutral[500]} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Pesquisar no menu..."
+            placeholderTextColor={colors.neutral[500]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.tagsRow}>
+          {QUICK_TAGS.map((tag) => (
+            <View key={tag} style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.tabs}>
+        <TouchableOpacity style={styles.activeTab}>
+          <Text style={styles.activeTabText}>Menu</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.inactiveTab}>
+          <Text style={styles.inactiveTabText}>Avaliações</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.inactiveTab}>
+          <Text style={styles.inactiveTabText}>Info</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [styles, colors, RESTAURANT, avgRating, ratingCount, searchQuery, handleSearch, router]);
+
+  const flatMenuData = useMemo(() => {
+    type FlatItem = { type: "section-header"; title: string; subtitle: string } | { type: "product"; product: MenuItem };
+
+    const items: FlatItem[] = [];
+
+    for (const section of MENU_SECTIONS) {
+      const sectionProducts = menuItems.filter(
+        (product) => product.section === section.id
+      );
+
+      if (!sectionProducts.length) continue;
+
+      items.push({ type: "section-header", title: section.title, subtitle: section.subtitle });
+      for (const product of sectionProducts) {
+        items.push({ type: "product", product });
+      }
+    }
+
+    return items;
+  }, [menuItems]);
+
+  const renderFlatItem = useCallback(({ item }: { item: { type: string; title?: string; subtitle?: string; product?: MenuItem } }) => {
+    if (item.type === "section-header") {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{item.title}</Text>
+          <Text style={styles.sectionSubtitle}>{item.subtitle}</Text>
+        </View>
+      );
+    }
+
+    const product = item.product!;
+    return (
+      <View style={styles.productWrap}>
+        <ProductCard
+          title={product.title}
+          description={product.description}
+          price={product.price}
+          image={product.image}
+          badge={product.badge}
+          isFeatured={product.isFeatured}
+          isAvailable={product.isAvailable}
+          onAdd={() => handleAddToCart(product)}
+        />
+      </View>
+    );
+  }, [styles, handleAddToCart]);
+
+  const flatKeyExtractor = useCallback((item: { type: string; title?: string; product?: MenuItem }, index: number) =>
+    item.type === "section-header" ? `section-${item.title}` : item.product!.id,
+  []);
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={flatMenuData}
+        renderItem={renderFlatItem}
+        keyExtractor={flatKeyExtractor}
+        ListHeaderComponent={headerComponent}
+        ListFooterComponent={
+          <View style={styles.menuContent}>
+            {menuItems.length === 0 && flatMenuData.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons
+                  name="magnify-close"
+                  size={32}
+                  color={colors.neutral[500]}
+                />
+                <Text style={styles.emptyTitle}>Nenhum item encontrado</Text>
+                <Text style={styles.emptyText}>
+                  Tenta outra pesquisa para encontrar pratos no menu.
+                </Text>
+              </View>
+            ) : null}
+            {reviewsComponent}
+          </View>
+        }
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
+      />
 
       <View style={styles.cartBar}>
         <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>

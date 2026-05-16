@@ -123,7 +123,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Auth'],
     }),
-    getRestaurants: builder.query<Restaurant[], { category?: string; search?: string } | void>({
+    getRestaurants: builder.query<Restaurant[], { category?: string; search?: string; page?: number; limit?: number } | void>({
       query: (params) => ({
         url: '/restaurants',
         params: params || undefined,
@@ -146,8 +146,11 @@ export const apiSlice = createApi({
     getRestaurantCategories: builder.query<string[], string>({
       query: (restaurantId) => `/restaurants/${restaurantId}/categories`,
     }),
-    getOrders: builder.query<Order[], void>({
-      query: () => '/orders',
+    getOrders: builder.query<Order[], { page?: number; limit?: number; status?: string } | void>({
+      query: (params) => ({
+        url: '/orders',
+        params: params || undefined,
+      }),
       providesTags: (result) =>
         result
           ? [
@@ -156,15 +159,43 @@ export const apiSlice = createApi({
             ]
           : [{ type: 'Order' as const, id: 'LIST' }],
     }),
+    getOrdersPaginated: builder.query<{ data: Order[]; total: number; page: number; limit: number }, { page: number; limit: number; status?: string }>({
+      query: (params) => ({
+        url: '/orders',
+        params,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Order' as const, id })),
+              { type: 'Order' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Order' as const, id: 'LIST' }],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _, ...rest } = queryArgs;
+        return JSON.stringify(rest);
+      },
+      merge: (currentCache, newItems) => {
+        if (newItems.page === 1) {
+          return newItems;
+        }
+        currentCache.data.push(...newItems.data);
+        currentCache.page = newItems.page;
+      },
+      forceRefetch: ({ currentArg, previousArg }) => {
+        return currentArg?.page !== previousArg?.page;
+      },
+    }),
     getOrderById: builder.query<Order, string>({
       query: (id) => `/orders/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Order', id }],
     }),
-    createOrder: builder.mutation<Order, CreateOrderPayload>({
-      query: (body) => ({
+    createOrder: builder.mutation<Order, CreateOrderPayload & { idempotencyKey?: string }>({
+      query: ({ idempotencyKey, ...body }) => ({
         url: '/orders',
         method: 'POST',
         body,
+        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
       }),
       invalidatesTags: [{ type: 'Order', id: 'LIST' }],
     }),
@@ -216,6 +247,7 @@ export const {
   useGetRestaurantProductsQuery,
   useGetRestaurantCategoriesQuery,
   useGetOrdersQuery,
+  useGetOrdersPaginatedQuery,
   useGetOrderByIdQuery,
   useCreateOrderMutation,
   useGetAddressesQuery,

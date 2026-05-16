@@ -56,6 +56,13 @@ const initialState: ChatState = {
   activeChats: ["order-005", "order-004"],
 };
 
+const MAX_MESSAGES = 500;
+
+function trimMessages(state: ChatState) {
+  if (state.messages.length <= MAX_MESSAGES) return;
+  state.messages.splice(0, state.messages.length - MAX_MESSAGES);
+}
+
 const chatSlice = createSlice({
   name: "chat",
   initialState,
@@ -68,6 +75,7 @@ const chatSlice = createSlice({
         read: false,
       };
       state.messages.push(newMessage);
+      trimMessages(state);
       if (!state.activeChats.includes(action.payload.orderId)) {
         state.activeChats.push(action.payload.orderId);
       }
@@ -92,6 +100,7 @@ const chatSlice = createSlice({
         read: false,
       };
       state.messages.push(newMessage);
+      trimMessages(state);
     },
     clearChat(state, action: PayloadAction<string>) {
       state.messages = state.messages.filter((m) => m.orderId !== action.payload);

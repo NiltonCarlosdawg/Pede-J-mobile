@@ -10,10 +10,13 @@ export type CartLineItem = {
 
 export interface CartState {
   items: CartLineItem[];
+  /** Restaurante atual do carrinho (para payload da API). */
+  restaurantId: string | null;
 }
 
 const initialState: CartState = {
   items: [],
+  restaurantId: null,
 };
 
 type AddCartItemPayload = {
@@ -21,6 +24,7 @@ type AddCartItemPayload = {
   title: string;
   price: number;
   image?: string;
+  restaurantId?: string;
 };
 
 const cartSlice = createSlice({
@@ -28,9 +32,22 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addItem(state, action: PayloadAction<AddCartItemPayload>) {
-      const existing = state.items.find(
-        (item) => item.id === action.payload.id
-      );
+      const { restaurantId: rid, id, title, price, image } = action.payload;
+
+      if (
+        rid &&
+        state.restaurantId &&
+        state.restaurantId !== rid &&
+        state.items.length > 0
+      ) {
+        state.items = [];
+      }
+
+      if (rid) {
+        state.restaurantId = rid;
+      }
+
+      const existing = state.items.find((item) => item.id === id);
 
       if (existing) {
         existing.quantity += 1;
@@ -38,10 +55,10 @@ const cartSlice = createSlice({
       }
 
       state.items.push({
-        id: action.payload.id,
-        title: action.payload.title,
-        price: action.payload.price,
-        image: action.payload.image,
+        id,
+        title,
+        price,
+        image,
         quantity: 1,
       });
     },
@@ -63,6 +80,9 @@ const cartSlice = createSlice({
         state.items = state.items.filter(
           (entry) => entry.id !== action.payload
         );
+        if (state.items.length === 0) {
+          state.restaurantId = null;
+        }
         return;
       }
 
@@ -70,9 +90,13 @@ const cartSlice = createSlice({
     },
     removeItem(state, action: PayloadAction<string>) {
       state.items = state.items.filter((item) => item.id !== action.payload);
+      if (state.items.length === 0) {
+        state.restaurantId = null;
+      }
     },
     clearCart(state) {
       state.items = [];
+      state.restaurantId = null;
     },
   },
 });
@@ -86,8 +110,3 @@ export const {
 } = cartSlice.actions;
 export const cartReducer = cartSlice.reducer;
 
-export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
-export const selectCartCount = (state: { cart: CartState }) =>
-  state.cart.items.reduce((total, item) => total + item.quantity, 0);
-export const selectCartSubtotal = (state: { cart: CartState }) =>
-  state.cart.items.reduce((total, item) => total + item.price * item.quantity, 0);

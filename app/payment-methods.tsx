@@ -14,44 +14,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Header, Input, PaymentMethodCard } from "../src/components/ui";
-import { spacing } from "../src/theme";
+import { spacing, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
+import { useAppDispatch, useAppSelector } from "../src/store";
+import {
+  addPaymentMethod,
+  removePaymentMethod,
+  selectPaymentMethods,
+  setDefaultPaymentMethod,
+} from "../src/store/paymentMethodsSlice";
 import type { PaymentMethod } from "../src/types";
-
-// Mock data
-const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
-  {
-    id: "pm1",
-    type: "credit_card",
-    label: "MCX",
-    isDefault: true,
-    cardNumber: "4242",
-    cardHolder: "JOÃO SILVA",
-    expiryDate: "12/25",
-    brand: "MCX",
-  },
-  {
-    id: "pm2",
-    type: "wallet",
-    label: "Unitel Money",
-    isDefault: false,
-    pixKey: "+244923456789",
-  },
-  {
-    id: "pm3",
-    type: "wallet",
-    label: "PAYPAY",
-    isDefault: false,
-    pixKey: "paypay@email.com",
-  },
-  {
-    id: "pm4",
-    type: "wallet",
-    label: "Kwik",
-    isDefault: false,
-    pixKey: "+244943456789",
-  },
-];
 
 type AddPaymentFormData = {
   type: PaymentMethod["type"];
@@ -64,8 +36,9 @@ type AddPaymentFormData = {
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const methods = useAppSelector(selectPaymentMethods);
   const { colors } = useTheme();
-  const [methods, setMethods] = useState<PaymentMethod[]>(INITIAL_PAYMENT_METHODS);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentMethod["type"]>("credit_card");
   const [formData, setFormData] = useState<AddPaymentFormData>({ type: "credit_card" });
@@ -74,47 +47,46 @@ export default function PaymentMethodsScreen() {
     container: { flex: 1, backgroundColor: colors.background },
     content: { flex: 1, paddingHorizontal: spacing.gutter },
     header: { paddingVertical: spacing.md },
-    headerTitle: { fontSize: 24, fontWeight: "800", color: colors.onSurface },
-    headerSubtitle: { fontSize: 14, color: colors.neutral[500], marginTop: 4 },
+    headerTitle: { ...typography.h2, color: colors.onSurface },
+    headerSubtitle: { ...typography.bodySm, color: colors.neutral[500], marginTop: 4 },
     card: { backgroundColor: colors.surfaceContainerLowest, borderRadius: 20, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.surfaceVariant },
     cardSelected: { borderColor: colors.primary[500] },
     cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
-    cardLabel: { fontSize: 16, fontWeight: "700", color: colors.onSurface },
-    cardNumber: { fontSize: 14, color: colors.neutral[500] },
+    cardLabel: { ...typography.labelLg, color: colors.onSurface },
+    cardNumber: { ...typography.bodySm, color: colors.neutral[500] },
     cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-    cardIcon: { fontSize: 12, color: colors.neutral[500] },
     fab: { position: "absolute", right: spacing.gutter, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary[500], alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     modalContent: { backgroundColor: colors.surfaceContainerLowest, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg },
     modalHandle: { width: 40, height: 4, backgroundColor: colors.neutral[300], borderRadius: 2, alignSelf: "center", marginBottom: spacing.lg },
-    modalTitle: { fontSize: 20, fontWeight: "800", color: colors.onSurface, marginBottom: spacing.lg },
+    modalTitle: { ...typography.h3, color: colors.onSurface, marginBottom: spacing.lg },
     typeSelector: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg },
     typeButton: { flex: 1, paddingVertical: spacing.sm, borderRadius: 12, backgroundColor: colors.surfaceContainer, alignItems: "center" },
     typeButtonActive: { backgroundColor: colors.primary[100] },
-    typeButtonText: { fontSize: 14, fontWeight: "600", color: colors.neutral[500] },
+    typeButtonText: { ...typography.bodySm, fontWeight: "600", color: colors.neutral[500] },
     typeButtonTextActive: { color: colors.primary[500] },
     buttonRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg },
     cancelButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 16, backgroundColor: colors.surfaceContainer, alignItems: "center" },
-    cancelButtonText: { fontSize: 16, fontWeight: "600", color: colors.neutral[700] },
+    cancelButtonText: { ...typography.labelLg, color: colors.neutral[700] },
     saveButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 16, backgroundColor: colors.primary[500], alignItems: "center" },
-    saveButtonText: { fontSize: 16, fontWeight: "600", color: colors.white },
+    saveButtonText: { ...typography.labelLg, color: colors.white },
     formGroup: { marginBottom: spacing.md },
-    formLabel: { fontSize: 14, fontWeight: "600", color: colors.neutral[700], marginBottom: spacing.xs },
+    formLabel: { ...typography.labelLg, color: colors.neutral[700], marginBottom: spacing.xs },
     safeArea: { flex: 1, backgroundColor: colors.background },
     cardWrapper: { marginBottom: spacing.sm },
     listContent: { paddingHorizontal: spacing.gutter, paddingBottom: spacing.xl },
     emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: spacing.xxl },
-    emptyText: { fontSize: 16, fontWeight: "700", color: colors.onSurface, marginTop: spacing.md },
-    emptySubtext: { fontSize: 14, color: colors.neutral[500], marginTop: spacing.xs },
+    emptyText: { ...typography.h3, color: colors.onSurface, marginTop: spacing.md },
+    emptySubtext: { ...typography.bodySm, color: colors.neutral[500], marginTop: spacing.xs },
     footerActions: { paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.surfaceVariant },
     modalContainer: { flex: 1, backgroundColor: colors.background },
     modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.surfaceVariant },
-    modalCloseButton: { fontSize: 16, fontWeight: "600", color: colors.primary[500] },
+    modalCloseButton: { ...typography.labelLg, color: colors.primary[500] },
     modalPlaceholder: { width: 60 },
     paymentTypesContainer: { marginBottom: spacing.lg },
-    sectionTitle: { fontSize: 18, fontWeight: "800", color: colors.onSurface, marginBottom: spacing.md },
+    sectionTitle: { ...typography.h3, color: colors.onSurface, marginBottom: spacing.md },
     typesGrid: { flexDirection: "row", gap: spacing.sm },
-    typeLabel: { fontSize: 12, fontWeight: "600", color: colors.neutral[500], marginTop: spacing.xs },
+    typeLabel: { ...typography.labelCaps, color: colors.neutral[500], marginTop: spacing.xs },
     typeLabelActive: { color: colors.primary[500] },
     formContainer: { gap: spacing.md },
     rowInputs: { flexDirection: "row", gap: spacing.sm },
@@ -122,12 +94,7 @@ export default function PaymentMethodsScreen() {
   }), [colors]);
 
   const handleSelectMethod = (id: string) => {
-    setMethods((prev) =>
-      prev.map((method) => ({
-        ...method,
-        isDefault: method.id === id,
-      }))
-    );
+    dispatch(setDefaultPaymentMethod(id));
   };
 
   const handleAddPaymentMethod = () => {
@@ -144,20 +111,13 @@ export default function PaymentMethodsScreen() {
       pixKey: formData.pixKey,
     };
 
-    setMethods((prev) => [...prev, newMethod]);
+    dispatch(addPaymentMethod(newMethod));
     resetForm();
     setShowAddModal(false);
   };
 
   const handleDeleteMethod = (id: string) => {
-    const defaultMethod = methods.find((m) => m.isDefault);
-    const updatedMethods = methods.filter((m) => m.id !== id);
-
-    if (defaultMethod?.id === id && updatedMethods.length > 0) {
-      updatedMethods[0].isDefault = true;
-    }
-
-    setMethods(updatedMethods);
+    dispatch(removePaymentMethod(id));
   };
 
   const validateForm = () => {
@@ -238,118 +198,125 @@ export default function PaymentMethodsScreen() {
           transparent={true}
           onRequestClose={() => setShowAddModal(false)}
         >
-          <SafeAreaView style={styles.modalContainer} edges={["top", "bottom"]}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-              style={styles.modalContent}
-            >
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                  <Text style={styles.modalCloseButton}>Cancelar</Text>
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>Novo Método</Text>
-                <View style={styles.modalPlaceholder} />
-              </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+            style={styles.modalContainer}
+          >
+            <SafeAreaView style={styles.modalContainer} edges={["top", "bottom"]}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                    <Text style={styles.modalCloseButton}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>Novo Método</Text>
+                  <View style={styles.modalPlaceholder} />
+                </View>
 
-              <View style={styles.paymentTypesContainer}>
-                <Text style={styles.sectionTitle}>Tipo de Pagamento</Text>
-                <View style={styles.typesGrid}>
-                  {paymentTypes.map((item) => (
-                    <TouchableOpacity
-                      key={item.type}
-                      onPress={() => {
-                        setSelectedPaymentType(item.type);
-                        setFormData((prev) => ({ ...prev, type: item.type }));
-                      }}
-                      style={[
-                        styles.typeButton,
-                        selectedPaymentType === item.type && styles.typeButtonActive,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={item.icon}
-                        size={32}
-                        color={
-                          selectedPaymentType === item.type
-                            ? colors.white
-                            : colors.primary[500]
-                        }
-                      />
-                      <Text
+                <View style={styles.paymentTypesContainer}>
+                  <Text style={styles.sectionTitle}>Tipo de Pagamento</Text>
+                  <View style={styles.typesGrid}>
+                    {paymentTypes.map((item) => (
+                      <TouchableOpacity
+                        key={item.type}
+                        onPress={() => {
+                          setSelectedPaymentType(item.type);
+                          setFormData((prev) => ({ ...prev, type: item.type }));
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         style={[
-                          styles.typeLabel,
-                          selectedPaymentType === item.type &&
-                            styles.typeLabelActive,
+                          styles.typeButton,
+                          selectedPaymentType === item.type && styles.typeButtonActive,
                         ]}
                       >
-                        {getPaymentMethodLabel(item.type)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <MaterialCommunityIcons
+                          name={item.icon}
+                          size={32}
+                          color={
+                            selectedPaymentType === item.type
+                              ? colors.white
+                              : colors.primary[500]
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.typeLabel,
+                            selectedPaymentType === item.type &&
+                              styles.typeLabelActive,
+                          ]}
+                        >
+                          {getPaymentMethodLabel(item.type)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.formContainer}>
+                  {selectedPaymentType === "pix" ? (
+                    <>
+                      <Text style={styles.sectionTitle}>Chave PIX</Text>
+                      <Input
+                        placeholder="Digite sua chave PIX (CPF, Email, Telefone ou Aleatória)"
+                        value={formData.pixKey || ""}
+                        onChangeText={(value) =>
+                          setFormData((prev) => ({ ...prev, pixKey: value }))
+                        }
+                        returnKeyType="done"
+                      />
+                    </>
+                  ) : selectedPaymentType === "cash" ? (
+                    <Text style={styles.sectionTitle}>Dinheiro em mão</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.sectionTitle}>Dados do Cartão</Text>
+                      <Input
+                        placeholder="Número do Cartão"
+                        value={formData.cardNumber || ""}
+                        onChangeText={(value) =>
+                          setFormData((prev) => ({ ...prev, cardNumber: value }))
+                        }
+                        keyboardType="numeric"
+                        returnKeyType="next"
+                      />
+                      <Input
+                        placeholder="Nome do Titular"
+                        value={formData.cardHolder || ""}
+                        onChangeText={(value) =>
+                          setFormData((prev) => ({ ...prev, cardHolder: value }))
+                        }
+                        returnKeyType="next"
+                      />
+                      <View style={styles.rowInputs}>
+                        <View style={styles.flexInput}>
+                          <Input
+                            placeholder="MM/AA"
+                            value={formData.expiryDate || ""}
+                            onChangeText={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                expiryDate: value,
+                              }))
+                            }
+                            keyboardType="numeric"
+                            returnKeyType="done"
+                          />
+                        </View>
+                      </View>
+                    </>
+                  )}
+
+                  <Button
+                    title="Guardar Método"
+                    onPress={handleAddPaymentMethod}
+                    size="large"
+                  />
                 </View>
               </View>
-
-              <View style={styles.formContainer}>
-                {selectedPaymentType === "pix" ? (
-                  <>
-                    <Text style={styles.sectionTitle}>Chave PIX</Text>
-                    <Input
-                      placeholder="Digite sua chave PIX (CPF, Email, Telefone ou Aleatória)"
-                      value={formData.pixKey || ""}
-                      onChangeText={(value) =>
-                        setFormData((prev) => ({ ...prev, pixKey: value }))
-                      }
-                    />
-                  </>
-                ) : selectedPaymentType === "cash" ? (
-                  <Text style={styles.sectionTitle}>Dinheiro em mão</Text>
-                ) : (
-                  <>
-                    <Text style={styles.sectionTitle}>Dados do Cartão</Text>
-                    <Input
-                      placeholder="Número do Cartão"
-                      value={formData.cardNumber || ""}
-                      onChangeText={(value) =>
-                        setFormData((prev) => ({ ...prev, cardNumber: value }))
-                      }
-                      keyboardType="numeric"
-                    />
-                    <Input
-                      placeholder="Nome do Titular"
-                      value={formData.cardHolder || ""}
-                      onChangeText={(value) =>
-                        setFormData((prev) => ({ ...prev, cardHolder: value }))
-                      }
-                    />
-                    <View style={styles.rowInputs}>
-                      <View style={styles.flexInput}>
-                        <Input
-                          placeholder="MM/AA"
-                          value={formData.expiryDate || ""}
-                          onChangeText={(value) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              expiryDate: value,
-                            }))
-                          }
-                          keyboardType="numeric"
-                        />
-                      </View>
-                    </View>
-                  </>
-                )}
-
-                <Button
-                  title="Guardar Método"
-                  onPress={handleAddPaymentMethod}
-                  size="large"
-                />
-              </View>
-            </KeyboardAvoidingView>
-          </SafeAreaView>
+            </SafeAreaView>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     </SafeAreaView>
   );
 }
-

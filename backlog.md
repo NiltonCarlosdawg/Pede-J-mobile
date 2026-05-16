@@ -345,11 +345,16 @@ pedeja-mobile/
 ### Infra e Qualidade
 - [ ] Testes unitários e de integração
 - [ ] Push notifications reais (OneSignal ou Firebase)
-- [ ] Integração com backend real
+- [ ] Checkout integrado à API com TanStack Query (invalidação carrinho/pedidos, tratamento 4xx/5xx, timeout, idempotência no fluxo de criação de pedido)
 - [ ] Refresh tokens JWT
 - [ ] Offline support / caching
+- [ ] Virtualizar listas grandes e auditar seletores Redux para cortar re-renders em home/cardápio/histórico
+- [ ] Resiliência 10×: paginação server-driven, cache de imagens, limites no chat/mapas, observabilidade (métricas além do Sentry)
 - [ ] Deep linking
 - [ ] Analytics (Firebase/Amplitude)
+
+### UX / Interface
+- [ ] Ajustar modais/web: teclado + safe area + hitSlop em linhas de seleção e no fluxo de cupom
 
 ### Funcionalidades Futuras
 - [ ] Sistema de cashback
