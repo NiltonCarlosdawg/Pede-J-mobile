@@ -14,6 +14,7 @@ import {
 
 import { ProductCard } from "../src/components/ui";
 import { spacing, formatPrice, typography } from "../src/theme";
+import { shadowStyle } from "../src/utils/shadow";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { selectCartCount, selectCartSubtotal } from "../src/store/cartSelectors";
 import { addItem } from "../src/store/cartSlice";
@@ -240,10 +241,7 @@ export default function RestaurantScreen() {
       paddingTop: 24,
       paddingBottom: 16,
       marginTop: -24,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -8 },
-      shadowOpacity: 0.05,
-      shadowRadius: 20,
+      ...shadowStyle({ offsetY: -8, blur: 20, opacity: 0.05 }),
     },
     restaurantName: {
       ...typography.h1,

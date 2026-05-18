@@ -1,7 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../../theme';
+import { colors } from '../../theme';
+import { shadowStyle } from '../../utils/shadow';
 
 interface CategoryCardProps {
   name: string;
@@ -56,11 +57,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerHighet,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...shadowStyle({ offsetY: 1, blur: 2, opacity: 0.05, elevation: 1 }),
   },
   image: { width: '100%', height: '100%', opacity: 0.8 },
   iconPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },

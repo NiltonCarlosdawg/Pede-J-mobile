@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "../../src/store";
 import { selectOrders, Order, OrderStatus } from "../../src/store/ordersSlice";
 import { spacing, formatPrice } from "../../src/theme";
+import { shadowStyle } from "../../src/utils/shadow";
 import { MOCK_COORDINATES, simulateDriverMovement, calculateDistance, estimateDeliveryTime, type Coordinates } from "../../src/services/location";
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: string; color: string }> = {
@@ -119,10 +120,7 @@ export default function TrackingScreen() {
       paddingHorizontal: 20,
       paddingBottom: 48,
       marginTop: -24,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -8 },
-      shadowOpacity: 0.1,
-      shadowRadius: 30,
+      ...shadowStyle({ offsetY: -8, blur: 30, opacity: 0.1 }),
     },
     handle: {
       width: 48,
@@ -219,11 +217,7 @@ export default function TrackingScreen() {
       backgroundColor: colors.primary[500],
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: colors.primary[500],
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 4,
+      ...shadowStyle({ color: colors.primary[500], offsetY: 2, blur: 4, opacity: 0.3, elevation: 4 }),
     },
     actionButtonText: {
       fontSize: 11,
@@ -268,11 +262,7 @@ export default function TrackingScreen() {
     },
     activeIcon: {
       backgroundColor: colors.primary[500],
-      shadowColor: colors.primary[500],
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 4,
+      ...shadowStyle({ color: colors.primary[500], offsetY: 0, blur: 8, opacity: 0.2, elevation: 4 }),
     },
     pendingDot: {
       width: 8,

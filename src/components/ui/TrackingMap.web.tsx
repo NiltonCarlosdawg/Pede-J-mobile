@@ -4,6 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useTheme } from "../../hooks/useTheme";
 import type { Coordinates } from "../../services/location";
+import { shadowStyle } from "../../utils/shadow";
 
 interface TrackingMapProps {
   restaurantLocation: Coordinates;
@@ -139,11 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+    ...shadowStyle({ offsetY: 2, blur: 3, opacity: 0.2, elevation: 4 }),
   },
   webDriverMarker: {
     width: 40,
@@ -153,11 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadowStyle({ offsetY: 2, blur: 4, opacity: 0.25, elevation: 5 }),
   },
   webMarkerLabel: {
     marginTop: 4,
@@ -192,10 +185,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadowStyle({ offsetY: 2, blur: 4, opacity: 0.2, elevation: 5 }),
   },
 });

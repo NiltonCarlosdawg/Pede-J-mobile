@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Header, Input, PaymentMethodCard } from "../src/components/ui";
 import { spacing, typography } from "../src/theme";
+import { shadowStyle } from "../src/utils/shadow";
 import { useTheme } from "../src/hooks/useTheme";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import {
@@ -55,7 +56,7 @@ export default function PaymentMethodsScreen() {
     cardLabel: { ...typography.labelLg, color: colors.onSurface },
     cardNumber: { ...typography.bodySm, color: colors.neutral[500] },
     cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-    fab: { position: "absolute", right: spacing.gutter, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary[500], alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+    fab: { position: "absolute", right: spacing.gutter, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary[500], alignItems: "center", justifyContent: "center", ...shadowStyle({ offsetY: 2, blur: 4, opacity: 0.25, elevation: 4 }) },
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     modalContent: { backgroundColor: colors.surfaceContainerLowest, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg },
     modalHandle: { width: 40, height: 4, backgroundColor: colors.neutral[300], borderRadius: 2, alignSelf: "center", marginBottom: spacing.lg },

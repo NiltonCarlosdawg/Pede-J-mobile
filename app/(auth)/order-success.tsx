@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Button } from "../../src/components/ui/Button";
 import { formatPrice, spacing } from "../../src/theme";
+import { shadowStyle } from "../../src/utils/shadow";
 import { useTheme } from "../../src/hooks/useTheme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -79,11 +80,7 @@ export default function OrderSuccessScreen() {
       backgroundColor: colors.primary[500],
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: colors.primary[500],
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 8,
+      ...shadowStyle({ color: colors.primary[500], offsetY: 8, blur: 16, opacity: 0.3, elevation: 8 }),
     },
     checkmarkContainer: {
       position: "absolute",
