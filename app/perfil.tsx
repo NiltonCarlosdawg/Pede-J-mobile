@@ -353,7 +353,7 @@ export default function PerfilScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Meu Perfil" showAvatar={false} />
+      <Header title="Meu Perfil" showBack showAvatar={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         <View style={styles.profileCard}>
