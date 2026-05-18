@@ -58,9 +58,9 @@ export default function RegisterScreen() {
       marginBottom: spacing.md,
     },
     logo: {
-      width: 80,
-      height: 80,
-      marginBottom: spacing.md,
+      width: 148,
+      height: 148,
+      marginBottom: spacing.sm,
     },
     appName: {
       fontSize: 28,

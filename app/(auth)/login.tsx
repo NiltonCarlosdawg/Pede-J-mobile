@@ -57,14 +57,15 @@ export default function LoginScreen() {
     },
     scrollContent: {
       flexGrow: 1,
-      justifyContent: "center",
+      justifyContent: "flex-start",
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xl,
       gap: spacing.lg,
     },
     logoSection: {
       alignItems: "center",
-      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
     },
     logo: {
       width: 200,
@@ -108,6 +109,11 @@ export default function LoginScreen() {
       color: colors.white,
     },
     formCard: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+      borderRadius: 24,
+      padding: spacing.lg,
       gap: spacing.md,
     },
     inputWrapper: {
@@ -162,7 +168,7 @@ export default function LoginScreen() {
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      marginTop: spacing.md,
+      marginTop: spacing.xs,
     },
     footerText: {
       fontSize: 14,
