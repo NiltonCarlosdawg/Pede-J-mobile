@@ -2,25 +2,25 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
+import { useTheme } from "../../src/hooks/useTheme";
 import { DemoRole } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
 import type { User } from "../../src/types";
 
 export default function RegisterScreen() {
@@ -38,106 +38,112 @@ export default function RegisterScreen() {
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
 
-  const styles = React.useMemo(() => StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    container: {
-      flex: 1,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl,
-      gap: spacing.lg,
-    },
-    logoSection: {
-      alignItems: "center",
-      marginBottom: spacing.md,
-    },
-    logo: {
-      width: 148,
-      height: 148,
-      marginBottom: spacing.sm,
-    },
-    appName: {
-      fontSize: 28,
-      fontWeight: "800",
-      color: colors.onSurface,
-      letterSpacing: -0.5,
-    },
-    tagline: {
-      fontSize: 14,
-      color: colors.neutral[500],
-      marginTop: spacing.xs,
-    },
-    formCard: {
-      gap: spacing.md,
-    },
-    inputWrapper: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.neutral[50],
-      borderWidth: 1,
-      borderColor: colors.neutral[200],
-      borderRadius: 16,
-      paddingHorizontal: spacing.md,
-    },
-    inputIcon: {
-      marginRight: spacing.sm,
-    },
-    input: {
-      flex: 1,
-      paddingVertical: spacing.md,
-      fontSize: 16,
-      color: colors.neutral[900],
-    },
-    passwordInput: {
-      paddingRight: 40,
-    },
-    eyeButton: {
-      position: "absolute",
-      right: spacing.md,
-      height: "100%",
-      justifyContent: "center",
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: 13,
-      fontWeight: "600",
-      textAlign: "center",
-    },
-    footer: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: spacing.xs,
-    },
-    footerText: {
-      fontSize: 14,
-      color: colors.neutral[500],
-    },
-    footerLink: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.primary[500],
-    },
-    termsSection: {
-      alignItems: "center",
-    },
-    termsText: {
-      fontSize: 12,
-      lineHeight: 18,
-      color: colors.neutral[500],
-      textAlign: "center",
-    },
-    termsLink: {
-      fontWeight: "600",
-      color: colors.primary[500],
-    },
-  }), [colors]);
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        safeArea: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        container: {
+          flex: 1,
+        },
+        scrollContent: {
+          flexGrow: 1,
+          justifyContent: "flex-start",
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.xs,
+          paddingBottom: spacing.lg,
+          gap: spacing.sm,
+        },
+        logoSection: {
+          alignItems: "center",
+          marginTop: -spacing.sm,
+          marginBottom: spacing.sm,
+        },
+        logo: {
+          width: 196,
+          height: 196,
+          marginBottom: spacing.xs,
+        },
+        tagline: {
+          fontSize: 15,
+          fontWeight: "600",
+          color: colors.neutral[700],
+          textAlign: "center",
+        },
+        formCard: {
+          backgroundColor: colors.surfaceContainerLowest,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+          borderRadius: 24,
+          padding: spacing.lg,
+          gap: spacing.md,
+        },
+        inputWrapper: {
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: colors.neutral[50],
+          borderWidth: 1,
+          borderColor: colors.neutral[200],
+          borderRadius: 16,
+          paddingHorizontal: spacing.md,
+        },
+        inputIcon: {
+          marginRight: spacing.sm,
+        },
+        input: {
+          flex: 1,
+          paddingVertical: spacing.md,
+          fontSize: 16,
+          color: colors.neutral[900],
+        },
+        passwordInput: {
+          paddingRight: 40,
+        },
+        eyeButton: {
+          position: "absolute",
+          right: spacing.md,
+          height: "100%",
+          justifyContent: "center",
+        },
+        errorText: {
+          color: colors.error,
+          fontSize: 13,
+          fontWeight: "600",
+          textAlign: "center",
+        },
+        footer: {
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          marginTop: spacing.xs,
+        },
+        footerText: {
+          fontSize: 14,
+          color: colors.neutral[500],
+        },
+        footerLink: {
+          fontSize: 14,
+          fontWeight: "700",
+          color: colors.primary[500],
+        },
+        termsSection: {
+          alignItems: "center",
+        },
+        termsText: {
+          fontSize: 12,
+          lineHeight: 18,
+          color: colors.neutral[500],
+          textAlign: "center",
+        },
+        termsLink: {
+          fontWeight: "600",
+          color: colors.primary[500],
+        },
+      }),
+    [colors]
+  );
 
   function triggerShake() {
     Animated.sequence([
@@ -236,21 +242,23 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo */}
           <View style={styles.logoSection}>
             <Image
               source={require("../../assets/images/P.png")}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.appName}>PedeJá</Text>
-            <Text style={styles.tagline}>Crie sua conta e comece</Text>
+            <Text style={styles.tagline}>Crie sua conta e comece agora</Text>
           </View>
 
-          {/* Formulário */}
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
             <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={colors.neutral[500]}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Nome completo"
@@ -262,7 +270,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={colors.neutral[500]}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="E-mail"
@@ -277,7 +290,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="call-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <Ionicons
+                name="call-outline"
+                size={20}
+                color={colors.neutral[500]}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Telefone (opcional)"
@@ -290,7 +308,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={colors.neutral[500]}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Senha"
@@ -314,7 +337,12 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={colors.neutral[500]}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Confirmar senha"
@@ -346,7 +374,6 @@ export default function RegisterScreen() {
               disabled={loading}
             />
 
-            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Já tem conta? </Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
