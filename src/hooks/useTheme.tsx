@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useColorScheme } from 'react-native';
 import { safeGetItem, safeSetItem } from '../utils/storage';
 import { lightColors, darkColors, ThemeColors } from '../theme';
 
@@ -13,49 +12,26 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const systemColorScheme = useColorScheme();
-  // Padrão é light (false)
+  // Padrão é sempre light (false) — ignoramos tema do sistema
   const [isDark, setIsDark] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Carrega preferência salva ao montar
   useEffect(() => {
-    loadThemePreference();
+    (async () => {
+      try {
+        const savedTheme = await safeGetItem('@pedeja_theme');
+        if (savedTheme !== null) {
+          setIsDark(savedTheme === 'dark');
+        }
+        // Se não houver preferência salva, mantém light (false)
+      } catch {
+        // Em caso de erro, mantém light como padrão
+      } finally {
+        setIsLoaded(true);
+      }
+    })();
   }, []);
-
-  // Listener para mudanças no tema do sistema (apenas se não houver preferência salva)
-  useEffect(() => {
-    if (!isLoaded) return;
-    
-    // Verifica se há preferência salva
-    const checkSavedTheme = async () => {
-      const savedTheme = await safeGetItem('@pedeja_theme');
-      // Só aplica tema do sistema se não houver preferência salva
-      if (savedTheme === null && systemColorScheme) {
-        setIsDark(systemColorScheme === 'dark');
-      }
-    };
-    
-    checkSavedTheme();
-  }, [systemColorScheme, isLoaded]);
-
-  const loadThemePreference = async () => {
-    try {
-      const savedTheme = await safeGetItem('@pedeja_theme');
-      if (savedTheme !== null) {
-        // Usa preferência salva
-        setIsDark(savedTheme === 'dark');
-      } else {
-        // Padrão é light, não usa tema do sistema automaticamente
-        setIsDark(false);
-      }
-    } catch {
-      // Em caso de erro, mantém light como padrão
-      setIsDark(false);
-    } finally {
-      setIsLoaded(true);
-    }
-  };
 
   const toggleTheme = useCallback(() => {
     setIsDark((prev) => {

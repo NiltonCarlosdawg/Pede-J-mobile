@@ -3,20 +3,32 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { borderRadius, spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
-import type { PaymentMethod } from '../../types';
+import type { PaymentMethod, PaymentMethodType } from '../../types';
 
 interface PaymentMethodCardProps {
   method: PaymentMethod;
   onSelect?: () => void;
-  onEdit?: () => void;
   onDelete?: () => void;
   isSelected?: boolean;
 }
 
+const METHOD_ICONS: Record<PaymentMethodType, string> = {
+  paypay: "wallet",
+  multicaixa_express: "bank-transfer",
+  unitel_money: "cellphone",
+  facipay: "credit-card-wireless",
+};
+
+const METHOD_LABELS: Record<PaymentMethodType, string> = {
+  paypay: "PayPay",
+  multicaixa_express: "Multicaixa Express",
+  unitel_money: "Unitel Money",
+  facipay: "FaciPay",
+};
+
 export function PaymentMethodCard({
   method,
   onSelect,
-  onEdit,
   onDelete,
   isSelected = false,
 }: PaymentMethodCardProps) {
@@ -63,20 +75,10 @@ export function PaymentMethodCard({
       color: colors.neutral[900],
       marginBottom: spacing.xs / 2,
     },
-    cardHolder: {
+    methodSubtitle: {
       fontSize: 13,
       color: colors.neutral[600],
       marginBottom: spacing.xs / 2,
-    },
-    cardNumber: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.neutral[700],
-      marginBottom: spacing.xs / 2,
-    },
-    expiryDate: {
-      fontSize: 12,
-      color: colors.neutral[500],
     },
     defaultBadge: {
       backgroundColor: colors.primary[100],
@@ -106,48 +108,8 @@ export function PaymentMethodCard({
     },
   }), [colors]);
 
-  const getIcon = () => {
-    switch (method.type) {
-      case 'credit_card':
-      case 'debit_card':
-        return 'credit-card';
-      case 'pix':
-        return 'qrcode';
-      case 'wallet':
-        return 'wallet';
-      case 'cash':
-        return 'cash';
-      default:
-        return 'credit-card';
-    }
-  };
-
-  const getLabel = () => {
-    switch (method.type) {
-      case 'credit_card':
-        return 'Cartão de crédito';
-      case 'debit_card':
-        return 'Cartão de débito';
-      case 'pix':
-        return 'Pix';
-      case 'wallet':
-        return 'Carteira';
-      case 'cash':
-        return 'Dinheiro';
-      default:
-        return 'Método de pagamento';
-    }
-  };
-
-  const getCardDisplay = () => {
-    if (method.type === 'pix') {
-      return `Chave: ${method.pixKey?.substring(0, 10)}...`;
-    }
-    if (method.cardNumber) {
-      return `••• •••• •••• ${method.cardNumber}`;
-    }
-    return method.label;
-  };
+  const icon = METHOD_ICONS[method.type] as any;
+  const label = METHOD_LABELS[method.type] || method.label;
 
   return (
     <TouchableOpacity
@@ -161,21 +123,15 @@ export function PaymentMethodCard({
       <View style={styles.content}>
         <View style={[styles.iconContainer, isSelected && styles.iconContainerSelected]}>
           <MaterialCommunityIcons
-            name={getIcon()}
+            name={icon}
             size={24}
             color={isSelected ? colors.white : colors.primary[500]}
           />
         </View>
 
         <View style={styles.details}>
-          <Text style={styles.methodType}>{getLabel()}</Text>
-          {method.cardHolder && (
-            <Text style={styles.cardHolder}>{method.cardHolder}</Text>
-          )}
-          <Text style={styles.cardNumber}>{getCardDisplay()}</Text>
-          {method.expiryDate && (
-            <Text style={styles.expiryDate}>Exp: {method.expiryDate}</Text>
-          )}
+          <Text style={styles.methodType}>{label}</Text>
+          <Text style={styles.methodSubtitle}>Pagamento digital</Text>
         </View>
 
         {method.isDefault && (
@@ -195,21 +151,8 @@ export function PaymentMethodCard({
         </View>
       )}
 
-      {(onEdit || onDelete) && (
+      {onDelete && (
         <View style={styles.actions}>
-          {onEdit && (
-            <TouchableOpacity
-              onPress={onEdit}
-              style={styles.actionButton}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <MaterialCommunityIcons
-                name="pencil"
-                size={18}
-                color={colors.neutral[500]}
-              />
-            </TouchableOpacity>
-          )}
           {onDelete && (
             <TouchableOpacity
               onPress={onDelete}

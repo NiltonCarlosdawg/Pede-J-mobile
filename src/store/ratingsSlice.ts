@@ -12,8 +12,21 @@ export interface Rating {
   timestamp: string;
 }
 
+export interface DriverRating {
+  id: string;
+  orderId: string;
+  driverId: string;
+  userId: string;
+  userName: string;
+  rating: number; // 1-5
+  comment: string;
+  tags: string[];
+  timestamp: string;
+}
+
 export interface RatingsState {
   ratings: Rating[];
+  driverRatings: DriverRating[];
 }
 
 const MOCK_RATINGS: Rating[] = [
@@ -54,6 +67,7 @@ const MOCK_RATINGS: Rating[] = [
 
 const initialState: RatingsState = {
   ratings: MOCK_RATINGS,
+  driverRatings: [],
 };
 
 const ratingsSlice = createSlice({
@@ -71,13 +85,25 @@ const ratingsSlice = createSlice({
     removeRating(state, action: PayloadAction<string>) {
       state.ratings = state.ratings.filter((r) => r.id !== action.payload);
     },
+    addDriverRating(state, action: PayloadAction<Omit<DriverRating, "id" | "timestamp">>) {
+      const newRating: DriverRating = {
+        ...action.payload,
+        id: `driver-rating-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+      };
+      state.driverRatings.push(newRating);
+    },
+    removeDriverRating(state, action: PayloadAction<string>) {
+      state.driverRatings = state.driverRatings.filter((r) => r.id !== action.payload);
+    },
   },
 });
 
-export const { addRating, removeRating } = ratingsSlice.actions;
+export const { addRating, removeRating, addDriverRating, removeDriverRating } = ratingsSlice.actions;
 export const ratingsReducer = ratingsSlice.reducer;
 
 const selectAllRatings = (state: { ratings: RatingsState }) => state.ratings.ratings;
+const selectAllDriverRatings = (state: { ratings: RatingsState }) => state.ratings.driverRatings;
 
 export const selectRatingsByRestaurant = createSelector(
   [selectAllRatings, (state: { ratings: RatingsState }, restaurantId: string) => restaurantId],
@@ -100,3 +126,9 @@ export const selectRatingCount = createSelector(
 
 export const selectRatingByOrder = (state: { ratings: RatingsState }, orderId: string) =>
   state.ratings.ratings.find((r) => r.orderId === orderId);
+
+export const selectDriverRatingByOrder = (state: { ratings: RatingsState }, orderId: string) =>
+  state.ratings.driverRatings.find((r) => r.orderId === orderId);
+
+export const selectHasDriverRating = (state: { ratings: RatingsState }, orderId: string) =>
+  state.ratings.driverRatings.some((r) => r.orderId === orderId);

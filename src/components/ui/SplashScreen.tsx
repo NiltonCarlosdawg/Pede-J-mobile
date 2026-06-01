@@ -171,9 +171,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   logoImage: {
-    width: 260,
-    height: 260,
-    borderRadius: 40,
+    width: 200,
+    height: 200,
+    borderRadius: 32,
   },
   footer: {
     position: "absolute",

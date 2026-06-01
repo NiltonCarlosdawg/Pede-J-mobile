@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "pedej-mobile",
+    "name": "Pede Já",
     "slug": "pede-ja",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pedejmobile",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",

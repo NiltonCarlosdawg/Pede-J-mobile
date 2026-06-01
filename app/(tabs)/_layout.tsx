@@ -46,6 +46,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="moped" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

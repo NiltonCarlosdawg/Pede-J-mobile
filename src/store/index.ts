@@ -8,10 +8,8 @@ import { chatReducer } from './chatSlice';
 import { notificationsReducer } from './notificationsSlice';
 import { ordersReducer } from './ordersSlice';
 import {
-  addPaymentMethod,
   persistPaymentMethods,
   paymentMethodsReducer,
-  removePaymentMethod,
   replacePaymentMethods,
   setDefaultPaymentMethod,
 } from './paymentMethodsSlice';
@@ -22,8 +20,6 @@ const paymentPersistListener = createListenerMiddleware();
 
 paymentPersistListener.startListening({
   matcher: isAnyOf(
-    addPaymentMethod,
-    removePaymentMethod,
     setDefaultPaymentMethod,
     replacePaymentMethods
   ),

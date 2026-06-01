@@ -56,25 +56,12 @@ export function Header({
               color={colors.onSurface} 
             />
           </TouchableOpacity>
-        ) : showLocation ? (
-          <TouchableOpacity 
-            style={styles.locationButton}
-            onPress={() => router.push('/endereco')}
-          >
-            <MaterialCommunityIcons 
-              name="map-marker" 
-              size={20} 
-              color={colors.primary[500]} 
-            />
-            <Text style={[styles.address, { color: colors.neutral[900] }]} numberOfLines={1}>
-              {address}
-            </Text>
-            <MaterialCommunityIcons 
-              name="chevron-down" 
-              size={18} 
-              color={colors.primary[500]} 
-            />
-          </TouchableOpacity>
+        ) : showLogo || showLocation ? (
+          <Image
+            source={require("../../../assets/images/P.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         ) : (
           title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
         )}
@@ -133,6 +120,7 @@ const styles = StyleSheet.create({
   },
   leftSection: {
     flex: 1,
+    justifyContent: 'center',
   },
   rightSection: {
     flexDirection: 'row',
@@ -185,5 +173,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  logoImage: {
+    width: 96,
+    height: 28,
+    alignSelf: 'flex-start',
   },
 });

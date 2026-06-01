@@ -15,17 +15,17 @@ import { Button } from "../src/components/ui/Button";
 import { Header } from "../src/components/ui/Header";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { selectOrders } from "../src/store/ordersSlice";
-import { addRating } from "../src/store/ratingsSlice";
+import { addDriverRating } from "../src/store/ratingsSlice";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 
 const RATING_LABELS = ["Péssimo", "Ruim", "Bom", "Muito bom", "Excelente"];
-const QUICK_TAGS = ["Rápido", "Quente", "Bem embalado", "Saboroso", "Porção generosa", "Entregador simpático"];
+const QUICK_TAGS = ["Pontual", "Simpático", "Cuidadoso", "Rápido", "Bem vestido", "Educado"];
 
-export default function RatingScreen() {
+export default function DriverRatingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string; immediate?: string }>();
-  const orderId = params.orderId ?? "order-001";
+  const orderId = params.orderId ?? "order-005";
   const isImmediate = params.immediate === "true";
   const { colors } = useTheme();
   const dispatch = useAppDispatch();
@@ -156,6 +156,30 @@ export default function RatingScreen() {
       fontWeight: "700",
       color: colors.onSurface,
     },
+    driverInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginBottom: spacing.md,
+    },
+    driverAvatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary[100],
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    driverName: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    driverVehicle: {
+      fontSize: 13,
+      color: colors.neutral[500],
+      marginTop: 2,
+    },
   }), [colors]);
 
   function toggleTag(tag: string) {
@@ -168,9 +192,9 @@ export default function RatingScreen() {
     if (rating === 0) return;
 
     dispatch(
-      addRating({
+      addDriverRating({
         orderId,
-        restaurantId: "rest-001",
+        driverId: order?.driver?.id ?? "unknown",
         userId: "user-001",
         userName: "Você",
         rating,
@@ -182,19 +206,27 @@ export default function RatingScreen() {
     setSubmitted(true);
   }
 
+  function handleSuccessNext() {
+    if (isImmediate) {
+      router.replace({ pathname: "/avaliacao", params: { orderId, immediate: "true" } });
+    } else {
+      router.replace("/pedidos");
+    }
+  }
+
   if (submitted) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <Header title="Avaliação" showBack onBackPress={() => router.back()} />
+        <Header title="Avaliação do Entregador" showBack onBackPress={() => router.back()} />
         <View style={styles.successContainer}>
           <View style={styles.successIcon}>
             <MaterialCommunityIcons name="check" size={40} color={colors.primary[500]} />
           </View>
           <Text style={styles.successTitle}>Obrigado!</Text>
           <Text style={styles.successText}>
-            Sua avaliação ajuda outros clientes e melhora nosso serviço.
+            Sua avaliação ajuda a manter a qualidade dos nossos entregadores.
           </Text>
-          <Button title={isImmediate ? "Concluir" : "Voltar aos pedidos"} onPress={() => router.replace(isImmediate ? "/(tabs)" : "/pedidos")} />
+          <Button title={isImmediate ? "Avaliar pedido" : "Voltar aos pedidos"} onPress={handleSuccessNext} />
         </View>
       </SafeAreaView>
     );
@@ -202,20 +234,26 @@ export default function RatingScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Avaliar Pedido" showBack onBackPress={() => isImmediate ? router.replace("/(tabs)") : router.back()} />
+      <Header title="Avaliar Entregador" showBack onBackPress={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {/* Order Info */}
+        {/* Driver Info */}
         <View style={styles.orderInfo}>
+          <View style={styles.driverInfo}>
+            <View style={styles.driverAvatar}>
+              <MaterialCommunityIcons name="account" size={28} color={colors.primary[500]} />
+            </View>
+            <View>
+              <Text style={styles.driverName}>{order?.driver?.name ?? "Entregador"}</Text>
+              <Text style={styles.driverVehicle}>{order?.driver?.vehicle ?? ""}</Text>
+            </View>
+          </View>
           <Text style={styles.orderText}>Pedido #{orderId.slice(-4)}</Text>
-          <Text style={styles.orderValue}>
-            {order?.items.map((i: any) => `${i.quantity}x ${i.title}`).join(", ")}
-          </Text>
         </View>
 
         {/* Rating Stars */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Como foi sua experiência?</Text>
+          <Text style={styles.sectionTitle}>Como foi o entregador?</Text>
           <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
               <TouchableOpacity
@@ -241,7 +279,7 @@ export default function RatingScreen() {
           <Text style={styles.sectionTitle}>Deixe um comentário (opcional)</Text>
           <TextInput
             style={styles.commentInput}
-            placeholder="Conte mais sobre sua experiência..."
+            placeholder="Conte mais sobre a entrega..."
             placeholderTextColor={colors.neutral[500]}
             value={comment}
             onChangeText={setComment}

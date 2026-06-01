@@ -22,9 +22,10 @@ import {
     sendMessage,
     type ChatParticipant,
 } from "../src/store/chatSlice";
-import { selectOrders } from "../src/store/ordersSlice";
+import { markClientConfirmed, finalizeDelivery, selectOrders } from "../src/store/ordersSlice";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
+import { playPaymentSuccess } from "../src/utils/sounds";
 
 const QUICK_MESSAGES = [
   "Estou chegando!",
@@ -60,6 +61,10 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
+
+  const deliveryConfirmation = order?.deliveryConfirmation;
+  const awaitingClientConfirm = deliveryConfirmation?.driverFinished && !deliveryConfirmation?.clientConfirmed;
+  const canConfirmDelivery = order?.status === "delivering" && awaitingClientConfirm;
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -204,6 +209,31 @@ export default function ChatScreen() {
       color: colors.neutral[500],
       marginTop: spacing.sm,
     },
+    confirmBanner: {
+      backgroundColor: colors.primary[500],
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    confirmBannerText: {
+      color: colors.white,
+      fontSize: 14,
+      fontWeight: "700",
+      flex: 1,
+    },
+    confirmBannerButton: {
+      backgroundColor: colors.white,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+    },
+    confirmBannerButtonText: {
+      color: colors.primary[500],
+      fontSize: 13,
+      fontWeight: "800",
+    },
   }), [colors]);
 
   useEffect(() => {
@@ -245,6 +275,23 @@ export default function ChatScreen() {
         })
       );
     }, 2000);
+  }
+
+  function handleConfirmDelivery() {
+    dispatch(markClientConfirmed(orderId));
+    dispatch(
+      addSystemMessage({
+        orderId,
+        text: "Cliente confirmou o recebimento do pedido.",
+      })
+    );
+    // Check if both finished to finalize
+    const updatedOrder = orders.find((o: any) => o.id === orderId);
+    if (updatedOrder?.deliveryConfirmation?.driverFinished) {
+      dispatch(finalizeDelivery(orderId));
+      playPaymentSuccess();
+      router.replace({ pathname: "/avaliacao-entregador", params: { orderId, immediate: "true" } });
+    }
   }
 
   function renderMessage({ item }: { item: typeof messages[0] }) {
@@ -298,6 +345,15 @@ export default function ChatScreen() {
         showBack
         showNotifications={false}
       />
+
+      {canConfirmDelivery && (
+        <View style={styles.confirmBanner}>
+          <Text style={styles.confirmBannerText}>O entregador finalizou a entrega. Confirme o recebimento.</Text>
+          <TouchableOpacity style={styles.confirmBannerButton} onPress={handleConfirmDelivery}>
+            <Text style={styles.confirmBannerButtonText}>Confirmar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}

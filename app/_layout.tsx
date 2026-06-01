@@ -14,7 +14,7 @@ import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 
-import { useColorScheme } from "@/components/useColorScheme";
+
 import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
 import { loadDemoSession } from "../src/services/demoAuth";
 import { initializeNotifications, setupNotificationListener } from "../src/services/notifications";
@@ -120,7 +120,6 @@ function RootLayoutNav() {
 }
 
 function RootLayoutNavContent() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => Boolean(state.auth.token));
@@ -185,6 +184,8 @@ function RootLayoutNavContent() {
         <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="avaliacao-entregador" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="payment-flow" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

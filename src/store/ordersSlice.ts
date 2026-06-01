@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 
 import { notifyDriverOnTheWay, notifyOrderDelivered } from "../services/notifications";
+import { playStatusChange } from "../utils/sounds";
 
 export interface OrderItem {
   id: string;
@@ -17,10 +18,27 @@ export interface OrderAddress {
   city: string;
 }
 
+import type { PaymentMethodType } from "../types";
+
 export interface OrderPayment {
   id: string;
-  type: string;
+  type: PaymentMethodType;
   label: string;
+}
+
+export interface OrderDriver {
+  id: string;
+  name: string;
+  avatar?: string;
+  phone?: string;
+  vehicle?: string;
+}
+
+export interface DeliveryConfirmation {
+  driverFinished: boolean;
+  clientConfirmed: boolean;
+  driverFinishedAt?: string;
+  clientConfirmedAt?: string;
 }
 
 export type OrderStatus = "preparing" | "ready" | "delivering" | "delivered" | "cancelled";
@@ -37,6 +55,8 @@ export interface Order {
   status: OrderStatus;
   createdAt: string;
   estimatedDelivery?: string;
+  driver?: OrderDriver;
+  deliveryConfirmation?: DeliveryConfirmation;
 }
 
 export interface OrdersState {
@@ -52,7 +72,7 @@ const MOCK_ORDERS: Order[] = [
       { id: "2", title: "Batata Frita Grande", quantity: 1, price: 2000 },
     ],
     address: { id: "addr1", label: "Casa", address: "Rua das Flores, 123", neighborhood: "Centro", city: "Luanda" },
-    payment: { id: "pm1", type: "credit_card", label: "MCX" },
+    payment: { id: "pm-paypay", type: "paypay", label: "PayPay" },
     subtotal: 11000,
     deliveryFee: 0,
     discount: 0,
@@ -67,7 +87,7 @@ const MOCK_ORDERS: Order[] = [
       { id: "4", title: "Refrigerante 2L", quantity: 1, price: 1500 },
     ],
     address: { id: "addr1", label: "Casa", address: "Rua das Flores, 123", neighborhood: "Centro", city: "Luanda" },
-    payment: { id: "pm2", type: "wallet", label: "Unitel Money" },
+    payment: { id: "pm-multicaixa", type: "multicaixa_express", label: "Multicaixa Express" },
     subtotal: 9000,
     deliveryFee: 590,
     discount: 0,
@@ -83,7 +103,7 @@ const MOCK_ORDERS: Order[] = [
       { id: "6", title: "Missoshiro", quantity: 2, price: 1500 },
     ],
     address: { id: "addr1", label: "Casa", address: "Rua das Flores, 123", neighborhood: "Centro", city: "Luanda" },
-    payment: { id: "pm1", type: "credit_card", label: "MCX" },
+    payment: { id: "pm-unitel", type: "unitel_money", label: "Unitel Money" },
     subtotal: 11500,
     deliveryFee: 800,
     discount: 500,
@@ -100,7 +120,7 @@ const MOCK_ORDERS: Order[] = [
       { id: "9", title: "Coca-Cola 1.5L", quantity: 1, price: 1200 },
     ],
     address: { id: "addr2", label: "Trabalho", address: "Av. 4 de Fevereiro, 1000", neighborhood: "Ingombota", city: "Luanda" },
-    payment: { id: "pm3", type: "cash", label: "Dinheiro" },
+    payment: { id: "pm-facipay", type: "facipay", label: "FaciPay" },
     subtotal: 9900,
     deliveryFee: 0,
     discount: 0,
@@ -116,7 +136,7 @@ const MOCK_ORDERS: Order[] = [
       { id: "11", title: "Milkshake Oreo", quantity: 2, price: 2800 },
     ],
     address: { id: "addr1", label: "Casa", address: "Rua das Flores, 123", neighborhood: "Centro", city: "Luanda" },
-    payment: { id: "pm2", type: "wallet", label: "Unitel Money" },
+    payment: { id: "pm-paypay", type: "paypay", label: "PayPay" },
     subtotal: 13100,
     deliveryFee: 0,
     discount: 1000,
@@ -124,6 +144,7 @@ const MOCK_ORDERS: Order[] = [
     status: "delivering",
     createdAt: new Date(Date.now() - 300000).toISOString(),
     estimatedDelivery: new Date(Date.now() + 600000).toISOString(),
+    driver: { id: "drv-001", name: "Carlos Mendes", phone: "+244 923 456 789", vehicle: "Honda CG 150 - ABC-1234" },
   },
 ];
 
@@ -150,6 +171,7 @@ const ordersSlice = createSlice({
       const order = state.orders.find((o) => o.id === action.payload.orderId);
       if (order) {
         order.status = action.payload.status;
+        playStatusChange();
       }
       if (
         state.currentOrder &&
@@ -165,6 +187,67 @@ const ordersSlice = createSlice({
     loadOrders(state, action: PayloadAction<Order[]>) {
       state.orders = action.payload;
     },
+    setOrderDriver(state, action: PayloadAction<{ orderId: string; driver: OrderDriver }>) {
+      const order = state.orders.find((o) => o.id === action.payload.orderId);
+      if (order) {
+        order.driver = action.payload.driver;
+      }
+      if (state.currentOrder && state.currentOrder.id === action.payload.orderId) {
+        state.currentOrder.driver = action.payload.driver;
+      }
+    },
+    markDriverFinished(state, action: PayloadAction<string>) {
+      const orderId = action.payload;
+      const order = state.orders.find((o) => o.id === orderId);
+      if (order) {
+        if (!order.deliveryConfirmation) {
+          order.deliveryConfirmation = { driverFinished: true, clientConfirmed: false };
+        } else {
+          order.deliveryConfirmation.driverFinished = true;
+        }
+        order.deliveryConfirmation.driverFinishedAt = new Date().toISOString();
+      }
+      if (state.currentOrder && state.currentOrder.id === orderId) {
+        if (!state.currentOrder.deliveryConfirmation) {
+          state.currentOrder.deliveryConfirmation = { driverFinished: true, clientConfirmed: false };
+        } else {
+          state.currentOrder.deliveryConfirmation.driverFinished = true;
+        }
+        state.currentOrder.deliveryConfirmation.driverFinishedAt = new Date().toISOString();
+      }
+    },
+    markClientConfirmed(state, action: PayloadAction<string>) {
+      const orderId = action.payload;
+      const order = state.orders.find((o) => o.id === orderId);
+      if (order) {
+        if (!order.deliveryConfirmation) {
+          order.deliveryConfirmation = { driverFinished: false, clientConfirmed: true };
+        } else {
+          order.deliveryConfirmation.clientConfirmed = true;
+        }
+        order.deliveryConfirmation.clientConfirmedAt = new Date().toISOString();
+      }
+      if (state.currentOrder && state.currentOrder.id === orderId) {
+        if (!state.currentOrder.deliveryConfirmation) {
+          state.currentOrder.deliveryConfirmation = { driverFinished: false, clientConfirmed: true };
+        } else {
+          state.currentOrder.deliveryConfirmation.clientConfirmed = true;
+        }
+        state.currentOrder.deliveryConfirmation.clientConfirmedAt = new Date().toISOString();
+      }
+    },
+    finalizeDelivery(state, action: PayloadAction<string>) {
+      const orderId = action.payload;
+      const order = state.orders.find((o) => o.id === orderId);
+      if (order) {
+        order.status = "delivered";
+        order.deliveryConfirmation = order.deliveryConfirmation ?? { driverFinished: true, clientConfirmed: true };
+      }
+      if (state.currentOrder && state.currentOrder.id === orderId) {
+        state.currentOrder.status = "delivered";
+        state.currentOrder.deliveryConfirmation = state.currentOrder.deliveryConfirmation ?? { driverFinished: true, clientConfirmed: true };
+      }
+    },
   },
 });
 
@@ -174,6 +257,10 @@ export const {
   updateOrderStatus,
   clearOrders,
   loadOrders,
+  setOrderDriver,
+  markDriverFinished,
+  markClientConfirmed,
+  finalizeDelivery,
 } = ordersSlice.actions;
 
 export const ordersReducer = ordersSlice.reducer;

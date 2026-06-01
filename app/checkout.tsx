@@ -375,11 +375,13 @@ export default function CheckoutScreen() {
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
 
   function paymentSubtitle(method: PaymentMethod) {
-    if (method.type === "credit_card") {
-      return `${method.brand ?? "Cartão"} ••${method.cardNumber ?? ""}`;
-    }
-    if (method.type === "pix") return method.pixKey ?? "PIX";
-    return method.label;
+    const descriptions: Record<string, string> = {
+      paypay: "Carteira digital BFA - Confirmação com PIN",
+      multicaixa_express: "Referência para pagamento em ATM",
+      unitel_money: "Carteira digital Unitel",
+      facipay: "Pagamento direto via app FaciPay",
+    };
+    return descriptions[method.type] || method.label;
   }
 
   const handleApplyCoupon = () => {
@@ -493,12 +495,10 @@ export default function CheckoutScreen() {
     await notifyOrderConfirmed(order.id, "Restaurante");
 
     router.push({
-      pathname: "/(auth)/order-success",
+      pathname: "/payment-flow",
       params: {
         orderId: order.id,
-        total: String(order.total),
-        sync: apiFailed ? "pending" : "complete",
-        syncMessage: apiFailed ? ORDER_SYNC_WARNING : "",
+        methodId: currentPayment?.id ?? "",
       },
     });
   };
@@ -531,12 +531,10 @@ export default function CheckoutScreen() {
     await notifyOrderConfirmed(order.id, "Restaurante");
 
     router.push({
-      pathname: "/(auth)/order-success",
+      pathname: "/payment-flow",
       params: {
         orderId: order.id,
-        total: String(order.total),
-        sync: apiFailed ? "pending" : "complete",
-        syncMessage: apiFailed ? ORDER_SYNC_WARNING : "",
+        methodId: currentPayment?.id ?? "",
       },
     });
   };

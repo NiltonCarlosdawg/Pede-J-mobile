@@ -12,14 +12,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Header } from "../src/components/ui/Header";
-import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
-import { clearSession } from "../src/store/authSlice";
-import { clearCart } from "../src/store/cartSlice";
-import { useAppDispatch, useAppSelector } from "../src/store";
-import { clearDemoSession } from "../src/services/demoAuth";
-import { spacing } from "../src/theme";
-import { useTheme } from "../src/hooks/useTheme";
+import { Header } from "../../src/components/ui/Header";
+import { ConfirmDialog } from "../../src/components/ui/ConfirmDialog";
+import { clearSession } from "../../src/store/authSlice";
+import { clearCart } from "../../src/store/cartSlice";
+import { useAppDispatch, useAppSelector } from "../../src/store";
+import { clearDemoSession } from "../../src/services/demoAuth";
+import { spacing } from "../../src/theme";
+import { useTheme } from "../../src/hooks/useTheme";
 
 export default function PerfilScreen() {
   const dispatch = useAppDispatch();

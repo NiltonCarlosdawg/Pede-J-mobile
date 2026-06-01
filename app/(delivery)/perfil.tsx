@@ -1,8 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
+    Alert,
     Image,
+    Modal,
     ScrollView,
     StyleSheet,
     Switch,
@@ -31,17 +34,48 @@ const VEHICLE_INFO = {
   color: "Vermelha",
 };
 
-const DOCUMENTS = [
-  { id: "license", label: "Carta de Condução", status: "valid", expiry: "12/2026" },
-  { id: "insurance", label: "Seguro", status: "valid", expiry: "06/2025" },
-  { id: "criminal", label: "Registo Criminal", status: "valid", expiry: "N/A" },
-];
-
 const STATS = [
   { label: "Entregas", value: "1.247" },
   { label: "Avaliação", value: "4.8" },
   { label: "Taxa de aceitação", value: "94%" },
 ];
+
+const LUANDA_NEIGHBORHOODS = [
+  "Maianga",
+  "Ingombota",
+  "Kilamba",
+  "Talatona",
+  "Viana",
+  "Cazenga",
+  "Rangel",
+  "Sambizanga",
+  "Neves Bendinha",
+  "Prenda",
+  "Morro Bento",
+  "Patriota",
+  "Alvalade",
+  "São Paulo",
+  "Marçal",
+  "Cacuaco",
+  "Benfica",
+  "Futungo de Belas",
+  "Camama",
+  "Zamba",
+];
+
+const initialDocs = [
+  { id: "bi", label: "BI", description: "Bilhete de Identidade" },
+  { id: "license", label: "Carta de Condução", description: "Categoria A" },
+  { id: "insurance", label: "Seguro Obrigatório", description: "Responsabilidade Civil" },
+  { id: "criminal", label: "Registo Criminal", description: "Atualizado" },
+];
+
+const documentIcons: Record<string, string> = {
+  bi: "card-account-details-outline",
+  license: "license",
+  insurance: "file-shield-outline",
+  criminal: "file-check-outline",
+};
 
 export default function DeliveryProfileScreen() {
   const router = useRouter();
@@ -51,6 +85,10 @@ export default function DeliveryProfileScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [documents, setDocuments] = useState<Record<string, { uri: string; name: string; uploadedAt: string } | null>>({});
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [showZoneModal, setShowZoneModal] = useState(false);
+  const [selectedZones, setSelectedZones] = useState<string[]>(["Maianga", "Ingombota"]);
 
   useEffect(() => {
     const checkLocation = async () => {
@@ -58,6 +96,68 @@ export default function DeliveryProfileScreen() {
       setLocationEnabled(granted);
     };
     checkLocation();
+  }, []);
+
+  const handleUpload = useCallback(async (docId: string) => {
+    try {
+      setUploadingId(docId);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        const file = result.assets[0];
+        const doc = initialDocs.find((d) => d.id === docId);
+        setDocuments((prev) => ({
+          ...prev,
+          [docId]: {
+            uri: file.uri,
+            name: file.name || `${doc?.label || "documento"}.pdf`,
+            uploadedAt: new Date().toLocaleDateString("pt-AO"),
+          },
+        }));
+      }
+    } catch (error: any) {
+      if (error?.message !== "User cancelled") {
+        Alert.alert("Erro", "Não foi possível carregar o documento.");
+      }
+    } finally {
+      setUploadingId(null);
+    }
+  }, []);
+
+  const handleRemoveDocument = useCallback((docId: string) => {
+    Alert.alert(
+      "Remover documento",
+      "Tem certeza que deseja remover este documento?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: () => {
+            setDocuments((prev) => {
+              const next = { ...prev };
+              delete next[docId];
+              return next;
+            });
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const toggleZone = useCallback((neighborhood: string) => {
+    setSelectedZones((prev) =>
+      prev.includes(neighborhood)
+        ? prev.filter((z) => z !== neighborhood)
+        : [...prev, neighborhood]
+    );
   }, []);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -290,6 +390,140 @@ export default function DeliveryProfileScreen() {
       color: colors.error,
       marginLeft: spacing.md,
     },
+    uploadButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: colors.primary[100],
+    },
+    uploadButtonText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary[500],
+    },
+    uploadedBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: colors.primary[100],
+    },
+    uploadedBadgeText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
+    removeDocButton: {
+      padding: 4,
+    },
+    zoneCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 24,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.surfaceVariant,
+    },
+    zoneInfo: {
+      flex: 1,
+    },
+    zoneTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.onSurface,
+      marginBottom: 4,
+    },
+    zoneCount: {
+      fontSize: 13,
+      color: colors.neutral[500],
+    },
+    zoneTagContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    zoneTag: {
+      backgroundColor: colors.primary[100],
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    zoneTagText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.primary[500],
+    },
+    zoneTagActive: {
+      backgroundColor: colors.primary[500],
+    },
+    zoneTagTextActive: {
+      color: colors.white,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "flex-end",
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: "80%",
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xxl,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.onSurface,
+    },
+    modalClose: {
+      padding: spacing.xs,
+    },
+    modalList: {
+      paddingHorizontal: spacing.lg,
+    },
+    modalItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceVariant,
+    },
+    modalItemLabel: {
+      fontSize: 15,
+      color: colors.onSurface,
+    },
+    modalConfirmButton: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+      backgroundColor: colors.primary[500],
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+      alignItems: "center",
+    },
+    modalConfirmText: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.white,
+    },
   }), [colors]);
 
   async function handleLogout() {
@@ -373,44 +607,93 @@ export default function DeliveryProfileScreen() {
           </View>
         </View>
 
-        {/* Documents */}
+        {/* Documentos */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Documentos</Text>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Documentos</Text>
+            <Text style={styles.editLink}>Obrigatório</Text>
+          </View>
           <View style={styles.documentsList}>
-            {DOCUMENTS.map((doc) => (
-              <View key={doc.id} style={styles.documentItem}>
-                <View style={styles.documentIcon}>
-                  <MaterialCommunityIcons
-                    name="file-document-outline"
-                    size={20}
-                    color={doc.status === "valid" ? colors.primary[500] : colors.error}
-                  />
+            {initialDocs.map((doc) => {
+              const uploaded = documents[doc.id];
+              return (
+                <View key={doc.id} style={styles.documentItem}>
+                  <View style={styles.documentIcon}>
+                    <MaterialCommunityIcons
+                      name={(documentIcons[doc.id] || "file-document-outline") as any}
+                      size={20}
+                      color={uploaded ? colors.primary[500] : colors.neutral[400]}
+                    />
+                  </View>
+                  <View style={styles.documentContent}>
+                    <Text style={styles.documentLabel}>{doc.label}</Text>
+                    <Text style={styles.documentMeta}>
+                      {uploaded ? `Carregado em ${uploaded.uploadedAt}` : doc.description}
+                    </Text>
+                  </View>
+                  {uploaded ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <View style={styles.uploadedBadge}>
+                        <MaterialCommunityIcons name="check-circle" size={14} color={colors.primary[500]} />
+                        <Text style={styles.uploadedBadgeText}>OK</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removeDocButton}
+                        onPress={() => handleRemoveDocument(doc.id)}
+                      >
+                        <MaterialCommunityIcons name="close-circle" size={20} color={colors.neutral[400]} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.uploadButton}
+                      onPress={() => handleUpload(doc.id)}
+                      disabled={uploadingId === doc.id}
+                    >
+                      <MaterialCommunityIcons
+                        name="upload"
+                        size={16}
+                        color={uploadingId === doc.id ? colors.neutral[400] : colors.primary[500]}
+                      />
+                      <Text style={styles.uploadButtonText}>
+                        {uploadingId === doc.id ? "..." : "Upload"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                <View style={styles.documentContent}>
-                  <Text style={styles.documentLabel}>{doc.label}</Text>
-                  <Text style={styles.documentMeta}>
-                    Válido até {doc.expiry}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.documentStatus,
-                    doc.status === "valid" && styles.documentStatusValid,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.documentStatusText,
-                      doc.status === "valid" && styles.documentStatusTextValid,
-                    ]}
-                  >
-                    {doc.status === "valid" ? "Válido" : "Expirado"}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
+
+        {/* Zona de Circulação */}
+        <TouchableOpacity
+          style={styles.zoneCard}
+          onPress={() => setShowZoneModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.zoneInfo}>
+            <Text style={styles.zoneTitle}>Zona de Circulação</Text>
+            <Text style={styles.zoneCount}>
+              {selectedZones.length} {selectedZones.length === 1 ? "bairro selecionado" : "bairros selecionados"}
+            </Text>
+            {selectedZones.length > 0 && (
+              <View style={styles.zoneTagContainer}>
+                {selectedZones.slice(0, 3).map((zone) => (
+                  <View key={zone} style={styles.zoneTag}>
+                    <Text style={styles.zoneTagText}>{zone}</Text>
+                  </View>
+                ))}
+                {selectedZones.length > 3 && (
+                  <View style={styles.zoneTag}>
+                    <Text style={styles.zoneTagText}>+{selectedZones.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={colors.neutral[300]} />
+        </TouchableOpacity>
 
         {/* Settings */}
         <View style={styles.card}>
@@ -418,11 +701,6 @@ export default function DeliveryProfileScreen() {
           <TouchableOpacity style={styles.menuItem}>
             <MaterialCommunityIcons name="bell-outline" size={22} color={colors.neutral[500]} />
             <Text style={styles.menuText}>Notificações</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.neutral[300]} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <MaterialCommunityIcons name="map-marker-radius" size={22} color={colors.neutral[500]} />
-            <Text style={styles.menuText}>Zona de atuação</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.neutral[300]} />
           </TouchableOpacity>
           <View style={styles.menuItem}>
@@ -460,6 +738,62 @@ export default function DeliveryProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal Zona de Circulação */}
+      <Modal
+        visible={showZoneModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowZoneModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShowZoneModal(false)}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar bairros</Text>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setShowZoneModal(false)}
+              >
+                <MaterialCommunityIcons name="close" size={24} color={colors.neutral[500]} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalList}>
+              {LUANDA_NEIGHBORHOODS.map((neighborhood) => {
+                const isSelected = selectedZones.includes(neighborhood);
+                return (
+                  <TouchableOpacity
+                    key={neighborhood}
+                    style={styles.modalItem}
+                    onPress={() => toggleZone(neighborhood)}
+                  >
+                    <Text style={styles.modalItemLabel}>{neighborhood}</Text>
+                    <MaterialCommunityIcons
+                      name={isSelected ? "checkbox-marked" : "checkbox-blank-outline"}
+                      size={22}
+                      color={isSelected ? colors.primary[500] : colors.neutral[300]}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalConfirmButton}
+              onPress={() => setShowZoneModal(false)}
+            >
+              <Text style={styles.modalConfirmText}>
+                Confirmar ({selectedZones.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <ConfirmDialog
         visible={showLogoutConfirm}

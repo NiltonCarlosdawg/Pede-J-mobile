@@ -15,6 +15,7 @@ import { Header } from "../src/components/ui/Header";
 import { useAppSelector } from "../src/store";
 import { selectOrders, selectCurrentOrder } from "../src/store/ordersSlice";
 import type { Order } from "../src/store/ordersSlice";
+import { selectRatingByOrder, selectDriverRatingByOrder } from "../src/store/ratingsSlice";
 import { spacing, formatPrice, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 
@@ -29,6 +30,80 @@ const STATUS_CONFIG = {
 const ROW_HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 
 const PAGE_SIZE = 10;
+
+function OrderItemCard({ order, isActive, themeColors, styles, router }: {
+  order: Order;
+  isActive: boolean;
+  themeColors: any;
+  styles: any;
+  router: any;
+}) {
+  const hasDriverRating = useAppSelector((state) => Boolean(selectDriverRatingByOrder(state, order.id)));
+  const hasOrderRating = useAppSelector((state) => Boolean(selectRatingByOrder(state, order.id)));
+  const status = STATUS_CONFIG[order.status];
+
+  return (
+    <View style={[styles.orderCard, isActive && styles.activeCard]}>
+      <View style={styles.orderHeader}>
+        <Text style={styles.orderId}>Pedido #{order.id.slice(-4)}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: status.color + "20" }]}>
+          <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
+      </View>
+
+      <View style={styles.orderItems}>
+        {order.items.slice(0, 2).map((item, index) => (
+          <Text key={index} style={styles.itemText}>
+            {item.quantity}x {item.title}
+          </Text>
+        ))}
+        {order.items.length > 2 && (
+          <Text style={[styles.itemText, { color: themeColors.neutral[500] }]}>
+            +{order.items.length - 2} itens
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.orderFooter}>
+        <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
+        <Text style={styles.orderTotal}>{formatPrice(order.total)}</Text>
+      </View>
+
+      {isActive && (
+        <TouchableOpacity
+          style={styles.trackButton}
+          hitSlop={ROW_HIT_SLOP}
+          onPress={() => router.push({ pathname: "/(tabs)/rastreamento", params: { orderId: order.id } })}
+        >
+          <Text style={styles.trackButtonText}>Acompanhar</Text>
+        </TouchableOpacity>
+      )}
+      {!isActive && order.status === "delivered" && (
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+          {!hasDriverRating && (
+            <TouchableOpacity
+              style={[styles.trackButton, { backgroundColor: themeColors.primary[600], flex: 1 }]}
+              hitSlop={ROW_HIT_SLOP}
+              onPress={() => router.push({ pathname: "/avaliacao-entregador", params: { orderId: order.id } })}
+            >
+              <Text style={styles.trackButtonText}>Avaliar entregador</Text>
+            </TouchableOpacity>
+          )}
+          {!hasOrderRating && (
+            <TouchableOpacity
+              style={[styles.trackButton, { backgroundColor: themeColors.secondary[500], flex: 1 }]}
+              hitSlop={ROW_HIT_SLOP}
+              onPress={() => router.push({ pathname: "/avaliacao", params: { orderId: order.id } })}
+            >
+              <Text style={styles.trackButtonText}>Avaliar pedido</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -89,72 +164,19 @@ export default function OrdersScreen() {
     return items;
   }, [sections, page]);
 
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
   const renderItem = useCallback(({ item }: { item: typeof flatData[0] }) => {
     if (item.type === "header") {
       return <Text style={styles.sectionTitle}>{item.title}</Text>;
     }
 
-    const order = item.order!;
-    const isActive = item.isActive!;
-    const status = STATUS_CONFIG[order.status];
-
     return (
-      <View style={[styles.orderCard, isActive && styles.activeCard]}>
-        <View style={styles.orderHeader}>
-          <Text style={styles.orderId}>Pedido #{order.id.slice(-4)}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: status.color + "20" }]}>
-            <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
-            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-          </View>
-        </View>
-
-        <View style={styles.orderItems}>
-          {order.items.slice(0, 2).map((item, index) => (
-            <Text key={index} style={styles.itemText}>
-              {item.quantity}x {item.title}
-            </Text>
-          ))}
-          {order.items.length > 2 && (
-            <Text style={[styles.itemText, { color: themeColors.neutral[500] }]}>
-              +{order.items.length - 2} itens
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.orderFooter}>
-          <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
-          <Text style={styles.orderTotal}>{formatPrice(order.total)}</Text>
-        </View>
-
-        {isActive && (
-          <TouchableOpacity
-            style={styles.trackButton}
-            hitSlop={ROW_HIT_SLOP}
-            onPress={() => router.push({ pathname: "/(tabs)/rastreamento", params: { orderId: order.id } })}
-          >
-            <Text style={styles.trackButtonText}>Acompanhar</Text>
-          </TouchableOpacity>
-        )}
-        {!isActive && order.status === "delivered" && (
-          <TouchableOpacity
-            style={[styles.trackButton, { backgroundColor: themeColors.secondary[500] }]}
-            hitSlop={ROW_HIT_SLOP}
-            onPress={() => router.push({ pathname: "/avaliacao", params: { orderId: order.id } })}
-          >
-            <Text style={styles.trackButtonText}>Avaliar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <OrderItemCard
+        order={item.order!}
+        isActive={item.isActive!}
+        themeColors={themeColors}
+        styles={styles}
+        router={router}
+      />
     );
   }, [styles, themeColors, router]);
 

@@ -22,7 +22,7 @@ import {
     sendMessage,
     type ChatParticipant,
 } from "../../src/store/chatSlice";
-import { selectOrders } from "../../src/store/ordersSlice";
+import { markDriverFinished, finalizeDelivery, selectOrders } from "../../src/store/ordersSlice";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
@@ -59,6 +59,9 @@ export default function DeliveryChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
+
+  const deliveryConfirmation = order?.deliveryConfirmation;
+  const canFinishDelivery = order?.status === "delivering" && !deliveryConfirmation?.driverFinished;
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -203,6 +206,42 @@ export default function DeliveryChatScreen() {
       color: colors.neutral[500],
       marginTop: spacing.sm,
     },
+    finishBanner: {
+      backgroundColor: colors.secondary[500],
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    finishBannerText: {
+      color: colors.white,
+      fontSize: 14,
+      fontWeight: "700",
+      flex: 1,
+    },
+    finishBannerButton: {
+      backgroundColor: colors.white,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+    },
+    finishBannerButtonText: {
+      color: colors.secondary[500],
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    finishedBanner: {
+      backgroundColor: colors.surfaceContainer,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      alignItems: "center",
+    },
+    finishedBannerText: {
+      color: colors.neutral[600],
+      fontSize: 13,
+      fontWeight: "600",
+    },
   }), [colors]);
 
   useEffect(() => {
@@ -243,6 +282,21 @@ export default function DeliveryChatScreen() {
         })
       );
     }, 2000);
+  }
+
+  function handleFinishDelivery() {
+    dispatch(markDriverFinished(orderId));
+    dispatch(
+      addSystemMessage({
+        orderId,
+        text: "Entregador finalizou a entrega. Aguardando confirmação do cliente.",
+      })
+    );
+    // If client already confirmed, finalize immediately
+    const updatedOrder = orders.find((o: any) => o.id === orderId);
+    if (updatedOrder?.deliveryConfirmation?.clientConfirmed) {
+      dispatch(finalizeDelivery(orderId));
+    }
   }
 
   function renderMessage({ item }: { item: typeof messages[0] }) {
@@ -297,6 +351,20 @@ export default function DeliveryChatScreen() {
         showNotifications={false}
         showCart={false}
       />
+
+      {canFinishDelivery && (
+        <View style={styles.finishBanner}>
+          <Text style={styles.finishBannerText}>Chegou ao destino? Finalize a entrega.</Text>
+          <TouchableOpacity style={styles.finishBannerButton} onPress={handleFinishDelivery}>
+            <Text style={styles.finishBannerButtonText}>Finalizar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {!canFinishDelivery && order?.status !== "delivered" && deliveryConfirmation?.driverFinished && (
+        <View style={styles.finishedBanner}>
+          <Text style={styles.finishedBannerText}>Entrega finalizada. Aguardando confirmação do cliente.</Text>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}

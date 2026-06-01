@@ -15,6 +15,9 @@ import { Button } from "../../src/components/ui/Button";
 import { formatPrice, spacing } from "../../src/theme";
 import { shadowStyle } from "../../src/utils/shadow";
 import { useTheme } from "../../src/hooks/useTheme";
+import { useAppSelector } from "../../src/store";
+import { selectOrders } from "../../src/store/ordersSlice";
+import { playNewOrder } from "../../src/utils/sounds";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -37,6 +40,7 @@ export default function OrderSuccessScreen() {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const buttonTranslate = useRef(new Animated.Value(50)).current;
+  const orders = useAppSelector(selectOrders);
   const readParam = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;
   const syncPending = readParam(params.sync) === "pending";
@@ -47,6 +51,7 @@ export default function OrderSuccessScreen() {
     typeof syncMessageValue === "string" && syncMessageValue.trim().length > 0
       ? syncMessageValue
       : "A confirmação no servidor falhou temporariamente. O pedido foi guardado neste dispositivo e será reenviado assim que houver ligação.";
+  const order = orders.find((o) => o.id === orderId);
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -185,39 +190,34 @@ export default function OrderSuccessScreen() {
   }), [colors]);
 
   useEffect(() => {
+    playNewOrder();
     const animation = Animated.sequence([
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
       Animated.timing(checkmarkScale, {
         toValue: 1,
         duration: 500,
-        easing: (x) => Math.sqrt(1 - Math.pow(x - 1, 2)),
         useNativeDriver: true,
       }),
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(buttonTranslate, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonTranslate, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
     ]);
-
     animation.start();
   }, []);
 
@@ -313,6 +313,18 @@ export default function OrderSuccessScreen() {
               </Text>
             </View>
           </View>
+          {order?.driver && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.orderInfoRow}>
+                <MaterialCommunityIcons name="account" size={20} color={colors.primary[500]} />
+                <View style={styles.orderInfoContent}>
+                  <Text style={styles.orderInfoLabel}>Entregador</Text>
+                  <Text style={styles.orderInfoValue}>{order.driver.name}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </Animated.View>
       </View>
 

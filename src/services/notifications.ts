@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 export interface NotificationData {
   type: "order" | "delivery" | "promotion" | "system";
@@ -12,7 +13,11 @@ export interface NotificationData {
 
 const NOTIFICATION_CHANNEL_ID = "pedeja-notifications";
 
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 export function configureNotificationHandler() {
+  if (isExpoGo) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -25,6 +30,8 @@ export function configureNotificationHandler() {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  if (isExpoGo) return false;
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -37,6 +44,8 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 export async function setupAndroidNotificationChannel() {
+  if (isExpoGo) return;
+
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
       name: "PedeJá Notificações",
@@ -53,6 +62,8 @@ export async function scheduleLocalNotification(
   data?: Record<string, any>,
   delaySeconds: number = 0
 ) {
+  if (isExpoGo) return;
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -99,15 +110,21 @@ export async function notifyPromotion(title: string, body: string, code?: string
 }
 
 export async function cancelAllNotifications() {
+  if (isExpoGo) return;
+
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
 export async function getPushToken(): Promise<string | null> {
+  if (isExpoGo) return null;
+
   const { data } = await Notifications.getExpoPushTokenAsync();
   return data ?? null;
 }
 
 export async function dismissAllNotifications() {
+  if (isExpoGo) return;
+
   await Notifications.dismissAllNotificationsAsync();
 }
 
@@ -120,9 +137,13 @@ export async function initializeNotifications() {
 
 /**
  * Configura listener de notificações recebidas
- * Reta uma função de cleanup
+ * Retorna uma função de cleanup
  */
 export function setupNotificationListener(callback: (notification: any) => void): () => void {
+  if (isExpoGo) {
+    return () => {};
+  }
+
   const subscription = Notifications.addNotificationReceivedListener(callback);
   return () => subscription.remove();
 }

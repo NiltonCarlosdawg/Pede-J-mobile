@@ -76,16 +76,33 @@ export interface ApiError {
   code?: string;
 }
 
+export type PaymentMethodType = 'paypay' | 'multicaixa_express' | 'unitel_money' | 'facipay';
+
 export interface PaymentMethod {
   id: string;
-  type: 'credit_card' | 'debit_card' | 'pix' | 'wallet' | 'cash';
+  type: PaymentMethodType;
   label: string;
   isDefault: boolean;
-  cardNumber?: string; // Last 4 digits
-  cardHolder?: string;
-  expiryDate?: string;
-  brand?: string; // Visa, Mastercard, etc.
-  pixKey?: string;
+}
+
+export interface MulticaixaExpressReference {
+  entity: string;
+  entityName: string;
+  reference: string;
+  amount: number;
+  phoneNumber: string;
+  expiryDate: string;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  orderId: string;
+  methodType: PaymentMethodType;
+  amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  reference?: MulticaixaExpressReference;
+  timestamp: string;
+  completedAt?: string;
 }
 
 export interface PaymentResponse {

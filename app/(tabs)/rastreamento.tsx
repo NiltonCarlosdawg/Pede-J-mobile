@@ -559,6 +559,27 @@ export default function TrackingScreen() {
                 </View>
               </View>
 
+              {selectedOrder.driver && (
+                <View style={[styles.restaurantCard, { marginTop: -12, backgroundColor: colors.surfaceContainerLowest }]}>
+                  <View style={[styles.actionButtonCircle, { backgroundColor: colors.primary[100], width: 44, height: 44, borderRadius: 14 }]}>
+                    <MaterialCommunityIcons name="account" size={22} color={colors.primary[500]} />
+                  </View>
+                  <View style={styles.restaurantInfo}>
+                    <Text style={styles.restaurantName}>{selectedOrder.driver.name}</Text>
+                    <Text style={styles.orderNumber}>{selectedOrder.driver.vehicle ?? "Entregador"}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => router.push({ pathname: "/chat", params: { orderId: selectedOrder.id } })}
+                  >
+                    <View style={[styles.actionButtonCircle, { width: 40, height: 40, borderRadius: 20 }]}>
+                      <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
+                    </View>
+                    <Text style={styles.actionButtonText}>Chat</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {renderTimeline()}
             </>
           ) : (
