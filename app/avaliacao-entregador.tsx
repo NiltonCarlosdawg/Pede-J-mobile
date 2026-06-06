@@ -210,7 +210,7 @@ export default function DriverRatingScreen() {
     if (isImmediate) {
       router.replace({ pathname: "/avaliacao", params: { orderId, immediate: "true" } });
     } else {
-      router.replace("/pedidos");
+      router.replace("/(tabs)/pedidos");
     }
   }
 

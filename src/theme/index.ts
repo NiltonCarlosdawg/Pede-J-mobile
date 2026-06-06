@@ -98,16 +98,18 @@ export function getThemeColors(isDark: boolean): ThemeColors {
 
 export const colors = lightColors;
 
+const FONT = "Arvo";
+
 export const typography = {
-  h1: { fontSize: 32, fontWeight: "700" as const, lineHeight: 38.4 },
-  h2: { fontSize: 24, fontWeight: "700" as const, lineHeight: 31.2 },
-  h3: { fontSize: 20, fontWeight: "600" as const, lineHeight: 28 },
-  bodyLg: { fontSize: 18, fontWeight: "400" as const, lineHeight: 27 },
-  bodyMd: { fontSize: 16, fontWeight: "400" as const, lineHeight: 24 },
-  bodySm: { fontSize: 14, fontWeight: "400" as const, lineHeight: 19.6 },
-  labelCaps: { fontSize: 12, fontWeight: "600" as const, lineHeight: 12, letterSpacing: 0.05 },
-  labelLg: { fontSize: 14, fontWeight: "600" as const, lineHeight: 16.8 },
-  priceDisplay: { fontSize: 20, fontWeight: "700" as const, lineHeight: 20 },
+  h1: { fontFamily: FONT, fontSize: 32, fontWeight: "700" as const, lineHeight: 38.4 },
+  h2: { fontFamily: FONT, fontSize: 24, fontWeight: "700" as const, lineHeight: 31.2 },
+  h3: { fontFamily: FONT, fontSize: 20, fontWeight: "600" as const, lineHeight: 28 },
+  bodyLg: { fontFamily: FONT, fontSize: 18, fontWeight: "400" as const, lineHeight: 27 },
+  bodyMd: { fontFamily: FONT, fontSize: 16, fontWeight: "400" as const, lineHeight: 24 },
+  bodySm: { fontFamily: FONT, fontSize: 14, fontWeight: "400" as const, lineHeight: 19.6 },
+  labelCaps: { fontFamily: FONT, fontSize: 12, fontWeight: "600" as const, lineHeight: 12, letterSpacing: 0.05 },
+  labelLg: { fontFamily: FONT, fontSize: 14, fontWeight: "600" as const, lineHeight: 16.8 },
+  priceDisplay: { fontFamily: FONT, fontSize: 20, fontWeight: "700" as const, lineHeight: 20 },
 };
 
 export const spacing = {

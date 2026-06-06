@@ -52,6 +52,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="pedidos"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

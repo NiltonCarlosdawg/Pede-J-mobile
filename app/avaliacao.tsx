@@ -194,7 +194,7 @@ export default function RatingScreen() {
           <Text style={styles.successText}>
             Sua avaliação ajuda outros clientes e melhora nosso serviço.
           </Text>
-          <Button title={isImmediate ? "Concluir" : "Voltar aos pedidos"} onPress={() => router.replace(isImmediate ? "/(tabs)" : "/pedidos")} />
+          <Button title={isImmediate ? "Concluir" : "Voltar aos pedidos"} onPress={() => router.replace(isImmediate ? "/(tabs)" : "/(tabs)/pedidos")} />
         </View>
       </SafeAreaView>
     );

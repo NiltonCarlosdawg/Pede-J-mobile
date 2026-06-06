@@ -11,13 +11,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Header } from "../src/components/ui/Header";
-import { useAppSelector } from "../src/store";
-import { selectOrders, selectCurrentOrder } from "../src/store/ordersSlice";
-import type { Order } from "../src/store/ordersSlice";
-import { selectRatingByOrder, selectDriverRatingByOrder } from "../src/store/ratingsSlice";
-import { spacing, formatPrice, typography } from "../src/theme";
-import { useTheme } from "../src/hooks/useTheme";
+import { Header } from "../../src/components/ui/Header";
+import { useAppSelector } from "../../src/store";
+import { selectOrders, selectCurrentOrder } from "../../src/store/ordersSlice";
+import type { Order } from "../../src/store/ordersSlice";
+import { selectRatingByOrder, selectDriverRatingByOrder } from "../../src/store/ratingsSlice";
+import { spacing, formatPrice, typography } from "../../src/theme";
+import { useTheme } from "../../src/hooks/useTheme";
 
 const STATUS_CONFIG = {
   preparing: { label: "Preparando", icon: "chef-hat", color: "#fbac1d" },

@@ -12,6 +12,7 @@ interface ProductCardProps {
   badge?: string;
   isFeatured?: boolean;
   onAdd?: () => void;
+  onPress?: () => void;
   isAvailable?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function ProductCard({
   badge, 
   isFeatured,
   onAdd,
+  onPress,
   isAvailable = true 
 }: ProductCardProps) {
   const { colors } = useTheme();
@@ -168,7 +170,7 @@ export function ProductCard({
 
   if (isFeatured) {
     return (
-      <TouchableOpacity style={[styles.featuredCard, !isAvailable && styles.disabled]}>
+      <TouchableOpacity style={[styles.featuredCard, !isAvailable && styles.disabled]} onPress={onPress}>
         <View style={styles.featuredImageContainer}>
           <Image 
             source={{ uri: image || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400' }} 
@@ -200,7 +202,7 @@ export function ProductCard({
   }
 
   return (
-    <TouchableOpacity style={[styles.card, !isAvailable && styles.disabled]}>
+    <TouchableOpacity style={[styles.card, !isAvailable && styles.disabled]} onPress={onPress}>
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>{title}</Text>

@@ -215,6 +215,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",
         restaurant: "Burger King",
         rating: 4.8,
+        description: "Pão brioche, smash de carne angus 180g, queijo cheddar, alface, tomate, molho especial da casa, cebola caramelizada e picles.",
       },
       {
         id: "b2",
@@ -223,6 +224,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1550317138-10000687a72b?w=400",
         restaurant: "BBQ Master",
         rating: 4.7,
+        description: "Pão artesanal, duplo smash de carne angus, queijo prato, bacon crocante, molho barbecue, anéis de cebola golden.",
       },
       {
         id: "b3",
@@ -231,6 +233,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=400",
         restaurant: "Sabor da Praça",
         rating: 4.5,
+        description: "Pão de batata, hambúrguer bovino 150g, American cheese, alface americana e maionese verde.",
       },
       {
         id: "b4",
@@ -239,6 +242,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1606755962775-e2e0c2cd49c9?w=400",
         restaurant: "Fast Grill",
         rating: 4.6,
+        description: "Pão australiano, filé de frango empanado 200g, maionese temperada, queijo mussarela, rúcula e tomate confit.",
       },
       {
         id: "b5",
@@ -247,6 +251,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400",
         restaurant: "Green Eat",
         rating: 4.4,
+        description: "Pão integral, hambúrguer de grão-de-bico, queijo vegano, alface, tomate, cebola roxa e molho de iogurte.",
       },
     ],
   },
@@ -262,6 +267,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400",
         restaurant: "Pizza Hut",
         rating: 4.9,
+        description: "Molho de tomate italiano, mussarela, pepperoni, orégano e azeitonas.",
       },
       {
         id: "p2",
@@ -270,6 +276,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
         restaurant: "Italiano",
         rating: 4.7,
+        description: "Molho de tomate, mussarela, gorgonzola, parmesão, catupiry cremoso, orégano e azeitonas.",
       },
       {
         id: "p3",
@@ -278,6 +285,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400",
         restaurant: "Sabor da Praça",
         rating: 4.6,
+        description: "Molho de tomate, mussarela, tomate italiano, manjericão fresco, parmesão e azeite.",
       },
       {
         id: "p4",
@@ -286,6 +294,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400",
         restaurant: "Pizza Hut",
         rating: 4.8,
+        description: "Molho de tomate, mussarela, calabresa fatiada, cebola, orégano e azeitonas.",
       },
       {
         id: "p5",
@@ -294,6 +303,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=400",
         restaurant: "BBQ Master",
         rating: 4.5,
+        description: "Molho de tomate, mussarela, frango desfiado, catupiry cremoso, milho e azeitonas.",
       },
     ],
   },
@@ -309,6 +319,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1594212699903-ec8a3bae50d5?w=400",
         restaurant: "Pizza Hut",
         rating: 4.9,
+        description: "1 Pizza Grande + 1 Burger Artesanal + 2 Bebidas + Batata Frita. Serve até 4 pessoas.",
       },
       {
         id: "c2",
@@ -317,6 +328,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
         restaurant: "Sabor da Praça",
         rating: 4.7,
+        description: "Coca-Cola 2 litros gelada.",
       },
       {
         id: "c3",
@@ -325,6 +337,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=400",
         restaurant: "Fast Grill",
         rating: 4.6,
+        description: "Batata frita crocante porção gigante, servida com ketchup e maionese.",
       },
       {
         id: "c4",
@@ -333,6 +346,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400",
         restaurant: "Green Eat",
         rating: 4.8,
+        description: "Suco natural de laranja ou maracujá, 500ml. Feito na hora.",
       },
       {
         id: "c5",
@@ -341,6 +355,7 @@ const PRODUCT_SECTIONS = [
         image: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=400",
         restaurant: "Burger King",
         rating: 4.7,
+        description: "1 Hambúrguer artesanal + Batata frita M + Bebida 350ml.",
       },
     ],
   },
@@ -1024,7 +1039,18 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={product.id}
                 style={styles.productCard}
-                onPress={() => router.push("/restaurante")}
+                onPress={() => router.push({
+                    pathname: "/produto-modal",
+                    params: {
+                        id: product.id,
+                        name: product.name,
+                        price: product.price.toString(),
+                        image: product.image,
+                        restaurant: product.restaurant,
+                        rating: product.rating.toString(),
+                        description: product.description ?? "",
+                    },
+                })}
               >
                 <Image
                   source={{ uri: product.image }}
@@ -1144,7 +1170,7 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Pedidos recentes</Text>
-          <TouchableOpacity onPress={() => router.push("/pedidos")}>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/pedidos")}>
             <Text style={styles.sectionLink}>Ver histórico</Text>
           </TouchableOpacity>
         </View>
@@ -1153,7 +1179,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             key={order.id}
             style={styles.orderCard}
-            onPress={() => router.push("/pedidos")}
+            onPress={() => router.push("/(tabs)/pedidos")}
           >
             <View style={styles.orderIcon}>
               <MaterialCommunityIcons

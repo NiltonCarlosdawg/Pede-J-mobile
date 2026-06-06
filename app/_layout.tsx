@@ -9,10 +9,13 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
-import { Platform, StatusBar } from "react-native";
+import { Platform, StatusBar, Text } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
+
+(Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.style = { fontFamily: "Arvo" };
 
 
 import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
@@ -42,6 +45,10 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    "Arvo-Regular": require("../assets/fonts/Arvo-Regular.ttf"),
+    "Arvo-Bold": require("../assets/fonts/Arvo-Bold.ttf"),
+    "Arvo-Italic": require("../assets/fonts/Arvo-Italic.ttf"),
+    "Arvo-BoldItalic": require("../assets/fonts/Arvo-BoldItalic.ttf"),
     ...FontAwesome.font,
   });
 
@@ -176,7 +183,6 @@ function RootLayoutNavContent() {
         <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="checkout" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="pedidos" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="perfil" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="endereco" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="search" options={{ headerShown: false, presentation: "card" }} />
@@ -187,6 +193,7 @@ function RootLayoutNavContent() {
         <Stack.Screen name="avaliacao-entregador" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="payment-flow" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="produto-modal" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>

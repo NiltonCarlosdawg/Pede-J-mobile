@@ -541,6 +541,25 @@ export default function RestaurantScreen() {
     );
   }
 
+  function handleProductPress(product: MenuItem) {
+    if (product.price === "Esgotado") {
+      return;
+    }
+
+    router.push({
+      pathname: "/produto-modal",
+      params: {
+        id: product.id,
+        name: product.title,
+        price: parsePrice(product.price).toString(),
+        image: product.image,
+        restaurant: RESTAURANT.name,
+        rating: avgRating.toFixed(1),
+        description: product.description,
+      },
+    });
+  }
+
   const reviewsComponent = useMemo(() => {
     if (reviews.length === 0) return null;
 
@@ -746,10 +765,11 @@ export default function RestaurantScreen() {
           isFeatured={product.isFeatured}
           isAvailable={product.isAvailable}
           onAdd={() => handleAddToCart(product)}
+          onPress={() => handleProductPress(product)}
         />
       </View>
     );
-  }, [styles, handleAddToCart]);
+  }, [styles, handleAddToCart, handleProductPress]);
 
   const flatKeyExtractor = useCallback((item: { type: string; title?: string; product?: MenuItem }, index: number) =>
     item.type === "section-header" ? `section-${item.title}` : item.product!.id,

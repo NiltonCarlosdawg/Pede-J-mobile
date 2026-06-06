@@ -604,7 +604,7 @@ export default function TrackingScreen() {
               {pastOrders.length > 3 && (
                 <TouchableOpacity
                   style={styles.viewAllButton}
-                  onPress={() => router.push("/pedidos")}
+                  onPress={() => router.push("/(tabs)/pedidos")}
                 >
                   <Text style={styles.viewAllText}>Ver todos os pedidos</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary[500]} />

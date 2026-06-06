@@ -337,7 +337,7 @@ export default function OrderSuccessScreen() {
       >
         <Button
           title="Acompanhar Pedido"
-          onPress={() => router.replace("/pedidos")}
+          onPress={() => router.replace("/(tabs)/pedidos")}
         />
         <TouchableOpacity
           style={styles.secondaryButton}

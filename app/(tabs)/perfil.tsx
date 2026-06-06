@@ -430,7 +430,7 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={styles.orderHistoryCard}
-          onPress={() => router.push("/pedidos")}
+          onPress={() => router.push("/(tabs)/pedidos")}
         >
           <View style={[styles.orderIcon, isSmallScreen && { width: 44, height: 44 }]}>
             <MaterialCommunityIcons name="receipt" size={isSmallScreen ? 22 : 28} color={colors.white} />
