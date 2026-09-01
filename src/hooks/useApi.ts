@@ -8,7 +8,6 @@ export {
   useGetEarningsQuery,
   useGetOrderByIdQuery,
   useGetOrdersQuery,
-  useGetOrdersPaginatedQuery,
   useGetProfileQuery,
   useGetRestaurantByIdQuery,
   useGetRestaurantCategoriesQuery,

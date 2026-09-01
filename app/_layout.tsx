@@ -183,7 +183,6 @@ function RootLayoutNavContent() {
         <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="checkout" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="perfil" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="endereco" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="search" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="payment-methods" options={{ headerShown: false, presentation: "card" }} />

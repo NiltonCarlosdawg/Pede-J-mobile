@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { safeGetItem, safeRemoveItem } from '../utils/storage';
 
-export const BASE_URL = 'https://pedej-api-{hash}.herokuapp.com/api/v1';
+export const BASE_URL = 'http://localhost:3000/v1';
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -32,17 +32,26 @@ api.interceptors.response.use(
 );
 
 export const authApi = {
-  login: (credentials: { email: string; password: string }) => api.post('/auth/login', credentials),
-  register: (data: { name: string; email: string; password: string; phone?: string }) => api.post('/auth/register', data),
-  getProfile: () => api.get('/auth/profile'),
-  updateProfile: (data: { name?: string; phone?: string; avatar?: string }) => api.put('/auth/profile', data),
+  login: (credentials: { identificador: string; password: string }) =>
+    api.post('/auth/login', credentials),
+  register: (data: { nome: string; email: string; telefone: string; password: string; role: string }) =>
+    api.post('/auth/register', data),
+  getProfile: () => api.get('/auth/me'),
+  updateProfile: (data: { name?: string; phone?: string; avatar?: string }) =>
+    api.patch('/users/me', data),
+  logout: () => api.post('/auth/logout'),
+  requestOtp: (telefone: string) => api.post('/auth/otp/request', { telefone }),
+  verifyOtp: (telefone: string, codigo: string) =>
+    api.post('/auth/otp/verify', { telefone, codigo }),
+  refresh: (refreshToken: string) =>
+    api.post('/auth/refresh', {}, { headers: { Authorization: `Bearer ${refreshToken}` } }),
 };
 
 export const restaurantApi = {
-  list: (params?: { category?: string; search?: string; page?: number; limit?: number }) =>
+  list: (params?: { categoria?: string; lat?: number; lng?: number; promocao?: boolean; cursor?: string; limit?: number }) =>
     api.get('/restaurants', { params }),
   getById: (id: string) => api.get(`/restaurants/${id}`),
-  getProducts: (id: string, params?: { page?: number; limit?: number }) =>
+  getProducts: (id: string, params?: { cursor?: string; limit?: number }) =>
     api.get(`/restaurants/${id}/products`, { params }),
   getCategories: (id: string) => api.get(`/restaurants/${id}/categories`),
 };
@@ -53,23 +62,48 @@ export const orderApi = {
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
       timeout: 45000,
     }),
-  list: (params?: { page?: number; limit?: number; status?: string }) =>
+  list: (params?: { status?: string; cursor?: string; limit?: number }) =>
     api.get('/orders', { params }),
+  getActive: () => api.get('/orders/active'),
   getById: (id: string) => api.get(`/orders/${id}`),
-  updateStatus: (id: string, status: string) => api.put(`/orders/${id}/status`, { status }),
+  cancel: (id: string, motivo?: string) =>
+    api.patch(`/orders/${id}/cancel`, motivo ? { motivo } : {}),
+  rate: (id: string, data: { estrelas: number; comentario?: string; tags?: string[] }) =>
+    api.post(`/orders/${id}/rating`, data),
+  getRoute: (id: string) => api.get(`/orders/${id}/route`),
+  getMessages: (id: string, params?: { cursor?: string; limit?: number }) =>
+    api.get(`/orders/${id}/messages`, { params }),
+  sendMessage: (id: string, texto: string, tipo: 'texto' | 'imagem' | 'sistema' = 'texto') =>
+    api.post(`/orders/${id}/messages`, { texto, tipo }),
 };
 
 export const userApi = {
-  getAddresses: () => api.get('/users/addresses'),
-  addAddress: (data: any) => api.post('/users/addresses', data),
-  updateProfile: (data: { name?: string; phone?: string }) => api.put('/users/profile', data),
+  getAddresses: (params?: { cursor?: string; limit?: number }) =>
+    api.get('/users/me/addresses', { params }),
+  addAddress: (data: { label: string; address: string; neighborhood: string; city: string; latitude: number; longitude: number; isDefault?: boolean }) =>
+    api.post('/users/me/addresses', data),
+  updateAddress: (id: string, data: { label: string; address: string; neighborhood: string; city: string; latitude: number; longitude: number; isDefault?: boolean }) =>
+    api.patch(`/users/me/addresses/${id}`, data),
+  deleteAddress: (id: string) => api.delete(`/users/me/addresses/${id}`),
+  setDefaultAddress: (id: string) => api.patch(`/users/me/addresses/${id}/default`),
 };
 
 export const deliveryApi = {
-  getAvailable: (params?: { page?: number; limit?: number }) =>
+  getAvailable: (params?: { cursor?: string; limit?: number }) =>
     api.get('/deliveries/available', { params }),
-  acceptDelivery: (id: string) => api.post(`/deliveries/${id}/accept`),
-  getEarnings: (params?: { startDate?: string; endDate?: string }) => api.get('/deliveries/earnings', { params }),
+  acceptDelivery: (orderId: string, idempotencyKey?: string) =>
+    api.post(`/deliveries/${orderId}/accept`, {}, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    }),
+  getDelivery: (orderId: string) => api.get(`/deliveries/${orderId}`),
+  updateStatus: (orderId: string, status: string) =>
+    api.patch(`/deliveries/${orderId}/status`, { status }),
+  getHistory: (params?: { desde?: string; ate?: string; cursor?: string; limit?: number }) =>
+    api.get('/deliveries/history', { params }),
+  getEarnings: (params?: { periodo?: string }) =>
+    api.get('/deliveries/earnings', { params }),
+  toggleLocationSharing: (activo: boolean) =>
+    api.patch('/entregadores/me/location-sharing', { activo }),
 };
 
 export default api;

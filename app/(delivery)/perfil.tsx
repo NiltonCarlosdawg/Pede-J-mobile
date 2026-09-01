@@ -25,20 +25,19 @@ import { requestLocationPermissions } from "../../src/services/location";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
-const VEHICLE_INFO = {
-  type: "Moto",
-  brand: "Honda",
-  model: "CG 160",
-  year: "2022",
-  plate: "LD-23-45-XA",
-  color: "Vermelha",
-};
-
-const STATS = [
-  { label: "Entregas", value: "1.247" },
-  { label: "Avaliação", value: "4.8" },
-  { label: "Taxa de aceitação", value: "94%" },
+const initialDocs = [
+  { id: "bi", label: "BI", description: "Bilhete de Identidade" },
+  { id: "license", label: "Carta de Condução", description: "Categoria A" },
+  { id: "insurance", label: "Seguro Obrigatório", description: "Responsabilidade Civil" },
+  { id: "criminal", label: "Registo Criminal", description: "Atualizado" },
 ];
+
+const documentIcons: Record<string, string> = {
+  bi: "card-account-details-outline",
+  license: "license",
+  insurance: "file-shield-outline",
+  criminal: "file-check-outline",
+};
 
 const LUANDA_NEIGHBORHOODS = [
   "Maianga",
@@ -62,20 +61,6 @@ const LUANDA_NEIGHBORHOODS = [
   "Camama",
   "Zamba",
 ];
-
-const initialDocs = [
-  { id: "bi", label: "BI", description: "Bilhete de Identidade" },
-  { id: "license", label: "Carta de Condução", description: "Categoria A" },
-  { id: "insurance", label: "Seguro Obrigatório", description: "Responsabilidade Civil" },
-  { id: "criminal", label: "Registo Criminal", description: "Atualizado" },
-];
-
-const documentIcons: Record<string, string> = {
-  bi: "card-account-details-outline",
-  license: "license",
-  insurance: "file-shield-outline",
-  criminal: "file-check-outline",
-};
 
 export default function DeliveryProfileScreen() {
   const router = useRouter();
@@ -226,24 +211,6 @@ export default function DeliveryProfileScreen() {
       color: colors.neutral[500],
       marginBottom: spacing.lg,
     },
-    statsRow: {
-      flexDirection: "row",
-      width: "100%",
-      justifyContent: "space-around",
-    },
-    statItem: {
-      alignItems: "center",
-    },
-    statValue: {
-      fontSize: 20,
-      fontWeight: "800",
-      color: colors.primary[500],
-      marginBottom: 2,
-    },
-    statLabel: {
-      fontSize: 12,
-      color: colors.neutral[500],
-    },
     card: {
       backgroundColor: colors.surfaceContainerLowest,
       borderRadius: 24,
@@ -267,46 +234,6 @@ export default function DeliveryProfileScreen() {
       fontSize: 14,
       fontWeight: "600",
       color: colors.primary[500],
-    },
-    vehicleInfo: {
-      flexDirection: "row",
-      gap: spacing.md,
-      alignItems: "center",
-    },
-    vehicleIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: 16,
-      backgroundColor: colors.primary[100],
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    vehicleDetails: {
-      flex: 1,
-    },
-    vehicleTitle: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: colors.onSurface,
-      marginBottom: 2,
-    },
-    vehicleMeta: {
-      fontSize: 13,
-      color: colors.neutral[500],
-      marginBottom: spacing.sm,
-    },
-    plateBadge: {
-      backgroundColor: colors.primary[500],
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: 8,
-      alignSelf: "flex-start",
-    },
-    plateText: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.white,
-      letterSpacing: 1,
     },
     documentsList: {
       gap: spacing.sm,
@@ -530,7 +457,6 @@ export default function DeliveryProfileScreen() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
 
-    // Simula delay de logout
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
@@ -538,7 +464,6 @@ export default function DeliveryProfileScreen() {
       dispatch(clearCart());
       dispatch(clearSession());
 
-      // Força navegação para login após logout
       router.replace("/(auth)/login");
     } catch (error) {
       console.error("[logout] error:", error);
@@ -552,7 +477,6 @@ export default function DeliveryProfileScreen() {
       <Header title="Meu Perfil" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {/* Profile Header */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <Image
@@ -567,47 +491,10 @@ export default function DeliveryProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.name}>{user?.name ?? "Carlos N'zau"}</Text>
-          <Text style={styles.email}>{user?.email ?? "entregador@pedeja.com"}</Text>
-
-          <View style={styles.statsRow}>
-            {STATS.map((stat) => (
-              <View key={stat.label} style={styles.statItem}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.name}>{user?.name ?? "Entregador"}</Text>
+          <Text style={styles.email}>{user?.email ?? ""}</Text>
         </View>
 
-        {/* Vehicle Info */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>Meu Veículo</Text>
-            <TouchableOpacity>
-              <Text style={styles.editLink}>Editar</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.vehicleInfo}>
-            <View style={styles.vehicleIcon}>
-              <MaterialCommunityIcons name="motorbike" size={28} color={colors.primary[500]} />
-            </View>
-            <View style={styles.vehicleDetails}>
-              <Text style={styles.vehicleTitle}>
-                {VEHICLE_INFO.brand} {VEHICLE_INFO.model}
-              </Text>
-              <Text style={styles.vehicleMeta}>
-                {VEHICLE_INFO.year} · {VEHICLE_INFO.color}
-              </Text>
-              <View style={styles.plateBadge}>
-                <Text style={styles.plateText}>{VEHICLE_INFO.plate}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Documentos */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.sectionTitle}>Documentos</Text>
@@ -666,7 +553,6 @@ export default function DeliveryProfileScreen() {
           </View>
         </View>
 
-        {/* Zona de Circulação */}
         <TouchableOpacity
           style={styles.zoneCard}
           onPress={() => setShowZoneModal(true)}
@@ -695,7 +581,6 @@ export default function DeliveryProfileScreen() {
           <MaterialCommunityIcons name="chevron-right" size={24} color={colors.neutral[300]} />
         </TouchableOpacity>
 
-        {/* Settings */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Configurações</Text>
           <TouchableOpacity style={styles.menuItem}>
@@ -739,7 +624,6 @@ export default function DeliveryProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal Zona de Circulação */}
       <Modal
         visible={showZoneModal}
         transparent

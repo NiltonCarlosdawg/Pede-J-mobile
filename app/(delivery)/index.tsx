@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,59 +14,47 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { borderRadius, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useAppSelector } from "../../src/store";
-import { selectActiveChats, selectUnreadMessages } from "../../src/store/chatSlice";
-
-const DELIVERY_JOBS = [
-  {
-    id: "1",
-    restaurant: "Sabor da Praça",
-    destination: "Mutamba, Luanda",
-    fee: "Kz 1.400",
-    distance: "2.1 km",
-  },
-  {
-    id: "2",
-    restaurant: "Pizza Hut Express",
-    destination: "Maianga, Luanda",
-    fee: "Kz 1.900",
-    distance: "3.7 km",
-  },
-];
-
-const EARNINGS = {
-  today: "Kz 18.400",
-  week: "Kz 92.900",
-  month: "Kz 348.200",
-  pending: "Kz 12.000",
-};
-
-const RECENT_DELIVERIES = [
-  {
-    id: "1",
-    title: "Sabor da Praça",
-    route: "Mutamba → Vila Alice",
-    value: "Kz 1.400",
-    status: "Concluída",
-  },
-  {
-    id: "2",
-    title: "Pizza Hut Express",
-    route: "Maianga → Ingombota",
-    value: "Kz 1.900",
-    status: "Concluída",
-  },
-  {
-    id: "3",
-    title: "Burger Station",
-    route: "Talatona → Alvalade",
-    value: "Kz 2.100",
-    status: "Pendente",
-  },
-];
+import { deliveryApi } from "../../src/services/api";
+import type { Order, Earnings } from "../../src/types";
 
 export default function DeliveryDashboard() {
   const router = useRouter();
   const { colors } = useTheme();
+  const user = useAppSelector((state) => state.auth.user);
+
+  const [loading, setLoading] = useState(true);
+  const [availableDeliveries, setAvailableDeliveries] = useState<Order[]>([]);
+  const [recentDeliveries, setRecentDeliveries] = useState<Order[]>([]);
+  const [earnings, setEarnings] = useState<Earnings | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [availableRes, earningsRes, historyRes] = await Promise.all([
+        deliveryApi.getAvailable({ limit: 10 }),
+        deliveryApi.getEarnings(),
+        deliveryApi.getHistory({ limit: 5 }).catch(() => ({ data: { data: [] } })),
+      ]);
+      setAvailableDeliveries(availableRes.data.data ?? availableRes.data);
+      setEarnings(earningsRes.data);
+      setRecentDeliveries(historyRes.data.data ?? []);
+    } catch (err: any) {
+      console.error("[DeliveryDashboard] fetchData error:", err);
+      setError("Erro ao carregar dados. Puxe para atualizar.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const formatCurrency = useCallback((value: number) => {
+    return `Kz ${value.toLocaleString("pt-AO")}`;
+  }, []);
 
   const styles = useMemo(() => StyleSheet.create({
     safeArea: {
@@ -339,7 +328,57 @@ export default function DeliveryDashboard() {
       alignItems: "center",
       justifyContent: "center",
     },
+    emptyContainer: {
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+      gap: spacing.sm,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.neutral[500],
+      textAlign: "center",
+    },
+    errorContainer: {
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+      gap: spacing.sm,
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.error,
+      textAlign: "center",
+    },
+    retryButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+      backgroundColor: colors.primary[500],
+    },
+    retryText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.white,
+    },
   }), [colors]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>PedeJá Entregador</Text>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push("/(delivery)/perfil")}
+          >
+            <MaterialCommunityIcons name="account" size={24} color={colors.primary[500]} />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -366,11 +405,11 @@ export default function DeliveryDashboard() {
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statValue}>{earnings?.totalEntregas ?? 0}</Text>
             <Text style={styles.statLabel}>Entregas hoje</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>Kz 18.400</Text>
+            <Text style={styles.statValue}>{formatCurrency(earnings?.totalGanho ?? 0)}</Text>
             <Text style={styles.statLabel}>Ganhos</Text>
           </View>
         </View>
@@ -387,46 +426,20 @@ export default function DeliveryDashboard() {
 
           <View style={styles.earningsGrid}>
             <View style={styles.earningMetric}>
-              <Text style={styles.earningValue}>{EARNINGS.today}</Text>
+              <Text style={styles.earningValue}>{formatCurrency(earnings?.totalGanho ?? 0)}</Text>
               <Text style={styles.earningLabel}>Hoje</Text>
             </View>
             <View style={styles.earningMetric}>
-              <Text style={styles.earningValue}>{EARNINGS.week}</Text>
-              <Text style={styles.earningLabel}>Semana</Text>
+              <Text style={styles.earningValue}>{formatCurrency(earnings?.mediaPorEntrega ?? 0)}</Text>
+              <Text style={styles.earningLabel}>Média</Text>
             </View>
             <View style={styles.earningMetric}>
-              <Text style={styles.earningValue}>{EARNINGS.month}</Text>
-              <Text style={styles.earningLabel}>Mês</Text>
+              <Text style={styles.earningValue}>{earnings?.totalEntregas ?? 0}</Text>
+              <Text style={styles.earningLabel}>Entregas</Text>
             </View>
             <View style={styles.earningMetric}>
-              <Text style={styles.earningValue}>{EARNINGS.pending}</Text>
-              <Text style={styles.earningLabel}>A receber</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.chatCard}
-          onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
-          activeOpacity={0.8}
-        >
-          <View style={styles.sectionHeader}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-              <MaterialCommunityIcons name="message-text" size={24} color={colors.primary[500]} />
-              <Text style={styles.sectionTitle}>Mensagens</Text>
-            </View>
-            <Text style={styles.sectionAction}>Ver tudo</Text>
-          </View>
-          <View style={styles.chatItem}>
-            <View style={styles.chatAvatar}>
-              <MaterialCommunityIcons name="account" size={24} color={colors.primary[500]} />
-            </View>
-            <View style={styles.chatContent}>
-              <Text style={styles.chatTitle}>Pedido #0005</Text>
-              <Text style={styles.chatText}>Cliente: Pode deixar na portaria se eu não estiver.</Text>
-            </View>
-            <View style={styles.chatBadge}>
-              <Text style={styles.chatBadgeText}>2</Text>
+              <Text style={styles.earningValue}>{formatCurrency(earnings?.mediaPorEntrega ?? 0)}</Text>
+              <Text style={styles.earningLabel}>Por entrega</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -439,31 +452,46 @@ export default function DeliveryDashboard() {
             </TouchableOpacity>
           </View>
 
-          {DELIVERY_JOBS.map((job) => (
-            <TouchableOpacity
-              key={job.id}
-              style={styles.jobCard}
-              onPress={() => router.push({ pathname: "/(delivery)/delivery-detail", params: { jobId: job.id } })}
-            >
-              <View style={styles.jobIcon}>
-                <MaterialCommunityIcons
-                  name="moped"
-                  size={22}
-                  color={colors.primary[500]}
-                />
-              </View>
-              <View style={styles.jobContent}>
-                <Text style={styles.jobTitle}>{job.restaurant}</Text>
-                <Text style={styles.jobMeta}>{job.destination}</Text>
-                <Text style={styles.jobMeta}>
-                  {job.distance} · {job.fee}
-                </Text>
-              </View>
-              <View style={styles.acceptButton}>
-                <Text style={styles.acceptText}>Aceitar</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                <Text style={styles.retryText}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
+          ) : recentDeliveries.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="motorbike" size={32} color={colors.neutral[300]} />
+              <Text style={styles.emptyText}>Nenhuma entrega disponível no momento.</Text>
+            </View>
+          ) : (
+            recentDeliveries.map((job) => (
+              <TouchableOpacity
+                key={job.id}
+                style={styles.jobCard}
+                onPress={() => router.push({ pathname: "/(delivery)/delivery-detail", params: { jobId: job.id } })}
+              >
+                <View style={styles.jobIcon}>
+                  <MaterialCommunityIcons
+                    name="moped"
+                    size={22}
+                    color={colors.primary[500]}
+                  />
+                </View>
+                <View style={styles.jobContent}>
+                  <Text style={styles.jobTitle}>{job.restaurant?.name ?? "Restaurante"}</Text>
+                  <Text style={styles.jobMeta}>{job.address?.neighborhood ?? "Luanda"}</Text>
+                  <Text style={styles.jobMeta}>
+                    {formatCurrency(job.deliveryFee)}
+                  </Text>
+                </View>
+                <View style={styles.acceptButton}>
+                  <Text style={styles.acceptText}>Aceitar</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         <View style={styles.sectionCard}>
@@ -474,37 +502,47 @@ export default function DeliveryDashboard() {
             </TouchableOpacity>
           </View>
 
-          {RECENT_DELIVERIES.map((delivery) => (
-            <TouchableOpacity
-              key={delivery.id}
-              style={styles.historyCard}
-              onPress={() => router.push({ pathname: "/(delivery)/delivery-detail", params: { jobId: delivery.id } })}
-            >
-              <View style={styles.historyIcon}>
-                <MaterialCommunityIcons
-                  name={delivery.status === "Concluída" ? "check-circle-outline" : "clock-outline"}
-                  size={20}
-                  color={delivery.status === "Concluída" ? colors.primary[500] : colors.secondary[500]}
-                />
-              </View>
-              <View style={styles.historyContent}>
-                <Text style={styles.historyTitle}>{delivery.title}</Text>
-                <Text style={styles.historyMeta}>{delivery.route}</Text>
-                <Text style={[styles.historyStatus, { color: delivery.status === "Concluída" ? colors.primary[500] : colors.secondary[500] }]}>{delivery.status}</Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <TouchableOpacity
-                  style={styles.actionButtonCircle}
-                  onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: `order-00${delivery.id}` } })}
-                >
-                  <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
-                </TouchableOpacity>
-                <View style={styles.historyValueBlock}>
-                  <Text style={styles.historyValue}>{delivery.value}</Text>
+          {recentDeliveries.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Nenhuma entrega recente.</Text>
+            </View>
+          ) : (
+            recentDeliveries.map((delivery) => (
+              <TouchableOpacity
+                key={delivery.id}
+                style={styles.historyCard}
+                onPress={() => router.push({ pathname: "/(delivery)/delivery-detail", params: { jobId: delivery.id } })}
+              >
+                <View style={styles.historyIcon}>
+                  <MaterialCommunityIcons
+                    name={delivery.status === "delivered" ? "check-circle-outline" : "clock-outline"}
+                    size={20}
+                    color={delivery.status === "delivered" ? colors.primary[500] : colors.secondary[500]}
+                  />
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.historyContent}>
+                  <Text style={styles.historyTitle}>{delivery.restaurant?.name ?? "Restaurante"}</Text>
+                  <Text style={styles.historyMeta}>
+                    {delivery.address?.neighborhood ?? "Luanda"}
+                  </Text>
+                  <Text style={[styles.historyStatus, { color: delivery.status === "delivered" ? colors.primary[500] : colors.secondary[500] }]}>
+                    {delivery.status === "delivered" ? "Concluída" : "Pendente"}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                  <TouchableOpacity
+                    style={styles.actionButtonCircle}
+                    onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: delivery.id } })}
+                  >
+                    <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
+                  </TouchableOpacity>
+                  <View style={styles.historyValueBlock}>
+                    <Text style={styles.historyValue}>{formatCurrency(delivery.deliveryFee)}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

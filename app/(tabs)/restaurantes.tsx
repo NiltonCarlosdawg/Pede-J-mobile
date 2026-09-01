@@ -18,87 +18,10 @@ import {
     loadFavoriteRestaurantIds,
     toggleFavoriteRestaurant,
 } from "../../src/services/favorites";
-import { borderRadius, spacing } from "../../src/theme";
+import { restaurantApi } from "../../src/services/api";
+import { borderRadius, formatPrice, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-
-const FILTERS = [
-  "Todos",
-  "Perto de mim",
-  "Grátis",
-  "Pizza",
-  "Burger",
-  "Japonesa",
-];
-
-const RESTAURANTS = [
-  {
-    id: "1",
-    name: "Sabor da Praça",
-    cuisine: "Angolana",
-    rating: 4.8,
-    distance: "1.2 km",
-    deliveryTime: "30-40 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=400",
-    favorite: true,
-    tag: "Perto de mim",
-  },
-  {
-    id: "2",
-    name: "BBQ Master Prime",
-    cuisine: "Carnes",
-    rating: 4.5,
-    distance: "2.5 km",
-    deliveryTime: "45-55 min",
-    deliveryFee: "Kz 5.900",
-    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
-    tag: "Burger",
-  },
-  {
-    id: "3",
-    name: "Pizza Hut Express",
-    cuisine: "Pizzaria",
-    rating: 4.3,
-    distance: "1.8 km",
-    deliveryTime: "25-35 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=400",
-    tag: "Pizza",
-  },
-  {
-    id: "4",
-    name: "Sushi Master",
-    cuisine: "Japonesa",
-    rating: 4.9,
-    distance: "3.2 km",
-    deliveryTime: "40-50 min",
-    deliveryFee: "Kz 8.000",
-    image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400",
-    tag: "Japonesa",
-  },
-  {
-    id: "5",
-    name: "Burger Station",
-    cuisine: "Hambúrgueres",
-    rating: 4.7,
-    distance: "0.8 km",
-    deliveryTime: "20-30 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",
-    tag: "Burger",
-  },
-  {
-    id: "6",
-    name: "Cantina Italiana",
-    cuisine: "Italiana",
-    rating: 4.6,
-    distance: "2.1 km",
-    deliveryTime: "35-45 min",
-    deliveryFee: "Kz 4.000",
-    image: "https://images.unsplash.com/photo-1595295333158-4742f28fbd8b?w=400",
-    tag: "Perto de mim",
-  },
-];
+import { Restaurant } from "../../src/types";
 
 const FEATURED = {
   title: "Hoje no mapa",
@@ -112,6 +35,29 @@ export default function RestaurantesScreen() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const response = await restaurantApi.list();
+        if (mounted) {
+          setRestaurants(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch restaurants:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -133,10 +79,18 @@ export default function RestaurantesScreen() {
     setFavoriteIds(nextIds);
   }
 
+  const filters = useMemo(() => {
+    const cuisineSet = new Set<string>();
+    for (const r of restaurants) {
+      if (r.cuisine) cuisineSet.add(r.cuisine);
+    }
+    return ["Todos", "Perto de mim", "Grátis", ...Array.from(cuisineSet)];
+  }, [restaurants]);
+
   const filteredRestaurants = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return RESTAURANTS.filter((restaurant) => {
+    return restaurants.filter((restaurant) => {
       const matchesQuery =
         !normalizedQuery ||
         restaurant.name.toLowerCase().includes(normalizedQuery) ||
@@ -144,15 +98,16 @@ export default function RestaurantesScreen() {
 
       const matchesFilter =
         activeFilter === "Todos" ||
-        restaurant.tag === activeFilter ||
-        (activeFilter === "Grátis" && restaurant.deliveryFee === "Grátis");
+        restaurant.cuisine === activeFilter ||
+        (activeFilter === "Perto de mim" && restaurant.distance != null && restaurant.distance <= 2) ||
+        (activeFilter === "Grátis" && restaurant.deliveryFee === 0);
 
       return matchesQuery && matchesFilter;
     }).map((restaurant) => ({
       ...restaurant,
       favorite: favoriteIds.includes(restaurant.id),
     }));
-  }, [activeFilter, favoriteIds, query]);
+  }, [activeFilter, favoriteIds, query, restaurants]);
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -327,7 +282,7 @@ export default function RestaurantesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersScroll}
         >
-          {FILTERS.map((filter) => {
+          {filters.map((filter) => {
             const active = filter === activeFilter;
 
             return (
@@ -350,7 +305,6 @@ export default function RestaurantesScreen() {
           <Text style={styles.resultsCount}>
             {filteredRestaurants.length} restaurantes encontrados
           </Text>
-          <Text style={styles.resultsHint}>Resultados mockados para demo</Text>
         </View>
 
         <FlatList
@@ -362,12 +316,12 @@ export default function RestaurantesScreen() {
               subtitle={item.cuisine}
               image={item.image}
               rating={item.rating}
-              distance={item.distance}
+              distance={item.distance != null ? `${item.distance} km` : undefined}
               deliveryTime={item.deliveryTime}
-              deliveryFee={item.deliveryFee}
+              deliveryFee={item.deliveryFee === 0 ? "Grátis" : formatPrice(item.deliveryFee)}
               favorite={item.favorite}
               onFavoritePress={() => handleToggleFavorite(item.id)}
-              onPress={() => router.push("/restaurante")}
+              onPress={() => router.push({ pathname: "/restaurante", params: { id: item.id } })}
             />
           )}
           scrollEnabled={false}

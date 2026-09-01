@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+    ActivityIndicator,
     FlatList,
     KeyboardAvoidingView,
     Platform,
@@ -14,17 +15,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../../src/components/ui/Header";
-import { useAppDispatch, useAppSelector } from "../../src/store";
-import {
-    addSystemMessage,
-    markMessagesAsRead,
-    selectMessagesByOrder,
-    sendMessage,
-    type ChatParticipant,
-} from "../../src/store/chatSlice";
-import { markDriverFinished, finalizeDelivery, selectOrders } from "../../src/store/ordersSlice";
+import { orderApi } from "../../src/services/api";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
+import type { ChatMessage } from "../../src/types";
 
 const QUICK_MESSAGES = [
   "Estou chegando!",
@@ -50,288 +44,91 @@ function formatChatTime(dateString: string) {
 export default function DeliveryChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string }>();
-  const orderId = params.orderId ?? "order-005";
+  const orderId = params.orderId ?? "";
   const { colors } = useTheme();
-  const dispatch = useAppDispatch();
-  const messages = useAppSelector((state: any) => selectMessagesByOrder(state, orderId));
-  const orders = useAppSelector(selectOrders);
-  const order = orders.find((o: any) => o.id === orderId);
   const flatListRef = useRef<FlatList>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
-  const deliveryConfirmation = order?.deliveryConfirmation;
-  const canFinishDelivery = order?.status === "delivering" && !deliveryConfirmation?.driverFinished;
-
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      flex: 1,
-    },
-    messagesList: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-    },
-    messageBubble: {
-      maxWidth: "80%",
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: 18,
-      marginBottom: spacing.sm,
-    },
-    deliveryBubble: {
-      alignSelf: "flex-end",
-      backgroundColor: colors.primary[500],
-      borderBottomRightRadius: 4,
-    },
-    clientBubble: {
-      alignSelf: "flex-start",
-      backgroundColor: colors.surfaceContainer,
-      borderBottomLeftRadius: 4,
-    },
-    systemBubble: {
-      alignSelf: "center",
-      backgroundColor: colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-      borderRadius: 12,
-      maxWidth: "90%",
-    },
-    messageText: {
-      fontSize: 15,
-      lineHeight: 20,
-    },
-    deliveryText: {
-      color: colors.white,
-    },
-    clientText: {
-      color: colors.onSurface,
-    },
-    systemText: {
-      color: colors.neutral[600],
-      fontSize: 13,
-      textAlign: "center",
-    },
-    messageTime: {
-      fontSize: 11,
-      marginTop: 4,
-      alignSelf: "flex-end",
-    },
-    deliveryTime: {
-      color: "rgba(255,255,255,0.7)",
-    },
-    clientTime: {
-      color: colors.neutral[500],
-    },
-    senderName: {
-      fontSize: 12,
-      fontWeight: "700",
-      color: colors.neutral[500],
-      marginBottom: 4,
-    },
-    inputContainer: {
-      borderTopWidth: 1,
-      borderTopColor: colors.surfaceVariant,
-      backgroundColor: colors.surface,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-    },
-    quickMessagesRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
-      flexWrap: "wrap",
-    },
-    quickMessageChip: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
-      backgroundColor: colors.surfaceContainer,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    quickMessageText: {
-      fontSize: 12,
-      color: colors.primary[500],
-      fontWeight: "600",
-    },
-    inputRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    textInput: {
-      flex: 1,
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 24,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      fontSize: 15,
-      color: colors.onSurface,
-      maxHeight: 80,
-    },
-    sendButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: colors.primary[500],
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    sendButtonDisabled: {
-      backgroundColor: colors.neutral[300],
-    },
-    quickToggle: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginBottom: spacing.sm,
-    },
-    quickToggleText: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: colors.primary[500],
-    },
-    emptyContainer: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: spacing.xl,
-    },
-    emptyText: {
-      fontSize: 14,
-      color: colors.neutral[500],
-      marginTop: spacing.sm,
-    },
-    finishBanner: {
-      backgroundColor: colors.secondary[500],
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    finishBannerText: {
-      color: colors.white,
-      fontSize: 14,
-      fontWeight: "700",
-      flex: 1,
-    },
-    finishBannerButton: {
-      backgroundColor: colors.white,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: 12,
-    },
-    finishBannerButtonText: {
-      color: colors.secondary[500],
-      fontSize: 13,
-      fontWeight: "800",
-    },
-    finishedBanner: {
-      backgroundColor: colors.surfaceContainer,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      alignItems: "center",
-    },
-    finishedBannerText: {
-      color: colors.neutral[600],
-      fontSize: 13,
-      fontWeight: "600",
-    },
-  }), [colors]);
+  const fetchMessages = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      const { data } = await orderApi.getMessages(orderId, { limit: 100 });
+      setMessages(data.data ?? data);
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
 
   useEffect(() => {
-    dispatch(markMessagesAsRead(orderId));
+    fetchMessages();
+  }, [fetchMessages]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [orderId, fetchMessages]);
+
+  useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: false });
     }, 100);
-  }, [dispatch, orderId, messages.length]);
+  }, [messages.length]);
 
-  function handleSend(text: string = inputText.trim()) {
-    if (!text) return;
+  async function handleSend(text: string = inputText.trim()) {
+    if (!text || !orderId) return;
 
-    dispatch(
-      sendMessage({
-        orderId,
-        sender: "delivery" as ChatParticipant,
-        text,
-      })
-    );
-    setInputText("");
-    setShowQuickMessages(false);
-
-    // Simulate client reply after 2 seconds
-    setTimeout(() => {
-      const replies = [
-        "Ok!",
-        "Combinado!",
-        "Perfeito!",
-        "Obrigado!",
-        "Aguardo, obrigado!",
-      ];
-      const randomReply = replies[Math.floor(Math.random() * replies.length)];
-      dispatch(
-        sendMessage({
-          orderId,
-          sender: "client" as ChatParticipant,
-          text: randomReply,
-        })
-      );
-    }, 2000);
-  }
-
-  function handleFinishDelivery() {
-    dispatch(markDriverFinished(orderId));
-    dispatch(
-      addSystemMessage({
-        orderId,
-        text: "Entregador finalizou a entrega. Aguardando confirmação do cliente.",
-      })
-    );
-    // If client already confirmed, finalize immediately
-    const updatedOrder = orders.find((o: any) => o.id === orderId);
-    if (updatedOrder?.deliveryConfirmation?.clientConfirmed) {
-      dispatch(finalizeDelivery(orderId));
+    setSending(true);
+    try {
+      await orderApi.sendMessage(orderId, text, "texto");
+      setInputText("");
+      setShowQuickMessages(false);
+      await fetchMessages();
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    } finally {
+      setSending(false);
     }
   }
 
-  function renderMessage({ item }: { item: typeof messages[0] }) {
-    const isDelivery = item.sender === "delivery";
-    const isSystem = item.sender === "system";
-    const isClient = item.sender === "client";
+  function renderMessage({ item }: { item: ChatMessage }) {
+    const isDelivery = item.senderRole === "entregador";
+    const isSystem = item.tipo === "sistema";
 
     return (
       <View
         style={[
           styles.messageBubble,
           isDelivery && styles.deliveryBubble,
-          isClient && styles.clientBubble,
           isSystem && styles.systemBubble,
+          !isDelivery && !isSystem && styles.clientBubble,
         ]}
       >
-        {isClient && (
+        {!isDelivery && !isSystem && (
           <Text style={styles.senderName}>Cliente</Text>
         )}
         <Text
           style={[
             styles.messageText,
             isDelivery && styles.deliveryText,
-            isClient && styles.clientText,
             isSystem && styles.systemText,
+            !isDelivery && !isSystem && styles.clientText,
           ]}
         >
-          {item.text}
+          {item.texto}
         </Text>
         {!isSystem && (
           <Text
             style={[
               styles.messageTime,
               isDelivery && styles.deliveryTime,
-              isClient && styles.clientTime,
+              !isDelivery && !isSystem && styles.clientTime,
             ]}
           >
             {formatChatTime(item.timestamp)}
@@ -341,7 +138,7 @@ export default function DeliveryChatScreen() {
     );
   }
 
-  const orderNumber = order?.id.slice(-4) ?? "0000";
+  const orderNumber = orderId ? orderId.slice(-4) : "0000";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -352,51 +149,44 @@ export default function DeliveryChatScreen() {
         showCart={false}
       />
 
-      {canFinishDelivery && (
-        <View style={styles.finishBanner}>
-          <Text style={styles.finishBannerText}>Chegou ao destino? Finalize a entrega.</Text>
-          <TouchableOpacity style={styles.finishBannerButton} onPress={handleFinishDelivery}>
-            <Text style={styles.finishBannerButtonText}>Finalizar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {!canFinishDelivery && order?.status !== "delivered" && deliveryConfirmation?.driverFinished && (
-        <View style={styles.finishedBanner}>
-          <Text style={styles.finishedBannerText}>Entrega finalizada. Aguardando confirmação do cliente.</Text>
-        </View>
-      )}
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.content}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          initialNumToRender={20}
-          maxToRenderPerBatch={15}
-          windowSize={7}
-          removeClippedSubviews={true}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons
-                name="message-text-outline"
-                size={48}
-                color={colors.neutral[300]}
-              />
-              <Text style={styles.emptyText}>
-                Inicie uma conversa com o cliente
-              </Text>
-            </View>
-          }
-        />
+        {loading ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color={colors.primary[500]} />
+            <Text style={styles.emptyText}>Carregando mensagens...</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(_, index) => String(index)}
+            contentContainerStyle={styles.messagesList}
+            initialNumToRender={20}
+            maxToRenderPerBatch={15}
+            windowSize={7}
+            removeClippedSubviews={true}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons
+                  name="message-text-outline"
+                  size={48}
+                  color={colors.neutral[300]}
+                />
+                <Text style={styles.emptyText}>
+                  Inicie uma conversa com o cliente
+                </Text>
+              </View>
+            }
+          />
+        )}
 
         {showQuickMessages && (
           <View style={styles.inputContainer}>
@@ -443,16 +233,20 @@ export default function DeliveryChatScreen() {
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                !inputText.trim() && styles.sendButtonDisabled,
+                (!inputText.trim() || sending) && styles.sendButtonDisabled,
               ]}
               onPress={() => handleSend()}
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || sending}
             >
-              <MaterialCommunityIcons
-                name="send"
-                size={20}
-                color={colors.white}
-              />
+              {sending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="send"
+                  size={20}
+                  color={colors.white}
+                />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -460,3 +254,148 @@ export default function DeliveryChatScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  content: {
+    flex: 1,
+  },
+  messagesList: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  messageBubble: {
+    maxWidth: "80%",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 18,
+    marginBottom: 10,
+  },
+  deliveryBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: "#E84C3D",
+    borderBottomRightRadius: 4,
+  },
+  clientBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: "#F2F2F2",
+    borderBottomLeftRadius: 4,
+  },
+  systemBubble: {
+    alignSelf: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    maxWidth: "90%",
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  deliveryText: {
+    color: "#ffffff",
+  },
+  clientText: {
+    color: "#212121",
+  },
+  systemText: {
+    color: "#757575",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  messageTime: {
+    fontSize: 11,
+    marginTop: 4,
+    alignSelf: "flex-end",
+  },
+  deliveryTime: {
+    color: "rgba(255,255,255,0.7)",
+  },
+  clientTime: {
+    color: "#9E9E9E",
+  },
+  senderName: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9E9E9E",
+    marginBottom: 4,
+  },
+  inputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  quickMessagesRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+    flexWrap: "wrap",
+  },
+  quickMessageChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#F2F2F2",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  quickMessageText: {
+    fontSize: 12,
+    color: "#E84C3D",
+    fontWeight: "600",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#212121",
+    maxHeight: 80,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#E84C3D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendButtonDisabled: {
+    backgroundColor: "#BDBDBD",
+  },
+  quickToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 10,
+  },
+  quickToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#E84C3D",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#9E9E9E",
+    marginTop: 16,
+  },
+});

@@ -312,7 +312,7 @@ export default function DeliveryDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: params.jobId ?? "" } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -345,7 +345,7 @@ export default function DeliveryDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: "order-005" } })}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: params.jobId ?? "" } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>

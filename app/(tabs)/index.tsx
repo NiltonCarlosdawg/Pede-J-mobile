@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     FlatList,
     Image,
     StyleSheet,
@@ -11,369 +12,65 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CategoryCard } from "../../src/components/ui";
 import { Header } from "../../src/components/ui/Header";
+import { restaurantApi } from "../../src/services/api";
 import {
     loadFavoriteRestaurantIds,
     toggleFavoriteRestaurant,
 } from "../../src/services/favorites";
 import { useAppSelector } from "../../src/store";
 import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSelectors";
-import { selectActivePromotions } from "../../src/store/promotionsSlice";
-import { borderRadius, formatPrice, spacing, typography } from "../../src/theme";
+import { spacing, formatPrice, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-
-const CATEGORIES = [
-  {
-    id: "1",
-    name: "PIZZA",
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=200",
-  },
-  {
-    id: "2",
-    name: "BURGER",
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200",
-  },
-  {
-    id: "3",
-    name: "BRASIL",
-    image: "https://images.unsplash.com/photo-1612821763214-19af3594e98c?w=200",
-  },
-  {
-    id: "4",
-    name: "JAPÃO",
-    image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200",
-  },
-  { id: "5", name: "MAIS" },
-];
-
-const RESTAURANTS = [
-  {
-    id: "1",
-    name: "Sabor da Praça",
-    cuisine: "Angolana",
-    rating: 4.8,
-    distance: "1.2 km",
-    deliveryTime: "30-40 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=400",
-    favorite: true,
-  },
-  {
-    id: "2",
-    name: "BBQ Master Prime",
-    cuisine: "Carnes",
-    rating: 4.5,
-    distance: "2.5 km",
-    deliveryTime: "45-55 min",
-    deliveryFee: "Kz 5.900",
-    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
-  },
-  {
-    id: "3",
-    name: "Pizza Hut Express",
-    cuisine: "Pizzaria",
-    rating: 4.3,
-    distance: "1.8 km",
-    deliveryTime: "25-35 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=400",
-  },
-  {
-    id: "4",
-    name: "Sushi Palace",
-    cuisine: "Japonesa",
-    rating: 4.7,
-    distance: "3.1 km",
-    deliveryTime: "40-50 min",
-    deliveryFee: "Kz 3.500",
-    image: "https://images.unsplash.com/photo-1579027989246-ea81f0b65b19?w=400",
-  },
-  {
-    id: "5",
-    name: "Tropical Grill",
-    cuisine: "Brasileira",
-    rating: 4.6,
-    distance: "1.5 km",
-    deliveryTime: "35-45 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=400",
-  },
-  {
-    id: "6",
-    name: "La Pasta Bella",
-    cuisine: "Italiana",
-    rating: 4.4,
-    distance: "2.2 km",
-    deliveryTime: "30-40 min",
-    deliveryFee: "Kz 2.900",
-    image: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400",
-  },
-];
-
-const FEATURED_OFFERS = [
-  {
-    id: "1",
-    title: "Frete grátis hoje",
-    subtitle: "Em restaurantes selecionados até às 20h.",
-  },
-  {
-    id: "2",
-    title: "2x pontos",
-    subtitle: "Ganhe mais em pedidos acima de Kz 25.000.",
-  },
-];
-
-const LOW_RATED_RESTAURANTS = [
-  {
-    id: "l1",
-    name: "Cantinho da Dona",
-    cuisine: "Caseira",
-    rating: 2.5,
-    distance: "1.8 km",
-    deliveryTime: "50-70 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400",
-  },
-  {
-    id: "l2",
-    name: "Tradicional Grill",
-    cuisine: "Angolana",
-    rating: 2.8,
-    distance: "3.2 km",
-    deliveryTime: "45-60 min",
-    deliveryFee: "Kz 2.500",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
-  },
-  {
-    id: "l3",
-    name: "Express Food",
-    cuisine: "Fast Food",
-    rating: 1.8,
-    distance: "0.9 km",
-    deliveryTime: "20-30 min",
-    deliveryFee: "Kz 1.500",
-    image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400",
-  },
-  {
-    id: "l4",
-    name: "Bom e Barato",
-    cuisine: "Brasileira",
-    rating: 2.1,
-    distance: "2.0 km",
-    deliveryTime: "35-50 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400",
-  },
-  {
-    id: "l5",
-    name: "Recanto Mineiro",
-    cuisine: "Caseira",
-    rating: 2.3,
-    distance: "4.1 km",
-    deliveryTime: "55-70 min",
-    deliveryFee: "Kz 3.900",
-    image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400",
-  },
-  {
-    id: "l6",
-    name: "Rápido Lanches",
-    cuisine: "Lanches",
-    rating: 1.5,
-    distance: "1.5 km",
-    deliveryTime: "15-25 min",
-    deliveryFee: "Grátis",
-    image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=400",
-  },
-];
-
-const RECENT_ORDERS = [
-  {
-    id: "1",
-    title: "Smash Burger Duplo",
-    status: "Entregue ontem",
-    total: "Kz 23.800",
-  },
-  {
-    id: "2",
-    title: "Pizza Quatro Queijos",
-    status: "Pedido repetível",
-    total: "Kz 18.500",
-  },
-];
-
-const PRODUCT_SECTIONS = [
-  {
-    id: "burgers",
-    title: "Hambúrgueres Artesanais",
-    subtitle: "Os mais pedidos da semana",
-    products: [
-      {
-        id: "b1",
-        name: "Smash Burger",
-        price: 8500,
-        image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",
-        restaurant: "Burger King",
-        rating: 4.8,
-        description: "Pão brioche, smash de carne angus 180g, queijo cheddar, alface, tomate, molho especial da casa, cebola caramelizada e picles.",
-      },
-      {
-        id: "b2",
-        name: "Double Bacon",
-        price: 10200,
-        image: "https://images.unsplash.com/photo-1550317138-10000687a72b?w=400",
-        restaurant: "BBQ Master",
-        rating: 4.7,
-        description: "Pão artesanal, duplo smash de carne angus, queijo prato, bacon crocante, molho barbecue, anéis de cebola golden.",
-      },
-      {
-        id: "b3",
-        name: "Cheese Classic",
-        price: 7500,
-        image: "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=400",
-        restaurant: "Sabor da Praça",
-        rating: 4.5,
-        description: "Pão de batata, hambúrguer bovino 150g, American cheese, alface americana e maionese verde.",
-      },
-      {
-        id: "b4",
-        name: "Chicken Crispy",
-        price: 6800,
-        image: "https://images.unsplash.com/photo-1606755962775-e2e0c2cd49c9?w=400",
-        restaurant: "Fast Grill",
-        rating: 4.6,
-        description: "Pão australiano, filé de frango empanado 200g, maionese temperada, queijo mussarela, rúcula e tomate confit.",
-      },
-      {
-        id: "b5",
-        name: "Veggie Supreme",
-        price: 7800,
-        image: "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400",
-        restaurant: "Green Eat",
-        rating: 4.4,
-        description: "Pão integral, hambúrguer de grão-de-bico, queijo vegano, alface, tomate, cebola roxa e molho de iogurte.",
-      },
-    ],
-  },
-  {
-    id: "pizzas",
-    title: "Pizzas Quentes",
-    subtitle: "Saindo agora do forno",
-    products: [
-      {
-        id: "p1",
-        name: "Pepperoni",
-        price: 12500,
-        image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400",
-        restaurant: "Pizza Hut",
-        rating: 4.9,
-        description: "Molho de tomate italiano, mussarela, pepperoni, orégano e azeitonas.",
-      },
-      {
-        id: "p2",
-        name: "Quatro Queijos",
-        price: 11800,
-        image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
-        restaurant: "Italiano",
-        rating: 4.7,
-        description: "Molho de tomate, mussarela, gorgonzola, parmesão, catupiry cremoso, orégano e azeitonas.",
-      },
-      {
-        id: "p3",
-        name: "Marguerita",
-        price: 9500,
-        image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400",
-        restaurant: "Sabor da Praça",
-        rating: 4.6,
-        description: "Molho de tomate, mussarela, tomate italiano, manjericão fresco, parmesão e azeite.",
-      },
-      {
-        id: "p4",
-        name: "Calabresa",
-        price: 11200,
-        image: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=400",
-        restaurant: "Pizza Hut",
-        rating: 4.8,
-        description: "Molho de tomate, mussarela, calabresa fatiada, cebola, orégano e azeitonas.",
-      },
-      {
-        id: "p5",
-        name: "Frango c/ Catupiry",
-        price: 10800,
-        image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=400",
-        restaurant: "BBQ Master",
-        rating: 4.5,
-        description: "Molho de tomate, mussarela, frango desfiado, catupiry cremoso, milho e azeitonas.",
-      },
-    ],
-  },
-  {
-    id: "combos",
-    title: "Combos & Bebidas",
-    subtitle: "Complete seu pedido",
-    products: [
-      {
-        id: "c1",
-        name: "Combo Família",
-        price: 18500,
-        image: "https://images.unsplash.com/photo-1594212699903-ec8a3bae50d5?w=400",
-        restaurant: "Pizza Hut",
-        rating: 4.9,
-        description: "1 Pizza Grande + 1 Burger Artesanal + 2 Bebidas + Batata Frita. Serve até 4 pessoas.",
-      },
-      {
-        id: "c2",
-        name: "Coca-Cola 2L",
-        price: 2500,
-        image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
-        restaurant: "Sabor da Praça",
-        rating: 4.7,
-        description: "Coca-Cola 2 litros gelada.",
-      },
-      {
-        id: "c3",
-        name: "Batata Frita GG",
-        price: 4500,
-        image: "https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=400",
-        restaurant: "Fast Grill",
-        rating: 4.6,
-        description: "Batata frita crocante porção gigante, servida com ketchup e maionese.",
-      },
-      {
-        id: "c4",
-        name: "Suco Natural",
-        price: 1800,
-        image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400",
-        restaurant: "Green Eat",
-        rating: 4.8,
-        description: "Suco natural de laranja ou maracujá, 500ml. Feito na hora.",
-      },
-      {
-        id: "c5",
-        name: "Combo Burguer + Fritas",
-        price: 11500,
-        image: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=400",
-        restaurant: "Burger King",
-        rating: 4.7,
-        description: "1 Hambúrguer artesanal + Batata frita M + Bebida 350ml.",
-      },
-    ],
-  },
-];
+import type { Restaurant } from "../../src/types";
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
-  const activePromotions = useAppSelector(selectActivePromotions);
   const { colors } = useTheme();
 
-  const firstName = user?.name?.split(" ")[0] ?? "Alexandre";
+  const firstName = user?.name?.split(" ")[0] ?? "";
   const avatarUrl = user?.avatar;
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const styles = StyleSheet.create({
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      const ids = await loadFavoriteRestaurantIds();
+      if (mounted) setFavoriteIds(ids);
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const { data } = await restaurantApi.list({ limit: 20 });
+        if (mounted) setRestaurants(data.data ?? []);
+      } catch (err) {
+        console.warn("[home] failed to load restaurants", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  async function handleToggleFavorite(id: string) {
+    const nextIds = await toggleFavoriteRestaurant(id);
+    setFavoriteIds(nextIds);
+  }
+
+  const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -456,108 +153,6 @@ export default function HomeScreen() {
     section: {
       marginBottom: spacing.lg,
     },
-    sectionLink: {
-      ...typography.labelLg,
-      color: colors.primary[500],
-    },
-    offersScroll: {
-      paddingRight: spacing.gutter,
-    },
-    offerCardContent: {
-      flex: 1,
-    },
-    categoryWrapper: {
-      marginRight: spacing.md,
-    },
-    categoryCard: {
-      width: 80,
-      height: 80,
-      borderRadius: 20,
-      backgroundColor: colors.surfaceContainer,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    categoryCardActive: {
-      backgroundColor: colors.primary[100],
-    },
-    categoryLabel: {
-      marginTop: spacing.xs,
-      ...typography.labelCaps,
-      color: colors.onSurface,
-      textAlign: "center",
-    },
-    restaurantCard: {
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 24,
-      padding: spacing.md,
-      marginBottom: spacing.md,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    restaurantHeader: {
-      flexDirection: "row",
-      marginBottom: spacing.sm,
-    },
-    restaurantImage: {
-      width: 80,
-      height: 80,
-      borderRadius: 16,
-      marginRight: spacing.sm,
-    },
-    restaurantInfo: {
-      flex: 1,
-      justifyContent: "center",
-    },
-    restaurantName: {
-      ...typography.labelLg,
-      color: colors.onSurface,
-    },
-    restaurantCuisine: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-      marginTop: 2,
-    },
-    restaurantRating: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginTop: 4,
-    },
-    restaurantRatingText: {
-      ...typography.bodySm,
-      fontWeight: "600",
-      color: colors.onSurface,
-    },
-    restaurantMeta: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      marginTop: spacing.sm,
-    },
-    restaurantMetaText: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-    },
-    restaurantDelivery: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    restaurantDeliveryFee: {
-      ...typography.labelCaps,
-      color: colors.primary[500],
-    },
-    favoriteButton: {
-      position: "absolute",
-      top: spacing.sm,
-      right: spacing.sm,
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     sectionHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -568,190 +163,13 @@ export default function HomeScreen() {
       ...typography.h3,
       color: colors.onSurface,
     },
-    sectionAction: {
+    sectionLink: {
       ...typography.labelLg,
       color: colors.primary[500],
-    },
-    categoryList: {
-      marginBottom: spacing.lg,
-    },
-    categoryItem: {
-      alignItems: "center",
-      marginRight: spacing.md,
-    },
-    categoryImage: {
-      width: 72,
-      height: 72,
-      borderRadius: 20,
-      marginBottom: spacing.xs,
-    },
-    categoryName: {
-      ...typography.labelCaps,
-      color: colors.onSurface,
-    },
-    restaurantList: {
-      marginBottom: spacing.lg,
-    },
-    restaurantItem: {
-      marginBottom: spacing.md,
-    },
-    offerCard: {
-      marginRight: spacing.sm,
-      padding: spacing.md,
-      borderRadius: 16,
-      width: 200,
-    },
-    offerTitle: {
-      ...typography.labelLg,
-      color: colors.onSurface,
-    },
-    offerSubtitle: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-      marginTop: 2,
-    },
-    orderItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.neutral[100],
-    },
-    orderImage: {
-      width: 60,
-      height: 60,
-      borderRadius: 12,
-      marginRight: spacing.sm,
-    },
-    orderInfo: {
-      flex: 1,
-    },
-    orderTitle: {
-      ...typography.labelLg,
-      color: colors.onSurface,
-    },
-    orderStatus: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-    },
-    orderTotal: {
-      ...typography.labelLg,
-      color: colors.primary[500],
-    },
-    heroTitle: {
-      ...typography.h1,
-      color: colors.onSurface,
-      marginBottom: spacing.xs,
-    },
-    heroSubtitle: {
-      ...typography.bodyMd,
-      color: colors.neutral[700],
-    },
-    offerKicker: {
-      ...typography.labelCaps,
-      color: colors.primary[500],
-      marginBottom: 4,
     },
     sectionMeta: {
       ...typography.bodySm,
       color: colors.neutral[500],
-    },
-    categoriesScroll: {
-      paddingRight: spacing.gutter,
-    },
-    lastSection: {
-      marginBottom: 100,
-    },
-    orderCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 16,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-    },
-    orderIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      backgroundColor: colors.primary[100],
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.sm,
-    },
-    orderContent: {
-      flex: 1,
-    },
-    orderMeta: {
-      fontSize: 12,
-      color: colors.neutral[500],
-      marginTop: 2,
-    },
-    orderPriceBlock: {
-      alignItems: "flex-end",
-    },
-    orderPrice: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.primary[500],
-    },
-    orderAction: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: colors.primary[500],
-      marginTop: 2,
-    },
-    productScroll: {
-      paddingRight: spacing.gutter,
-    },
-    productCard: {
-      width: 160,
-      marginRight: spacing.md,
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 20,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    productImage: {
-      width: "100%",
-      height: 120,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-    },
-    productInfo: {
-      padding: spacing.sm,
-    },
-    productName: {
-      ...typography.labelLg,
-      color: colors.onSurface,
-      fontWeight: "700",
-      marginBottom: 2,
-    },
-    productMeta: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-      marginBottom: spacing.xs,
-    },
-    productPriceRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    productPrice: {
-      ...typography.labelLg,
-      color: colors.primary[500],
-      fontWeight: "800",
-    },
-    productRating: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 2,
-    },
-    productRatingText: {
-      ...typography.bodySm,
-      color: colors.neutral[500],
-      fontWeight: "600",
     },
     restaurantScroll: {
       paddingRight: spacing.gutter,
@@ -831,56 +249,50 @@ export default function HomeScreen() {
       shadowRadius: 4,
       elevation: 3,
     },
-  });
+    heroTitle: {
+      ...typography.h1,
+      color: colors.onSurface,
+      marginBottom: spacing.xs,
+    },
+    heroSubtitle: {
+      ...typography.bodyMd,
+      color: colors.neutral[700],
+    },
+    loadingContainer: {
+      paddingVertical: spacing.xxl,
+      alignItems: "center",
+    },
+    emptyContainer: {
+      paddingVertical: spacing.xxl,
+      alignItems: "center",
+    },
+    emptyText: {
+      ...typography.bodySm,
+      color: colors.neutral[500],
+    },
+    lastSection: {
+      marginBottom: 100,
+    },
+  }), [colors]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      const ids = await loadFavoriteRestaurantIds();
-      if (mounted) {
-        setFavoriteIds(ids);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const restaurants = useMemo(
+  const restaurantList = useMemo(
     () =>
-      RESTAURANTS.map((restaurant) => ({
-        ...restaurant,
-        favorite: favoriteIds.includes(restaurant.id),
+      restaurants.map((r) => ({
+        ...r,
+        favorite: favoriteIds.includes(r.id),
       })),
-    [favoriteIds],
+    [restaurants, favoriteIds],
   );
-
-  const lowRatedRestaurants = useMemo(
-    () =>
-      LOW_RATED_RESTAURANTS.map((restaurant) => ({
-        ...restaurant,
-        favorite: favoriteIds.includes(restaurant.id),
-      })),
-    [favoriteIds],
-  );
-
-  async function handleToggleFavorite(id: string) {
-    const nextIds = await toggleFavoriteRestaurant(id);
-    setFavoriteIds(nextIds);
-  }
 
   const headerList = useMemo(() => (
     <View>
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroTextBlock}>
-            <Text style={styles.kicker}>Olá, {firstName}</Text>
+            <Text style={styles.kicker}>Ola, {firstName}</Text>
             <Text style={styles.heroTitle}>O que vamos pedir hoje?</Text>
             <Text style={styles.heroSubtitle}>
-              Seleção demo com restaurantes, ofertas e atalhos prontos para
-              explorar.
+              Explorar restaurantes e fazer o seu pedido.
             </Text>
           </View>
           <View style={styles.heroBadge}>
@@ -896,17 +308,17 @@ export default function HomeScreen() {
         <View style={styles.heroStatsRow}>
           <TouchableOpacity
             style={styles.heroStat}
-            onPress={() => router.push("/restaurantes")}
+            onPress={() => router.push("/(tabs)/restaurantes")}
           >
-            <Text style={styles.heroStatValue}>3</Text>
-            <Text style={styles.heroStatLabel}>Pratos favoritos</Text>
+            <Text style={styles.heroStatValue}>{restaurants.length}</Text>
+            <Text style={styles.heroStatLabel}>Restaurantes</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.heroStat}
-            onPress={() => router.push("/restaurantes")}
+            onPress={() => router.push("/(tabs)/restaurantes")}
           >
-            <Text style={styles.heroStatValue}>12</Text>
-            <Text style={styles.heroStatLabel}>Restaurantes perto</Text>
+            <Text style={styles.heroStatValue}>{favoriteIds.length}</Text>
+            <Text style={styles.heroStatLabel}>Favoritos</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.heroStat}
@@ -920,7 +332,7 @@ export default function HomeScreen() {
 
       <TouchableOpacity
         style={styles.searchContainer}
-        onPress={() => router.push("/restaurantes")}
+        onPress={() => router.push("/(tabs)/restaurantes")}
         activeOpacity={0.9}
       >
         <MaterialCommunityIcons
@@ -933,356 +345,92 @@ export default function HomeScreen() {
         </Text>
       </TouchableOpacity>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ofertas do dia</Text>
-          <TouchableOpacity onPress={() => router.push("/restaurantes")}>
-            <Text style={styles.sectionLink}>Ver restaurantes</Text>
-          </TouchableOpacity>
-        </View>
-
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={FEATURED_OFFERS}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.offersScroll}
-          renderItem={({ item: offer }) => (
-            <TouchableOpacity
-              key={offer.id}
-              style={styles.offerCard}
-              onPress={() => router.push("/restaurantes")}
-            >
-              <Text style={styles.offerKicker}>Destaque</Text>
-              <Text style={styles.offerTitle}>{offer.title}</Text>
-              <Text style={styles.offerSubtitle}>{offer.subtitle}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {activePromotions.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Promoções ativas</Text>
-            <TouchableOpacity onPress={() => router.push("/promocoes")}>
-              <Text style={styles.sectionLink}>Ver todas</Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={activePromotions.slice(0, 3)}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.offersScroll}
-            renderItem={({ item: promo }) => (
-              <TouchableOpacity
-                style={[styles.offerCard, { backgroundColor: colors.primary[100], borderColor: colors.primary[500], borderWidth: 1 }]}
-                onPress={() => router.push("/restaurantes")}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                  <MaterialCommunityIcons name="tag" size={14} color={colors.primary[500]} />
-                  <Text style={[styles.offerKicker, { color: colors.primary[500] }]}>{promo.badge}</Text>
-                </View>
-                <Text style={styles.offerTitle}>{promo.title}</Text>
-                <Text style={styles.offerSubtitle}>{promo.description}</Text>
-                <View style={{ marginTop: 8, backgroundColor: colors.primary[500], paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" }}>
-                  <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{promo.discount}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      )}
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Categorias em alta</Text>
-          <Text style={styles.sectionMeta}>seleção local</Text>
-        </View>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={CATEGORIES}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.categoriesScroll}
-          renderItem={({ item: cat }) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={styles.categoryItem}
-              onPress={() => router.push("/restaurantes")}
-            >
-              <CategoryCard name={cat.name} image={cat.image} />
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {PRODUCT_SECTIONS.map((section) => (
-        <View key={section.id} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <Text style={styles.sectionMeta}>{section.subtitle}</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push("/restaurantes")}>
-              <Text style={styles.sectionLink}>Ver todos</Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={section.products}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.productScroll}
-            renderItem={({ item: product }) => (
-              <TouchableOpacity
-                key={product.id}
-                style={styles.productCard}
-                onPress={() => router.push({
-                    pathname: "/produto-modal",
-                    params: {
-                        id: product.id,
-                        name: product.name,
-                        price: product.price.toString(),
-                        image: product.image,
-                        restaurant: product.restaurant,
-                        rating: product.rating.toString(),
-                        description: product.description ?? "",
-                    },
-                })}
-              >
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.productImage}
-                />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={1}>
-                    {product.name}
-                  </Text>
-                  <Text style={styles.productMeta} numberOfLines={1}>
-                    {product.restaurant}
-                  </Text>
-                  <View style={styles.productPriceRow}>
-                    <Text style={styles.productPrice}>
-                      {formatPrice(product.price)}
-                    </Text>
-                    <View style={styles.productRating}>
-                      <MaterialCommunityIcons
-                        name="star"
-                        size={14}
-                        color={colors.secondary[500]}
-                      />
-                      <Text style={styles.productRatingText}>
-                        {product.rating}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      ))}
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Restaurantes próximos</Text>
-            <Text style={styles.sectionMeta}>Os melhores perto de você</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push("/restaurantes")}>
-            <Text style={styles.sectionLink}>Ver todos</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={restaurants}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.restaurantScroll}
-          renderItem={({ item: restaurant }) => (
-            <TouchableOpacity
-              key={restaurant.id}
-              style={styles.restaurantCardHorizontal}
-              onPress={() => router.push("/restaurante")}
-            >
-              <Image
-                source={{ uri: restaurant.image }}
-                style={styles.restaurantImageHorizontal}
-              />
-              <TouchableOpacity
-                style={styles.restaurantFavoriteButton}
-                onPress={() => handleToggleFavorite(restaurant.id)}
-              >
-                <MaterialCommunityIcons
-                  name={restaurant.favorite ? "heart" : "heart-outline"}
-                  size={18}
-                  color={restaurant.favorite ? colors.error : colors.neutral[400]}
-                />
-              </TouchableOpacity>
-              <View style={styles.restaurantInfoHorizontal}>
-                <Text style={styles.restaurantNameHorizontal} numberOfLines={1}>
-                  {restaurant.name}
-                </Text>
-                <Text style={styles.restaurantCuisineHorizontal}>
-                  {restaurant.cuisine}
-                </Text>
-                <View style={styles.restaurantMetaHorizontal}>
-                  <MaterialCommunityIcons
-                    name="map-marker"
-                    size={14}
-                    color={colors.neutral[500]}
-                  />
-                  <Text style={styles.restaurantMetaTextHorizontal}>
-                    {restaurant.distance}
-                  </Text>
-                  <MaterialCommunityIcons
-                    name="clock-outline"
-                    size={14}
-                    color={colors.neutral[500]}
-                  />
-                  <Text style={styles.restaurantMetaTextHorizontal}>
-                    {restaurant.deliveryTime}
-                  </Text>
-                </View>
-                <View style={styles.restaurantRatingRow}>
-                  <View style={styles.restaurantRatingHorizontal}>
-                    <MaterialCommunityIcons
-                      name="star"
-                      size={16}
-                      color={colors.secondary[500]}
-                    />
-                    <Text style={styles.restaurantRatingTextHorizontal}>
-                      {restaurant.rating}
-                    </Text>
-                  </View>
-                  <Text style={styles.restaurantDeliveryFeeHorizontal}>
-                    {restaurant.deliveryFee}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pedidos recentes</Text>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/pedidos")}>
-            <Text style={styles.sectionLink}>Ver histórico</Text>
-          </TouchableOpacity>
-        </View>
-
-        {RECENT_ORDERS.map((order) => (
-          <TouchableOpacity
-            key={order.id}
-            style={styles.orderCard}
-            onPress={() => router.push("/(tabs)/pedidos")}
-          >
-            <View style={styles.orderIcon}>
-              <MaterialCommunityIcons
-                name="receipt-text-outline"
-                size={20}
-                color={colors.primary[500]}
-              />
-            </View>
-            <View style={styles.orderContent}>
-              <Text style={styles.orderTitle}>{order.title}</Text>
-              <Text style={styles.orderMeta}>{order.status}</Text>
-            </View>
-            <View style={styles.orderPriceBlock}>
-              <Text style={styles.orderPrice}>{order.total}</Text>
-              <Text style={styles.orderAction}>Repetir</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <View style={[styles.section, styles.lastSection]}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>Descubra novos sabores</Text>
-            <Text style={styles.sectionMeta}>Para todos os gostos</Text>
+            <Text style={styles.sectionTitle}>Restaurantes</Text>
+            <Text style={styles.sectionMeta}>Os melhores perto de voce</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/restaurantes")}>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/restaurantes")}>
             <Text style={styles.sectionLink}>Ver todos</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={lowRatedRestaurants}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.restaurantScroll}
-          renderItem={({ item: restaurant }) => (
-            <TouchableOpacity
-              key={restaurant.id}
-              style={styles.restaurantCardHorizontal}
-              onPress={() => router.push("/restaurante")}
-            >
-              <Image
-                source={{ uri: restaurant.image }}
-                style={styles.restaurantImageHorizontal}
-              />
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[500]} />
+          </View>
+        ) : restaurantList.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Nenhum restaurante encontrado</Text>
+          </View>
+        ) : (
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={restaurantList}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.restaurantScroll}
+            renderItem={({ item: restaurant }) => (
               <TouchableOpacity
-                style={styles.restaurantFavoriteButton}
-                onPress={() => handleToggleFavorite(restaurant.id)}
+                key={restaurant.id}
+                style={styles.restaurantCardHorizontal}
+                onPress={() => router.push({ pathname: "/restaurante", params: { id: restaurant.id } })}
               >
-                <MaterialCommunityIcons
-                  name={restaurant.favorite ? "heart" : "heart-outline"}
-                  size={18}
-                  color={restaurant.favorite ? colors.error : colors.neutral[400]}
+                <Image
+                  source={{ uri: restaurant.image }}
+                  style={styles.restaurantImageHorizontal}
                 />
-              </TouchableOpacity>
-              <View style={styles.restaurantInfoHorizontal}>
-                <Text style={styles.restaurantNameHorizontal} numberOfLines={1}>
-                  {restaurant.name}
-                </Text>
-                <Text style={styles.restaurantCuisineHorizontal}>
-                  {restaurant.cuisine}
-                </Text>
-                <View style={styles.restaurantMetaHorizontal}>
+                <TouchableOpacity
+                  style={styles.restaurantFavoriteButton}
+                  onPress={() => handleToggleFavorite(restaurant.id)}
+                >
                   <MaterialCommunityIcons
-                    name="map-marker"
-                    size={14}
-                    color={colors.neutral[500]}
+                    name={restaurant.favorite ? "heart" : "heart-outline"}
+                    size={18}
+                    color={restaurant.favorite ? colors.error : colors.neutral[400]}
                   />
-                  <Text style={styles.restaurantMetaTextHorizontal}>
-                    {restaurant.distance}
+                </TouchableOpacity>
+                <View style={styles.restaurantInfoHorizontal}>
+                  <Text style={styles.restaurantNameHorizontal} numberOfLines={1}>
+                    {restaurant.name}
                   </Text>
-                  <MaterialCommunityIcons
-                    name="clock-outline"
-                    size={14}
-                    color={colors.neutral[500]}
-                  />
-                  <Text style={styles.restaurantMetaTextHorizontal}>
-                    {restaurant.deliveryTime}
+                  <Text style={styles.restaurantCuisineHorizontal}>
+                    {restaurant.cuisine}
                   </Text>
-                </View>
-                <View style={styles.restaurantRatingRow}>
-                  <View style={styles.restaurantRatingHorizontal}>
+                  <View style={styles.restaurantMetaHorizontal}>
                     <MaterialCommunityIcons
-                      name="star"
-                      size={16}
-                      color={colors.secondary[500]}
+                      name="clock-outline"
+                      size={14}
+                      color={colors.neutral[500]}
                     />
-                    <Text style={styles.restaurantRatingTextHorizontal}>
-                      {restaurant.rating}
+                    <Text style={styles.restaurantMetaTextHorizontal}>
+                      {restaurant.deliveryTime}
                     </Text>
                   </View>
-                  <Text style={styles.restaurantDeliveryFeeHorizontal}>
-                    {restaurant.deliveryFee}
-                  </Text>
+                  <View style={styles.restaurantRatingRow}>
+                    <View style={styles.restaurantRatingHorizontal}>
+                      <MaterialCommunityIcons
+                        name="star"
+                        size={16}
+                        color={colors.secondary[500]}
+                      />
+                      <Text style={styles.restaurantRatingTextHorizontal}>
+                        {restaurant.rating > 0 ? restaurant.rating.toFixed(1) : "Novo"}
+                      </Text>
+                    </View>
+                    <Text style={styles.restaurantDeliveryFeeHorizontal}>
+                      {restaurant.deliveryFee > 0 ? formatPrice(restaurant.deliveryFee) : "Gratis"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
     </View>
-  ), [styles, colors, firstName, cartCount, activePromotions, router, lowRatedRestaurants]);
+  ), [styles, colors, firstName, cartCount, restaurants, favoriteIds, router, loading]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>

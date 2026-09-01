@@ -18,47 +18,9 @@ export interface NotificationsState {
   initialized: boolean;
 }
 
-const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "notif-001",
-    type: "order",
-    title: "Pedido Confirmado!",
-    body: "Seu pedido em Burger Station foi confirmado e está sendo preparado.",
-    data: { orderId: "order-005", status: "confirmed" },
-    read: false,
-    createdAt: new Date(Date.now() - 300000).toISOString(),
-  },
-  {
-    id: "notif-002",
-    type: "delivery",
-    title: "Entregador a caminho!",
-    body: "Carlos está a caminho com seu pedido #0005.",
-    data: { orderId: "order-005", status: "delivering" },
-    read: false,
-    createdAt: new Date(Date.now() - 60000).toISOString(),
-  },
-  {
-    id: "notif-003",
-    type: "promotion",
-    title: "Promoção exclusiva!",
-    body: "Use o cupom PEDEJA20 e ganhe 20% de desconto no seu próximo pedido.",
-    data: { code: "PEDEJA20" },
-    read: true,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "notif-004",
-    type: "system",
-    title: "Bem-vindo ao PedeJá!",
-    body: "Complete seu perfil para uma experiência personalizada.",
-    read: true,
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
-
 const initialState: NotificationsState = {
-  notifications: MOCK_NOTIFICATIONS,
-  unreadCount: MOCK_NOTIFICATIONS.filter((n) => !n.read).length,
+  notifications: [],
+  unreadCount: 0,
   initialized: true,
 };
 

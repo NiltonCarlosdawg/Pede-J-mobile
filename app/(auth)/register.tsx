@@ -17,11 +17,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
 import { useTheme } from "../../src/hooks/useTheme";
-import { DemoRole } from "../../src/services/demoAuth";
+import { authApi } from "../../src/services/api";
+import { saveDemoSession } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
-import type { User } from "../../src/types";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -173,6 +173,12 @@ export default function RegisterScreen() {
       return false;
     }
 
+    if (!phone.trim()) {
+      setError("Por favor preencha o telefone.");
+      triggerShake();
+      return false;
+    }
+
     if (!password) {
       setError("Por favor preencha a senha.");
       triggerShake();
@@ -204,27 +210,23 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: name.trim(),
+      const response = await authApi.register({
+        nome: name.trim(),
         email: email.trim().toLowerCase(),
-        phone: phone.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      };
+        telefone: phone.trim(),
+        password,
+        role: "cliente",
+      });
 
-      const demoSession = {
-        token: `demo-token-${Date.now()}`,
-        user: newUser,
-        role: "client" as DemoRole,
-      };
+      const { token, user } = response.data;
 
-      dispatch(setSession(demoSession));
+      await saveDemoSession({ token, user, role: "client" });
+      dispatch(setSession({ token, user, role: "client" }));
       router.replace("/(tabs)");
-    } catch (err) {
+    } catch (err: any) {
       console.error("[register] error:", err);
-      setError("Não foi possível criar a conta. Tente novamente.");
+      const message = err?.response?.data?.message || "Não foi possível criar a conta. Tente novamente.";
+      setError(message);
       triggerShake();
     } finally {
       setLoading(false);
@@ -298,7 +300,7 @@ export default function RegisterScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Telefone (opcional)"
+                placeholder="Telefone"
                 placeholderTextColor={colors.neutral[500]}
                 value={phone}
                 onChangeText={setPhone}

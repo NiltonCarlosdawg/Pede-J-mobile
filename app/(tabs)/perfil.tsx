@@ -18,6 +18,7 @@ import { clearSession } from "../../src/store/authSlice";
 import { clearCart } from "../../src/store/cartSlice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 import { clearDemoSession } from "../../src/services/demoAuth";
+import { authApi } from "../../src/services/api";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
@@ -328,15 +329,11 @@ export default function PerfilScreen() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
 
-    // Simula delay de logout
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     try {
+      await authApi.logout().catch(() => {});
       await clearDemoSession();
       dispatch(clearCart());
       dispatch(clearSession());
-
-      // Força navegação para login após logout
       router.replace("/(auth)/login");
     } catch (error) {
       console.error("[logout] error:", error);
@@ -345,11 +342,10 @@ export default function PerfilScreen() {
     }
   }
 
-  const profileName = user?.name ?? "Alexandre João";
-  const profileEmail = user?.email ?? "alexandre.joao@example.ao";
-  const profileAvatar =
-    user?.avatar ??
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2e?w=200";
+  const profileName = user?.name ?? "";
+  const profileEmail = user?.email ?? "";
+  const profilePhone = user?.phone ?? "";
+  const profileAvatar = user?.avatar ?? "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -360,7 +356,7 @@ export default function PerfilScreen() {
           <View style={styles.profileGradient} />
           <View style={styles.profileImageContainer}>
             <Image
-              source={{ uri: profileAvatar }}
+              source={profileAvatar ? { uri: profileAvatar } : undefined}
               style={[
                 styles.profileImage,
                 { width: isSmallScreen ? 80 : 100, height: isSmallScreen ? 80 : 100, borderRadius: isSmallScreen ? 40 : 50 },
@@ -419,11 +415,11 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isSmallScreen && { fontSize: 11 }]}>Nome Completo</Text>
-              <Text style={[styles.infoValue, isSmallScreen && { fontSize: 13 }]}>Alexandre João</Text>
+              <Text style={[styles.infoValue, isSmallScreen && { fontSize: 13 }]}>{profileName}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isSmallScreen && { fontSize: 11 }]}>Número de Telefone</Text>
-              <Text style={[styles.infoValue, isSmallScreen && { fontSize: 13 }]}>+244 923 123 456</Text>
+              <Text style={[styles.infoLabel, isSmallScreen && { fontSize: 11 }]}>Numero de Telefone</Text>
+              <Text style={[styles.infoValue, isSmallScreen && { fontSize: 13 }]}>{profilePhone || "Nao informado"}</Text>
             </View>
           </View>
         </View>

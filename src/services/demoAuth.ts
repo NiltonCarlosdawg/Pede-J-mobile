@@ -26,6 +26,7 @@ export const DEMO_CLIENT_USER: User = {
   email: DEMO_LOGIN.client.email,
   phone: "+244 923 123 456",
   avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2e?w=200",
+  role: "cliente",
   createdAt: "2026-05-08T00:00:00.000Z",
 };
 
@@ -35,6 +36,7 @@ export const DEMO_DELIVERY_USER: User = {
   email: DEMO_LOGIN.delivery.email,
   phone: "+244 923 555 900",
   avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+  role: "entregador",
   createdAt: "2026-05-08T00:00:00.000Z",
 };
 

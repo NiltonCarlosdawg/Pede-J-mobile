@@ -109,8 +109,8 @@ export default function CheckoutScreen() {
   );
 
   const addresses = useMemo((): Address[] => {
-    if (apiAddresses && apiAddresses.length > 0) {
-      return apiAddresses;
+    if (apiAddresses?.data && apiAddresses.data.length > 0) {
+      return apiAddresses.data;
     }
     return FALLBACK_ADDRESSES;
   }, [apiAddresses]);

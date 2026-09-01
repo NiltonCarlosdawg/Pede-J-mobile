@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,66 +14,80 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "../../src/components/ui/Header";
 import { spacing, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
+import { deliveryApi } from "../../src/services/api";
+import type { Order } from "../../src/types";
 
-const FILTERS = ["Todas", "Hoje", "Semana", "Mês"];
+const FILTERS = ["Todas", "Hoje", "Semana", "Mês"] as const;
 
-const DELIVERIES = [
-  {
-    id: "1",
-    restaurant: "Sabor da Praça",
-    destination: "Mutamba, Luanda",
-    fee: 1400,
-    distance: "2.1 km",
-    date: "2026-05-10T14:30:00",
-    status: "completed",
-    rating: 5,
-  },
-  {
-    id: "2",
-    restaurant: "Pizza Hut Express",
-    destination: "Maianga, Luanda",
-    fee: 1900,
-    distance: "3.7 km",
-    date: "2026-05-10T11:15:00",
-    status: "completed",
-    rating: 4,
-  },
-  {
-    id: "3",
-    restaurant: "Burger Station",
-    destination: "Talatona, Luanda",
-    fee: 2100,
-    distance: "5.2 km",
-    date: "2026-05-09T16:45:00",
-    status: "completed",
-    rating: 5,
-  },
-  {
-    id: "4",
-    restaurant: "Sushi Master",
-    destination: "Ingombota, Luanda",
-    fee: 1600,
-    distance: "2.8 km",
-    date: "2026-05-09T12:20:00",
-    status: "cancelled",
-    rating: null,
-  },
-  {
-    id: "5",
-    restaurant: "BBQ Master Prime",
-    destination: "Vila Alice, Luanda",
-    fee: 1800,
-    distance: "3.1 km",
-    date: "2026-05-08T19:00:00",
-    status: "completed",
-    rating: 5,
-  },
-];
+const PERIOD_MAP: Record<string, { desde: string; ate: string }> = {
+  Hoje: (() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return { desde: start.toISOString(), ate: now.toISOString() };
+  })(),
+  Semana: (() => {
+    const now = new Date();
+    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { desde: start.toISOString(), ate: now.toISOString() };
+  })(),
+  Mês: (() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { desde: start.toISOString(), ate: now.toISOString() };
+  })(),
+};
 
 export default function DeliveryHistoryScreen() {
   const router = useRouter();
   const { colors: themeColors } = useTheme();
   const [activeFilter, setActiveFilter] = useState("Todas");
+  const [deliveries, setDeliveries] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params: { desde?: string; ate?: string; limit?: number } = { limit: 50 };
+      if (activeFilter !== "Todas" && PERIOD_MAP[activeFilter]) {
+        params.desde = PERIOD_MAP[activeFilter].desde;
+        params.ate = PERIOD_MAP[activeFilter].ate;
+      }
+      const res = await deliveryApi.getHistory(params);
+      setDeliveries(res.data.data ?? res.data);
+    } catch (err: any) {
+      console.error("[DeliveryHistory] fetchData error:", err);
+      setError("Erro ao carregar histórico.");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const stats = useMemo(() => {
+    const completed = deliveries.filter((d) => d.status === "delivered");
+    const totalEarnings = completed.reduce((sum, d) => sum + (d.deliveryFee || 0), 0);
+    return {
+      count: completed.length,
+      earnings: totalEarnings,
+      distance: "0.0",
+      rating: "0",
+    };
+  }, [deliveries]);
+
+  const formatDate = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, []);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: themeColors.background },
@@ -98,55 +113,19 @@ export default function DeliveryHistoryScreen() {
     statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 8 },
     statusText: { ...typography.labelCaps, fontWeight: "700" },
     ratingContainer: { flexDirection: "row", gap: 2 },
+    emptyContainer: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
+    emptyText: { fontSize: 14, color: themeColors.neutral[500], textAlign: "center" },
+    errorContainer: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
+    errorText: { fontSize: 14, color: themeColors.error, textAlign: "center" },
+    retryButton: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: 12, backgroundColor: themeColors.primary[500] },
+    retryText: { fontSize: 14, fontWeight: "600", color: themeColors.white },
   }), [themeColors]);
-
-  const filteredDeliveries = useMemo(() => {
-    if (activeFilter === "Todas") return DELIVERIES;
-    const now = new Date();
-    return DELIVERIES.filter((d) => {
-      const date = new Date(d.date);
-      if (activeFilter === "Hoje") {
-        return date.toDateString() === now.toDateString();
-      }
-      if (activeFilter === "Semana") {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return date >= weekAgo;
-      }
-      if (activeFilter === "Mês") {
-        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
-  }, [activeFilter]);
-
-  const stats = useMemo(() => {
-    const completed = filteredDeliveries.filter((d) => d.status === "completed");
-    const totalEarnings = completed.reduce((sum, d) => sum + d.fee, 0);
-    const totalDistance = completed.reduce((sum, d) => sum + parseFloat(d.distance), 0);
-    return {
-      count: completed.length,
-      earnings: totalEarnings,
-      distance: totalDistance.toFixed(1),
-      rating: completed.length > 0 ? (completed.reduce((sum, d) => sum + (d.rating || 0), 0) / completed.length).toFixed(1) : "0",
-    };
-  }, [filteredDeliveries]);
-
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header title="Histórico de Entregas" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {/* Filters */}
         <View style={styles.filterContainer}>
           {FILTERS.map((filter) => (
             <TouchableOpacity
@@ -161,7 +140,6 @@ export default function DeliveryHistoryScreen() {
           ))}
         </View>
 
-        {/* Summary */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
@@ -183,50 +161,68 @@ export default function DeliveryHistoryScreen() {
           </View>
         </View>
 
-        {/* Deliveries List */}
-        {filteredDeliveries.map((delivery) => (
-          <View key={delivery.id} style={styles.deliveryCard}>
-            <View style={styles.deliveryHeader}>
-              <View style={styles.deliveryInfo}>
-                <Text style={styles.deliveryTitle}>{delivery.restaurant}</Text>
-                <Text style={styles.deliveryMeta}>
-                  {delivery.destination} · {delivery.distance}
-                </Text>
+        {loading ? (
+          <View style={{ paddingVertical: spacing.xl }}>
+            <ActivityIndicator size="large" color={themeColors.primary[500]} />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={32} color={themeColors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+              <Text style={styles.retryText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : deliveries.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="history" size={32} color={themeColors.neutral[300]} />
+            <Text style={styles.emptyText}>Nenhuma entrega encontrada para este período.</Text>
+          </View>
+        ) : (
+          deliveries.map((delivery) => (
+            <View key={delivery.id} style={styles.deliveryCard}>
+              <View style={styles.deliveryHeader}>
+                <View style={styles.deliveryInfo}>
+                  <Text style={styles.deliveryTitle}>{delivery.restaurant?.name ?? "Restaurante"}</Text>
+                  <Text style={styles.deliveryMeta}>
+                    {delivery.address?.neighborhood ?? "Luanda"}
+                  </Text>
+                </View>
+                <Text style={styles.deliveryFee}>Kz {(delivery.deliveryFee || 0).toLocaleString()}</Text>
               </View>
-              <Text style={styles.deliveryFee}>Kz {delivery.fee.toLocaleString()}</Text>
-            </View>
 
-            <View style={styles.deliveryFooter}>
-              <Text style={styles.deliveryDate}>{formatDate(delivery.date)}</Text>
-              <View style={styles.ratingContainer}>
-                {delivery.rating &&
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <MaterialCommunityIcons
-                      key={i}
-                      name={i < delivery.rating! ? "star" : "star-outline"}
-                      size={14}
-                      color={i < delivery.rating! ? "#fbac1d" : themeColors.neutral[300]}
-                    />
-                  ))}
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: delivery.status === "completed" ? themeColors.primary[100] : themeColors.error + "15" },
-                ]}
-              >
-                <Text
+              <View style={styles.deliveryFooter}>
+                <Text style={styles.deliveryDate}>{formatDate(delivery.createdAt)}</Text>
+                <View style={styles.ratingContainer}>
+                  {delivery.status === "delivered" &&
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <MaterialCommunityIcons
+                        key={i}
+                        name={i < 5 ? "star" : "star-outline"}
+                        size={14}
+                        color={i < 5 ? "#fbac1d" : themeColors.neutral[300]}
+                      />
+                    ))}
+                </View>
+                <View
                   style={[
-                    styles.statusText,
-                    { color: delivery.status === "completed" ? themeColors.primary[500] : themeColors.error },
+                    styles.statusBadge,
+                    { backgroundColor: delivery.status === "delivered" ? themeColors.primary[100] : themeColors.error + "15" },
                   ]}
                 >
-                  {delivery.status === "completed" ? "Concluída" : "Cancelada"}
-                </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: delivery.status === "delivered" ? themeColors.primary[500] : themeColors.error },
+                    ]}
+                  >
+                    {delivery.status === "delivered" ? "Concluída" : "Cancelada"}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

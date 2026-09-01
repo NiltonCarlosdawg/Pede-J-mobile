@@ -29,44 +29,8 @@ export interface RatingsState {
   driverRatings: DriverRating[];
 }
 
-const MOCK_RATINGS: Rating[] = [
-  {
-    id: "rating-001",
-    orderId: "order-001",
-    restaurantId: "rest-001",
-    userId: "user-001",
-    userName: "Maria Silva",
-    rating: 5,
-    comment: "Excelente! Chegou quentinho e antes do tempo. O entregador foi super simpático.",
-    tags: ["Rápido", "Quente", "Bem embalado"],
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "rating-002",
-    orderId: "order-002",
-    restaurantId: "rest-001",
-    userId: "user-002",
-    userName: "João Pedro",
-    rating: 4,
-    comment: "Muito bom! Só demorou um pouco mais que o previsto.",
-    tags: ["Saboroso"],
-    timestamp: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    id: "rating-003",
-    orderId: "order-001",
-    restaurantId: "rest-002",
-    userId: "user-003",
-    userName: "Ana Costa",
-    rating: 5,
-    comment: "Perfeito! Melhor burger da cidade. Recomendo muito!",
-    tags: ["Delicioso", "Porção generosa"],
-    timestamp: new Date(Date.now() - 259200000).toISOString(),
-  },
-];
-
 const initialState: RatingsState = {
-  ratings: MOCK_RATINGS,
+  ratings: [],
   driverRatings: [],
 };
 

@@ -16,28 +16,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
-import {
-    clearDemoSession,
-    createDemoSession,
-    DEMO_LOGIN,
-    DemoRole,
-    isDemoCredentials,
-    saveDemoSession,
-} from "../../src/services/demoAuth";
+import { authApi } from "../../src/services/api";
+import { saveDemoSession } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { clearSession, setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
-const DEMO_DELAY_MS = 1200;
+type UserRole = "client" | "delivery";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ role?: DemoRole }>();
+  const params = useLocalSearchParams<{ role?: UserRole }>();
   const initialRole = params.role === "delivery" ? "delivery" : "client";
 
-  const [role, setRole] = useState<DemoRole>(initialRole);
+  const [role, setRole] = useState<UserRole>(initialRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +40,6 @@ export default function LoginScreen() {
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
 
-  // Styles com tema dinâmico
   const styles = React.useMemo(() => StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -217,35 +210,59 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!isDemoCredentials(normalizedEmail, password, role)) {
-      setError("Email ou senha incorretos.");
-      triggerShake();
-      return;
-    }
-
     setError(null);
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, DEMO_DELAY_MS));
+      const response = await authApi.login({
+        identificador: normalizedEmail,
+        password,
+      });
 
-      const session = createDemoSession(role);
-      await saveDemoSession(session);
-      dispatch(setSession(session));
-    } catch (loginError) {
-      console.error("[demo-auth] login failed", loginError);
-      setError("Não foi possível iniciar a sessão.");
+      const { token, user } = response.data;
+      const sessionRole: "client" | "delivery" = role;
+
+      await saveDemoSession({ token, user, role: sessionRole });
+      dispatch(setSession({ token, user, role: sessionRole }));
+    } catch (loginError: any) {
+      console.error("[auth] login failed", loginError);
+      const message = loginError?.response?.data?.message || "Email ou senha incorretos.";
+      setError(message);
       triggerShake();
     } finally {
       setLoading(false);
     }
   }
 
-  function handleQuickLogin() {
-    const credentials = role === "delivery" ? DEMO_LOGIN.delivery : DEMO_LOGIN.client;
-    setEmail(credentials.email);
-    setPassword(credentials.password);
+  async function handleDemoLogin() {
     setError(null);
+    setLoading(true);
+
+    try {
+      const demoEmail = role === "delivery" ? "demo-ent@pedeja.ao" : "demo-rest@pedeja.ao";
+      const demoPassword = "segredo123";
+
+      setEmail(demoEmail);
+      setPassword(demoPassword);
+
+      const response = await authApi.login({
+        identificador: demoEmail,
+        password: demoPassword,
+      });
+
+      const { token, user } = response.data;
+      const sessionRole: "client" | "delivery" = role;
+
+      await saveDemoSession({ token, user, role: sessionRole });
+      dispatch(setSession({ token, user, role: sessionRole }));
+    } catch (loginError: any) {
+      console.error("[auth] demo login failed", loginError);
+      const message = loginError?.response?.data?.message || "Não foi possível fazer login demo.";
+      setError(message);
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -351,9 +368,9 @@ export default function LoginScreen() {
 
             {/* Demo helper */}
             <View style={styles.demoSection}>
-              <TouchableOpacity onPress={handleQuickLogin} style={styles.demoButton}>
+              <TouchableOpacity onPress={handleDemoLogin} style={styles.demoButton}>
                 <Ionicons name="flash-outline" size={14} color={colors.primary[500]} />
-                <Text style={styles.demoButtonText}>Preencher dados demo</Text>
+                <Text style={styles.demoButtonText}>Entrar com conta demo</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>

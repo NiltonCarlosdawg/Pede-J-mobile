@@ -29,8 +29,8 @@ export default function AddressScreen() {
   });
 
   const addresses = useMemo((): Address[] => {
-    if (apiAddresses && apiAddresses.length > 0) {
-      return apiAddresses;
+    if (apiAddresses?.data && apiAddresses.data.length > 0) {
+      return apiAddresses.data;
     }
     return FALLBACK_ADDRESSES;
   }, [apiAddresses]);
@@ -166,7 +166,7 @@ export default function AddressScreen() {
           </View>
         ) : null}
 
-        {!apiAddresses?.length ? (
+        {!apiAddresses?.data?.length ? (
           <Text style={styles.offlineHint}>
             A mostrar endereços locais — liga-te ao servidor para atualizar automaticamente.
           </Text>

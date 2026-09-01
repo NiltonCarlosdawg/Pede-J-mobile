@@ -8,6 +8,8 @@ export const FALLBACK_ADDRESSES: Address[] = [
     address: "Rua das Flores, 123 - Apto 45",
     neighborhood: "Centro",
     city: "Luanda",
+    latitude: -8.8399,
+    longitude: 13.2894,
     isDefault: true,
   },
   {
@@ -16,6 +18,8 @@ export const FALLBACK_ADDRESSES: Address[] = [
     address: "Av. Kwame Nkrumah, 500 - Sala 201",
     neighborhood: "Kinaxixi",
     city: "Luanda",
+    latitude: -8.8147,
+    longitude: 13.2319,
     isDefault: false,
   },
 ];

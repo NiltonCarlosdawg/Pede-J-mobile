@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -15,76 +15,8 @@ import { Header } from "../src/components/ui/Header";
 import { SearchBar } from "../src/components/ui/SearchBar";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
-
-// Mock data for demonstration
-const MOCK_RESTAURANTS = [
-  {
-    id: "1",
-    name: "Sabor da Praça",
-    cuisine: "Angolana",
-    rating: 4.8,
-    ratingCount: 324,
-    distance: 1.2,
-    deliveryTime: "30-40 min",
-    deliveryFee: 0,
-    image: "https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=400",
-    isOpen: true,
-  },
-  {
-    id: "2",
-    name: "BBQ Master Prime",
-    cuisine: "Carnes",
-    rating: 4.5,
-    ratingCount: 256,
-    distance: 2.5,
-    deliveryTime: "45-55 min",
-    deliveryFee: 5.9,
-    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
-    isOpen: true,
-  },
-  {
-    id: "3",
-    name: "Pizza Hut Express",
-    cuisine: "Pizzaria",
-    rating: 4.3,
-    ratingCount: 512,
-    distance: 1.8,
-    deliveryTime: "25-35 min",
-    deliveryFee: 0,
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=400",
-    isOpen: true,
-  },
-];
-
-const MOCK_PRODUCTS = [
-  {
-    id: "p1",
-    name: "Smash Burger Duplo",
-    description: "Dois hamburgueres prensados com queijo derretido",
-    price: 23.8,
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200",
-    category: "Burgers",
-    isAvailable: true,
-  },
-  {
-    id: "p2",
-    name: "Pizza Quatro Queijos",
-    description: "Mozzarella, Parmesão, Gorgonzola e Azul",
-    price: 18.5,
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae5d?w=200",
-    category: "Pizzas",
-    isAvailable: true,
-  },
-  {
-    id: "p3",
-    name: "Sushi Mix",
-    description: "Combinação de 24 peças variadas",
-    price: 42.0,
-    image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200",
-    category: "Japonesa",
-    isAvailable: true,
-  },
-];
+import { restaurantApi } from "../src/services/api";
+import { Restaurant } from "../src/types";
 
 interface SearchResult {
   type: "restaurant" | "product";
@@ -103,6 +35,8 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchType, setSearchType] = useState<"all" | "restaurants" | "products">("all");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restaurantsCacheRef = useRef<Restaurant[]>([]);
 
   const styles = useMemo(() => StyleSheet.create({
     safeArea: {
@@ -253,63 +187,73 @@ export default function SearchScreen() {
     },
   }), [colors]);
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    setLoading(true);
-
-    // Simulate search delay
-    const timer = setTimeout(() => {
+  const filterRestaurants = useCallback(
+    (query: string, type: string): SearchResult[] => {
       const searchLower = query.toLowerCase();
-      const filteredResults: SearchResult[] = [];
+      const filtered: SearchResult[] = [];
 
-      if (searchType === "all" || searchType === "restaurants") {
-        const restaurantResults = MOCK_RESTAURANTS.filter(
-          (r) =>
-            r.name.toLowerCase().includes(searchLower) ||
-            r.cuisine.toLowerCase().includes(searchLower)
-        ).map((r) => ({
-          type: "restaurant" as const,
-          id: r.id,
-          name: r.name,
-          image: r.image,
-          subtitle: r.cuisine,
-          rating: r.rating,
-        }));
+      if (type === "all" || type === "restaurants") {
+        const restaurantResults = restaurantsCacheRef.current
+          .filter(
+            (r) =>
+              r.name.toLowerCase().includes(searchLower) ||
+              r.cuisine.toLowerCase().includes(searchLower)
+          )
+          .map((r) => ({
+            type: "restaurant" as const,
+            id: r.id,
+            name: r.name,
+            image: r.image,
+            subtitle: r.cuisine,
+            rating: r.rating,
+          }));
 
-        filteredResults.push(...restaurantResults);
+        filtered.push(...restaurantResults);
       }
 
-      if (searchType === "all" || searchType === "products") {
-        const productResults = MOCK_PRODUCTS.filter(
-          (p) =>
-            p.name.toLowerCase().includes(searchLower) ||
-            p.description.toLowerCase().includes(searchLower)
-        ).map((p) => ({
-          type: "product" as const,
-          id: p.id,
-          name: p.name,
-          image: p.image,
-          subtitle: p.category,
-          price: p.price,
-        }));
+      return filtered;
+    },
+    []
+  );
 
-        filteredResults.push(...productResults);
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
 
-      setResults(filteredResults);
-      setLoading(false);
-    }, 300);
+      if (!query.trim()) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
 
-    return () => clearTimeout(timer);
-  }, [searchType]);
+      setLoading(true);
+
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const response = await restaurantApi.list({ limit: 50 });
+          const restaurants: Restaurant[] = response.data.data || response.data;
+          restaurantsCacheRef.current = restaurants;
+          const filtered = filterRestaurants(query, searchType);
+          setResults(filtered);
+        } catch (error) {
+          console.error("Search error:", error);
+          setResults([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 400);
+    },
+    [searchType, filterRestaurants]
+  );
 
   const handleClear = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     setSearchQuery("");
     setResults([]);
   };
@@ -318,11 +262,10 @@ export default function SearchScreen() {
     if (item.type === "restaurant") {
       return (
         <TouchableOpacity
-          onPress={() => router.push(`/restaurante?id=${item.id}`)}
+          onPress={() => router.push({ pathname: "/restaurante", params: { id: item.id } })}
           style={styles.resultItem}
         >
           <View style={styles.resultImage}>
-            {/* Image would go here in real implementation */}
             <MaterialCommunityIcons name="store" size={40} color={colors.primary[500]} />
           </View>
           <View style={styles.resultContent}>
