@@ -30,7 +30,12 @@ describe('demoAuth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Clear the in-memory session cache between tests
+    // We need to call clearDemoSession to reset the module-level memorySession variable
+    // But we don't want it to affect the mock call counts, so we mock it first
+    mockSafeRemoveItem.mockResolvedValue(undefined);
     clearDemoSession();
+    // Now clear the call counts that clearDemoSession just made
+    mockSafeRemoveItem.mockClear();
   });
 
   describe('constants', () => {
