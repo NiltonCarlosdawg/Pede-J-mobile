@@ -15,6 +15,7 @@ import {
 } from './paymentMethodsSlice';
 import { promotionsReducer } from './promotionsSlice';
 import { ratingsReducer } from './ratingsSlice';
+import { restaurantOrdersReducer } from './restaurantOrdersSlice';
 
 const paymentPersistListener = createListenerMiddleware();
 
@@ -39,6 +40,7 @@ export const store = configureStore({
     ratings: ratingsReducer,
     promotions: promotionsReducer,
     paymentMethods: paymentMethodsReducer,
+    restaurantOrders: restaurantOrdersReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

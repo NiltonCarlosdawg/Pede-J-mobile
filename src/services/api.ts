@@ -106,4 +106,31 @@ export const deliveryApi = {
     api.patch('/entregadores/me/location-sharing', { activo }),
 };
 
+export const restaurantManageApi = {
+  getOrders: (params?: { status?: string; cursor?: string; limit?: number }) =>
+    api.get('/restaurant/orders', { params }),
+  getOrderById: (id: string) => api.get(`/restaurant/orders/${id}`),
+  updateOrderStatus: (orderId: string, status: string) =>
+    api.patch(`/restaurant/orders/${orderId}/status`, { status }),
+  getProducts: (params?: { cursor?: string; limit?: number }) =>
+    api.get('/restaurant/products', { params }),
+  createProduct: (data: { name: string; description: string; price: number; image?: string; category: string; isAvailable?: boolean; isFeatured?: boolean }) =>
+    api.post('/restaurant/products', data),
+  updateProduct: (id: string, data: { name?: string; description?: string; price?: number; image?: string; category?: string; isAvailable?: boolean; isFeatured?: boolean }) =>
+    api.patch(`/restaurant/products/${id}`, data),
+  deleteProduct: (id: string) => api.delete(`/restaurant/products/${id}`),
+  getCategories: () => api.get('/restaurant/categories'),
+  createCategory: (data: { name: string }) =>
+    api.post('/restaurant/categories', data),
+  deleteCategory: (id: string) => api.delete(`/restaurant/categories/${id}`),
+  getStats: (params?: { periodo?: string }) =>
+    api.get('/restaurant/stats', { params }),
+  updateProfile: (data: { name?: string; description?: string; phone?: string; image?: string; logo?: string; deliveryFee?: number; deliveryTime?: string }) =>
+    api.patch('/restaurant/profile', data),
+  updateOpeningHours: (hours: Array<{ diaSemana: number; abre: string; fecha: string }>) =>
+    api.patch('/restaurant/opening-hours', { hours }),
+  toggleOpen: (isOpen: boolean) =>
+    api.patch('/restaurant/toggle-open', { isOpen }),
+};
+
 export default api;

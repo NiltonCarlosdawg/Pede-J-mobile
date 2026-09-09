@@ -23,13 +23,13 @@ import { clearSession, setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
-type UserRole = "client" | "delivery";
+type UserRole = "client" | "delivery" | "restaurant";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const params = useLocalSearchParams<{ role?: UserRole }>();
-  const initialRole = params.role === "delivery" ? "delivery" : "client";
+  const initialRole = params.role === "delivery" ? "delivery" : params.role === "restaurant" ? "restaurant" : "client";
 
   const [role, setRole] = useState<UserRole>(initialRole);
   const [email, setEmail] = useState("");
@@ -176,7 +176,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (params.role) {
-      const newRole = params.role === "delivery" ? "delivery" : "client";
+      const newRole = params.role === "delivery" ? "delivery" : params.role === "restaurant" ? "restaurant" : "client";
       setRole(newRole);
     }
   }, [params.role]);
@@ -220,7 +220,7 @@ export default function LoginScreen() {
       });
 
       const { token, user } = response.data;
-      const sessionRole: "client" | "delivery" = role;
+      const sessionRole: "client" | "delivery" | "restaurant" = role;
 
       await saveDemoSession({ token, user, role: sessionRole });
       dispatch(setSession({ token, user, role: sessionRole }));
@@ -239,8 +239,19 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const demoEmail = role === "delivery" ? "demo-ent@pedeja.ao" : "demo-rest@pedeja.ao";
-      const demoPassword = "segredo123";
+      let demoEmail: string;
+      let demoPassword: string;
+
+      if (role === "delivery") {
+        demoEmail = "demo-ent@pedeja.ao";
+        demoPassword = "segredo123";
+      } else if (role === "restaurant") {
+        demoEmail = "demo-rest@pedeja.ao";
+        demoPassword = "segredo123";
+      } else {
+        demoEmail = "demo-rest@pedeja.ao";
+        demoPassword = "segredo123";
+      }
 
       setEmail(demoEmail);
       setPassword(demoPassword);
@@ -251,7 +262,7 @@ export default function LoginScreen() {
       });
 
       const { token, user } = response.data;
-      const sessionRole: "client" | "delivery" = role;
+      const sessionRole: "client" | "delivery" | "restaurant" = role;
 
       await saveDemoSession({ token, user, role: sessionRole });
       dispatch(setSession({ token, user, role: sessionRole }));
@@ -312,6 +323,19 @@ export default function LoginScreen() {
               />
               <Text style={[styles.roleText, role === "delivery" && styles.roleTextActive]}>
                 Entregador
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roleButton, role === "restaurant" && styles.roleButtonActive]}
+              onPress={() => setRole("restaurant")}
+            >
+              <Ionicons
+                name="restaurant-outline"
+                size={18}
+                color={role === "restaurant" ? colors.white : colors.neutral[500]}
+              />
+              <Text style={[styles.roleText, role === "restaurant" && styles.roleTextActive]}>
+                Restaurante
               </Text>
             </TouchableOpacity>
           </View>

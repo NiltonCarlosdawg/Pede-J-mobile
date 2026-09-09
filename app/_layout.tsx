@@ -139,7 +139,14 @@ function RootLayoutNavContent() {
       return;
     }
 
-    const target = role === "delivery" ? "/(delivery)" : "/(tabs)";
+    let target: string;
+    if (role === "delivery") {
+      target = "/(delivery)";
+    } else if (role === "restaurant") {
+      target = "/(restaurant)";
+    } else {
+      target = "/(tabs)";
+    }
     router.replace(target as never);
   }, [isAuthenticated, role]);
 
@@ -194,6 +201,7 @@ function RootLayoutNavContent() {
         <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="produto-modal" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
+        <Stack.Screen name="(restaurant)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
     </NavigationThemeProvider>

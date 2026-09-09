@@ -5,7 +5,7 @@ const AUTH_TOKEN_KEY = "authToken";
 const AUTH_USER_KEY = "user";
 const AUTH_ROLE_KEY = "sessionRole";
 
-export type DemoRole = "client" | "delivery";
+export type DemoRole = "client" | "delivery" | "restaurant";
 
 let memorySession: DemoSession | null = null;
 
@@ -40,6 +40,21 @@ export const DEMO_DELIVERY_USER: User = {
   createdAt: "2026-05-08T00:00:00.000Z",
 };
 
+export const DEMO_RESTAURANT_LOGIN = {
+  email: "restaurante@pedeja.com",
+  password: "123456",
+};
+
+export const DEMO_RESTAURANT_USER: User = {
+  id: "demo-restaurant",
+  name: "Sabor da Praça",
+  email: DEMO_RESTAURANT_LOGIN.email,
+  phone: "+244 923 789 012",
+  avatar: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200",
+  role: "restaurante",
+  createdAt: "2026-05-08T00:00:00.000Z",
+};
+
 export type DemoSession = {
   token: string;
   user: User;
@@ -51,8 +66,14 @@ export function isDemoCredentials(
   password: string,
   role: DemoRole
 ) {
-  const credentials =
-    role === "delivery" ? DEMO_LOGIN.delivery : DEMO_LOGIN.client;
+  let credentials;
+  if (role === "delivery") {
+    credentials = DEMO_LOGIN.delivery;
+  } else if (role === "restaurant") {
+    credentials = DEMO_RESTAURANT_LOGIN;
+  } else {
+    credentials = DEMO_LOGIN.client;
+  }
 
   return (
     email.trim().toLowerCase() === credentials.email &&
@@ -61,11 +82,13 @@ export function isDemoCredentials(
 }
 
 export function createDemoSession(role: DemoRole): DemoSession {
-  return {
-    token: role === "delivery" ? "demo-delivery-token" : "demo-client-token",
-    user: role === "delivery" ? DEMO_DELIVERY_USER : DEMO_CLIENT_USER,
-    role,
-  };
+  if (role === "delivery") {
+    return { token: "demo-delivery-token", user: DEMO_DELIVERY_USER, role };
+  }
+  if (role === "restaurant") {
+    return { token: "demo-restaurant-token", user: DEMO_RESTAURANT_USER, role };
+  }
+  return { token: "demo-client-token", user: DEMO_CLIENT_USER, role };
 }
 
 export async function loadDemoSession(): Promise<DemoSession | null> {
@@ -84,7 +107,7 @@ export async function loadDemoSession(): Promise<DemoSession | null> {
       return null;
     }
 
-    if (role !== "client" && role !== "delivery") {
+    if (role !== "client" && role !== "delivery" && role !== "restaurant") {
       return null;
     }
 
