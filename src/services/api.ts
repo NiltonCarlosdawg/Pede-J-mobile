@@ -75,6 +75,38 @@ export const orderApi = {
     api.get(`/orders/${id}/messages`, { params }),
   sendMessage: (id: string, texto: string, tipo: 'texto' | 'imagem' | 'sistema' = 'texto') =>
     api.post(`/orders/${id}/messages`, { texto, tipo }),
+  markMessagesRead: (id: string, lastReadAt?: string) =>
+    api.patch(`/orders/${id}/messages/read`, lastReadAt ? { lastReadAt } : {}),
+  getUnreadMessages: (id: string) =>
+    api.get(`/orders/${id}/messages/unread-count`),
+};
+
+export const promotionApi = {
+  list: (params?: { cursor?: string; limit?: number }) =>
+    api.get('/promotions', { params }),
+  getCoupon: (codigo: string) => api.get(`/coupons/${codigo}`),
+  validateCoupon: (codigo: string, subtotal: number) =>
+    api.post('/checkout/validate-coupon', { codigo, subtotal }),
+};
+
+export const paymentApi = {
+  initiate: (
+    orderId: string,
+    data: { methodType: string; phoneNumber?: string },
+    idempotencyKey?: string
+  ) =>
+    api.post(`/orders/${orderId}/payments`, data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      timeout: 45000,
+    }),
+  get: (orderId: string, paymentId: string) =>
+    api.get(`/orders/${orderId}/payments/${paymentId}`),
+};
+
+export const voipApi = {
+  getConfig: () => api.get('/calls/config'),
+  requestToken: (orderId: string) => api.post(`/orders/${orderId}/call/voip-token`),
+  getHistory: (orderId: string) => api.get(`/orders/${orderId}/call/history`),
 };
 
 export const userApi = {

@@ -102,6 +102,7 @@ export interface CartItem {
 
 export interface OrderTimelineEntry {
   status: string;
+  note?: string | null;
   timestamp: string;
 }
 
@@ -150,8 +151,12 @@ export interface MulticaixaExpressReference {
   entityName: string;
   reference: string;
   amount: number;
-  phoneNumber: string;
   expiryDate: string;
+}
+
+export interface MulticaixaExpressPush {
+  phoneNumber: string;
+  expiresInSeconds: number;
 }
 
 export interface PaymentTransaction {
@@ -160,6 +165,7 @@ export interface PaymentTransaction {
   methodType: PaymentMethodType;
   amount: number;
   status: PaymentStatus;
+  push?: MulticaixaExpressPush;
   reference?: MulticaixaExpressReference;
   timestamp: string;
   completedAt?: string;
@@ -172,15 +178,107 @@ export interface PaymentResponse {
   paymentMethod: PaymentMethod;
   status: PaymentStatus;
   transactionId?: string;
+  push?: MulticaixaExpressPush;
+  reference?: MulticaixaExpressReference;
   timestamp: string;
+  completedAt?: string;
 }
 
 export interface ChatMessage {
+  id?: string;
   senderId: string;
   senderRole: Role;
   texto: string;
-  timestamp: string;
-  tipo: 'texto' | 'imagem' | 'sistema';
+  timestamp?: string;
+  createdAt?: string;
+  tipo: 'texto' | 'imagem' | 'sistema' | 'text' | 'image' | 'system';
+}
+
+export interface ChatReadState {
+  orderId: string;
+  lastReadAt: string | null;
+  unreadCount: number;
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export interface OrderRoute {
+  orderId: string;
+  status: OrderStatus;
+  deliveryState: string | null;
+  origem: Coordinates | null;
+  destino: Coordinates;
+  route: Coordinates[];
+  lastKnown: {
+    entregadorId: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    heading: number | null;
+    timestamp: string;
+  };
+}
+
+export interface CouponValidationResponse {
+  valido: boolean;
+  tipo: 'percentual' | 'valor_fixo';
+  desconto: number;
+  mensagem: string;
+  codigo: string;
+}
+
+export interface PromotionSummary {
+  id: string;
+  title: string;
+  description?: string | null;
+  image?: string | null;
+  active?: boolean;
+  restaurantId?: string | null;
+  discountPercent?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt?: string;
+  restaurant?: {
+    id: string;
+    name: string;
+    image?: string | null;
+  } | null;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  next_cursor: string | null;
+}
+
+export interface VoipNativeConfig {
+  ios: {
+    pushKit: boolean;
+    callKit: boolean;
+    topic: string | null;
+  };
+  android: {
+    fcmHighPriority: boolean;
+    connectionService: boolean;
+    channelId: string;
+  };
+}
+
+export interface VoipConfig {
+  provider: string;
+  tokenTtlSeconds: number;
+  native: VoipNativeConfig;
+}
+
+export interface VoipTokenResponse {
+  token: string;
+  expiresIn: number;
+  callId: string;
+  orderId: string;
+  provider: string;
+  identity: string;
+  native: VoipNativeConfig;
 }
 
 export interface Rating {

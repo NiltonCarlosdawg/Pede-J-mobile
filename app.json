@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pedejmobile",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -17,9 +16,14 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "O PedeJá precisa da sua localização para mostrar o mapa e calcular rotas de entrega.",
-        "NSLocationAlwaysUsageDescription": "O PedeJá precisa da sua localização em segundo plano para acompanhar entregas em tempo real."
+        "NSLocationAlwaysUsageDescription": "O PedeJá precisa da sua localização em segundo plano para acompanhar entregas em tempo real.",
+        "NSMicrophoneUsageDescription": "O PedeJá precisa do microfone para chamadas de voz com o entregador/cliente.",
+        "UIBackgroundModes": ["voip", "audio", "remote-notification", "location"]
       },
-      "bundleIdentifier": "com.iamcarlos182.pedejmobile"
+      "bundleIdentifier": "com.iamcarlos182.pedejmobile",
+      "entitlements": {
+        "aps-environment": "development"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +34,16 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
+        "CALL_PHONE",
+        "READ_PHONE_STATE",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_PHONE_CALL",
+        "MANAGE_OWN_CALLS",
+        "USE_FULL_SCREEN_INTENT",
+        "VIBRATE",
+        "WAKE_LOCK"
       ],
       "package": "com.iamcarlos182.pedejmobile"
     },
@@ -40,7 +53,16 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@config-plugins/react-native-callkeep",
+      "./plugins/withVoipNative.js",
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "mode": "production"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
