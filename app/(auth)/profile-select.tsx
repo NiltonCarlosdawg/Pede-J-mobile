@@ -262,6 +262,51 @@ export default function ProfileSelectScreen() {
               )}
             </Animated.View>
           </Pressable>
+
+          <Pressable
+            onPress={() => handleSelect("restaurant")}
+            style={[
+              styles.card,
+              selectedRole === "restaurant" && styles.cardSelected,
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.cardContent,
+                selectedRole === "restaurant" && { transform: [{ scale: scaleAnim }] },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconContainer,
+                  selectedRole === "restaurant" && styles.iconContainerSelected,
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="store"
+                  size={32}
+                  color={
+                    selectedRole === "restaurant"
+                      ? colors.white
+                      : colors.primary[500]
+                  }
+                />
+              </View>
+              <Text style={styles.cardTitle}>Tenho um restaurante</Text>
+              <Text style={styles.cardDescription}>
+                Gerencie seu menu, pedidos e acompanhe vendas
+              </Text>
+              {selectedRole === "restaurant" && (
+                <View style={styles.checkBadge}>
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={24}
+                    color={colors.primary[500]}
+                  />
+                </View>
+              )}
+            </Animated.View>
+          </Pressable>
         </View>
 
         {/* Footer */}

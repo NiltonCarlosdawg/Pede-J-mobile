@@ -5,7 +5,7 @@ const AUTH_TOKEN_KEY = "authToken";
 const AUTH_USER_KEY = "user";
 const AUTH_ROLE_KEY = "sessionRole";
 
-export type DemoRole = "client" | "delivery";
+export type DemoRole = "client" | "delivery" | "restaurant";
 
 let memorySession: DemoSession | null = null;
 
@@ -31,7 +31,7 @@ export async function loadDemoSession(): Promise<DemoSession | null> {
       return null;
     }
 
-    if (role !== "client" && role !== "delivery") {
+    if (role !== "client" && role !== "delivery" && role !== "restaurant") {
       return null;
     }
 
