@@ -58,10 +58,13 @@ const paymentMethodsSlice = createSlice({
     replacePaymentMethods(state, action: PayloadAction<PaymentMethod[]>) {
       state.methods = action.payload;
     },
-    createPaymentTransaction(state, action: PayloadAction<Omit<PaymentTransaction, "id" | "timestamp">>) {
+    createPaymentTransaction(
+      state,
+      action: PayloadAction<Omit<PaymentTransaction, "id" | "timestamp"> & { id?: string }>
+    ) {
       const newTransaction: PaymentTransaction = {
         ...action.payload,
-        id: `tx-${Date.now()}`,
+        id: action.payload.id ?? `tx-${Date.now()}`,
         timestamp: new Date().toISOString(),
       };
       state.transactions.push(newTransaction);

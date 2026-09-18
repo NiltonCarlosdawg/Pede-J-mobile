@@ -19,7 +19,8 @@ import { createPaymentTransaction, updateTransactionStatus } from "../src/store/
 import { spacing, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 import { formatPrice } from "../src/theme";
-import { PaymentMethod } from "../src/types";
+import { paymentApi } from "../src/services/api";
+import { PaymentMethod, PaymentResponse } from "../src/types";
 import { playPaymentSuccess } from "../src/utils/sounds";
 
 export default function PaymentFlowScreen() {
@@ -38,6 +39,7 @@ export default function PaymentFlowScreen() {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(180);
+  const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const isFacipay = paymentMethod?.type === "facipay";
   const isMulticaixa = paymentMethod?.type === "multicaixa_express";
@@ -187,6 +189,34 @@ export default function PaymentFlowScreen() {
   }, [step, timer]);
 
   useEffect(() => {
+    if (step !== "awaiting" || !payment?.id || !orderId || orderId.startsWith("local-")) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await paymentApi.get(orderId, payment.id);
+        const nextPayment = data.payment as PaymentResponse;
+        setPayment(nextPayment);
+        if (nextPayment.status === "completed") {
+          dispatch(updateTransactionStatus({
+            transactionId: nextPayment.id,
+            status: "completed",
+            completedAt: nextPayment.completedAt ?? new Date().toISOString(),
+          }));
+          setStep("success");
+        }
+        if (nextPayment.status === "failed" || nextPayment.status === "cancelled") {
+          setError("Pagamento não confirmado. Tente novamente.");
+          setStep("confirm");
+        }
+      } catch (err) {
+        console.error("Failed to refresh payment:", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [dispatch, orderId, payment?.id, step]);
+
+  useEffect(() => {
     if (step === "success") {
       playPaymentSuccess();
     }
@@ -201,19 +231,63 @@ export default function PaymentFlowScreen() {
         ])
       ).start();
 
-      const randomDelay = Math.floor(Math.random() * 20000) + 5000;
-      const timeout = setTimeout(() => {
-        setStep("success");
-        dispatch(updateTransactionStatus({
-          transactionId: `tx-${Date.now()}`,
-          status: "completed",
-          completedAt: new Date().toISOString(),
-        }));
-      }, randomDelay);
+      if (orderId.startsWith("local-")) {
+        const timeout = setTimeout(() => {
+          setStep("success");
+          dispatch(updateTransactionStatus({
+            transactionId: `tx-${Date.now()}`,
+            status: "completed",
+            completedAt: new Date().toISOString(),
+          }));
+        }, 6000);
 
-      return () => clearTimeout(timeout);
+        return () => clearTimeout(timeout);
+      }
     }
-  }, [step]);
+  }, [dispatch, orderId, step]);
+
+  async function initiateBackendPayment(phoneNumber?: string) {
+    if (!paymentMethod) return;
+    const idempotencyKey = `${orderId}-${paymentMethod.type}-${Date.now()}`;
+
+    if (orderId.startsWith("local-")) {
+      dispatch(createPaymentTransaction({
+        orderId,
+        methodType: paymentMethod.type,
+        amount: order?.total ?? 0,
+        status: "processing",
+      }));
+      setStep(paymentMethod.type === "multicaixa_express" || paymentMethod.type === "facipay" ? "awaiting" : "processing");
+      if (paymentMethod.type !== "multicaixa_express" && paymentMethod.type !== "facipay") simulatePaymentProcessing();
+      return;
+    }
+
+    const { data } = await paymentApi.initiate(
+      orderId,
+      { methodType: paymentMethod.type, phoneNumber },
+      idempotencyKey
+    );
+    const nextPayment = data.payment as PaymentResponse;
+    setPayment(nextPayment);
+    dispatch(createPaymentTransaction({
+      id: nextPayment.id,
+      orderId,
+      methodType: paymentMethod.type,
+      amount: nextPayment.amount,
+      status: nextPayment.status,
+      push: nextPayment.push,
+      reference: nextPayment.reference,
+      completedAt: nextPayment.completedAt,
+    }));
+
+    if (nextPayment.status === "completed") {
+      setStep("success");
+      return;
+    }
+
+    setTimer(nextPayment.push?.expiresInSeconds ?? 90);
+    setStep("awaiting");
+  }
 
   function handleConfirm() {
     if (!paymentMethod) return;
@@ -223,15 +297,18 @@ export default function PaymentFlowScreen() {
       return;
     }
 
-    dispatch(createPaymentTransaction({
-      orderId,
-      methodType: paymentMethod.type,
-      amount: order?.total ?? 0,
-      status: "pending",
-    }));
-
     setStep("processing");
-    simulatePaymentProcessing();
+    initiateBackendPayment().catch((err) => {
+      console.error("Failed to initiate payment:", err);
+      setError("Não foi possível iniciar o pagamento no servidor. A confirmar localmente.");
+      dispatch(createPaymentTransaction({
+        orderId,
+        methodType: paymentMethod.type,
+        amount: order?.total ?? 0,
+        status: "pending",
+      }));
+      simulatePaymentProcessing();
+    });
   }
 
   const ENTITY_CODE = "90001";
@@ -243,22 +320,18 @@ export default function PaymentFlowScreen() {
       return;
     }
     setError("");
-    
-    const amount = order?.total ?? 0;
-    
-    dispatch(createPaymentTransaction({
-      orderId,
-      methodType: paymentMethod?.type ?? "multicaixa_express",
-      amount,
-      status: "processing",
-    }));
-
     setStep("processing");
-    
-    setTimeout(() => {
+    initiateBackendPayment(`+244${phone}`).catch((err) => {
+      console.error("Failed to initiate phone payment:", err);
+      dispatch(createPaymentTransaction({
+        orderId,
+        methodType: paymentMethod?.type ?? "multicaixa_express",
+        amount: order?.total ?? 0,
+        status: "processing",
+      }));
+      setTimer(90);
       setStep("awaiting");
-      setTimer(180);
-    }, 2000);
+    });
   }
 
   function simulatePaymentProcessing() {
@@ -276,7 +349,10 @@ export default function PaymentFlowScreen() {
     }
     setError("");
     setStep("processing");
-    simulatePaymentProcessing();
+    initiateBackendPayment().catch((err) => {
+      console.error("Failed to initiate wallet payment:", err);
+      simulatePaymentProcessing();
+    });
   }
 
   function formatTimer(seconds: number) {
@@ -476,8 +552,23 @@ export default function PaymentFlowScreen() {
 
         <Text style={styles.timerText}>{formatTimer(timer)}</Text>
         <Text style={{ ...typography.bodySm, color: colors.neutral[500], marginTop: spacing.xs }}>
-          Expira em 3 minutos
+          Expira em {formatTimer(timer)}
         </Text>
+        {payment?.reference ? (
+          <View style={{ marginTop: spacing.md, width: "100%", paddingHorizontal: spacing.sm }}>
+            <View style={{ backgroundColor: colors.surfaceContainerLowest, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.surfaceVariant }}>
+              <Text style={{ ...typography.labelCaps, color: colors.neutral[500], marginBottom: spacing.sm }}>
+                REFERÊNCIA MULTICAIXA
+              </Text>
+              <Text style={{ ...typography.h3, color: colors.onSurface, fontWeight: "800" }}>
+                Entidade {payment.reference.entity}
+              </Text>
+              <Text style={{ ...typography.h2, color: colors.primary[500], fontWeight: "800", marginTop: spacing.xs }}>
+                {payment.reference.reference}
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         <View style={{ marginTop: spacing.lg, width: "100%", paddingHorizontal: spacing.sm }}>
           <View style={{ backgroundColor: colors.surfaceContainerLowest, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.surfaceVariant, marginBottom: spacing.lg }}>

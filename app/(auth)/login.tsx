@@ -234,37 +234,6 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleDemoLogin() {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const demoEmail = role === "delivery" ? "demo-ent@pedeja.ao" : "demo-rest@pedeja.ao";
-      const demoPassword = "segredo123";
-
-      setEmail(demoEmail);
-      setPassword(demoPassword);
-
-      const response = await authApi.login({
-        identificador: demoEmail,
-        password: demoPassword,
-      });
-
-      const { token, user } = response.data;
-      const sessionRole: "client" | "delivery" = role;
-
-      await saveDemoSession({ token, user, role: sessionRole });
-      dispatch(setSession({ token, user, role: sessionRole }));
-    } catch (loginError: any) {
-      console.error("[auth] demo login failed", loginError);
-      const message = loginError?.response?.data?.message || "Não foi possível fazer login demo.";
-      setError(message);
-      triggerShake();
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
@@ -366,13 +335,6 @@ export default function LoginScreen() {
               loading={loading}
             />
 
-            {/* Demo helper */}
-            <View style={styles.demoSection}>
-              <TouchableOpacity onPress={handleDemoLogin} style={styles.demoButton}>
-                <Ionicons name="flash-outline" size={14} color={colors.primary[500]} />
-                <Text style={styles.demoButtonText}>Entrar com conta demo</Text>
-              </TouchableOpacity>
-            </View>
           </Animated.View>
 
           {/* Footer */}

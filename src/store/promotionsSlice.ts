@@ -68,11 +68,20 @@ const promotionsSlice = createSlice({
     addPromotion(state, action: PayloadAction<Promotion>) {
       state.promotions.push(action.payload);
     },
+    setPromotions(state, action: PayloadAction<Promotion[]>) {
+      state.promotions = action.payload;
+    },
   },
 });
 
-export const { applyCoupon, removeCoupon, useCoupon, addCoupon, addPromotion } =
-  promotionsSlice.actions;
+export const {
+  applyCoupon,
+  removeCoupon,
+  useCoupon,
+  addCoupon,
+  addPromotion,
+  setPromotions,
+} = promotionsSlice.actions;
 
 export const promotionsReducer = promotionsSlice.reducer;
 

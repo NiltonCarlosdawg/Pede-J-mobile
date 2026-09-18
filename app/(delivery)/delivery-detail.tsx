@@ -14,6 +14,8 @@ import { Button } from "../../src/components/ui/Button";
 import { Header } from "../../src/components/ui/Header";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
+import { useDriverLocationPublisher } from "../../src/hooks/useDriverLocationPublisher";
+import { startVoipCall } from "../../src/services/voip";
 
 const DELIVERY_STATUS = [
   { id: "accepted", label: "Pedido aceito", time: "14:30", completed: true },
@@ -38,6 +40,8 @@ const CUSTOMER_INFO = {
 export default function DeliveryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ jobId?: string }>();
+  const orderId = params.jobId ?? "";
+  useDriverLocationPublisher(orderId || null);
   const [currentStatus, setCurrentStatus] = useState("transit");
   const { colors } = useTheme();
 
@@ -306,13 +310,16 @@ export default function DeliveryDetailScreen() {
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: spacing.md }}>
-            <TouchableOpacity style={styles.contactButton}>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => startVoipCall(orderId)}
+            >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: params.jobId ?? "" } })}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -339,13 +346,16 @@ export default function DeliveryDetailScreen() {
             </View>
           )}
           <View style={{ flexDirection: "row", gap: spacing.md }}>
-            <TouchableOpacity style={styles.contactButton}>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => startVoipCall(orderId)}
+            >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId: params.jobId ?? "" } })}
+              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>

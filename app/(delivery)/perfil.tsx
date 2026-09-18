@@ -22,6 +22,9 @@ import { clearSession } from "../../src/store/authSlice";
 import { clearCart } from "../../src/store/cartSlice";
 import { clearDemoSession } from "../../src/services/demoAuth";
 import { requestLocationPermissions } from "../../src/services/location";
+import { deliveryApi } from "../../src/services/api";
+import { LOCATION_SHARING_STORAGE_KEY } from "../../src/hooks/useDriverLocationPublisher";
+import { safeGetItem, safeSetItem } from "../../src/utils/storage";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
@@ -77,8 +80,13 @@ export default function DeliveryProfileScreen() {
 
   useEffect(() => {
     const checkLocation = async () => {
+      const stored = await safeGetItem(LOCATION_SHARING_STORAGE_KEY);
+      if (stored === "1") {
+        setLocationEnabled(true);
+        return;
+      }
       const granted = await requestLocationPermissions();
-      setLocationEnabled(granted);
+      setLocationEnabled(granted && stored !== "0");
     };
     checkLocation();
   }, []);
@@ -596,8 +604,27 @@ export default function DeliveryProfileScreen() {
               onValueChange={async (value) => {
                 if (value) {
                   const granted = await requestLocationPermissions();
-                  setLocationEnabled(granted);
+                  if (!granted) {
+                    setLocationEnabled(false);
+                    Alert.alert("Permissão necessária", "Ative a localização para partilhar a posição.");
+                    return;
+                  }
+                  try {
+                    await deliveryApi.toggleLocationSharing(true);
+                    await safeSetItem(LOCATION_SHARING_STORAGE_KEY, "1");
+                    setLocationEnabled(true);
+                  } catch (err) {
+                    console.error("Failed to enable location sharing:", err);
+                    Alert.alert("Erro", "Não foi possível activar a partilha no servidor.");
+                    setLocationEnabled(false);
+                  }
                 } else {
+                  try {
+                    await deliveryApi.toggleLocationSharing(false);
+                  } catch (err) {
+                    console.warn("Failed to disable location sharing:", err);
+                  }
+                  await safeSetItem(LOCATION_SHARING_STORAGE_KEY, "0");
                   setLocationEnabled(false);
                 }
               }}

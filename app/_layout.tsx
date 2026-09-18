@@ -21,6 +21,7 @@ import { Provider } from "react-redux";
 import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
 import { loadDemoSession } from "../src/services/demoAuth";
 import { initializeNotifications, setupNotificationListener } from "../src/services/notifications";
+import { initializeVoip, maybeHandleVoipNotificationData } from "../src/services/voip";
 import "../src/services/sentry";
 import { store, useAppDispatch, useAppSelector } from "../src/store";
 import { clearSession, hydrateSession } from "../src/store/authSlice";
@@ -83,8 +84,9 @@ function RootLayoutNav() {
     let isMounted = true;
 
     (async () => {
-      // Initialize notifications
+      // Initialize notifications + native VoIP (CallKit / ConnectionService / PushKit)
       await initializeNotifications();
+      await initializeVoip();
 
       const session = await loadDemoSession();
 
@@ -149,6 +151,7 @@ function RootLayoutNavContent() {
 
     const cleanup = setupNotificationListener((notification: any) => {
       const { title, body, data } = notification.request.content;
+      maybeHandleVoipNotificationData(data);
       dispatch(
         addNotification({
           id: notification.request.identifier,
@@ -188,6 +191,7 @@ function RootLayoutNavContent() {
         <Stack.Screen name="payment-methods" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="call" options={{ headerShown: false, presentation: "fullScreenModal" }} />
         <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="avaliacao-entregador" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="payment-flow" options={{ headerShown: false, presentation: "modal" }} />

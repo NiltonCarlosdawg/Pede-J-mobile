@@ -9,7 +9,17 @@ import { useAppSelector } from "../../src/store";
 import { selectOrders, Order, OrderStatus } from "../../src/store/ordersSlice";
 import { spacing, formatPrice } from "../../src/theme";
 import { shadowStyle } from "../../src/utils/shadow";
-import { MOCK_COORDINATES, simulateDriverMovement, calculateDistance, estimateDeliveryTime, type Coordinates } from "../../src/services/location";
+import { orderApi } from "../../src/services/api";
+import { subscribeOrderLocation } from "../../src/services/realtime";
+import { startVoipCall } from "../../src/services/voip";
+import {
+  MOCK_COORDINATES,
+  simulateDriverMovement,
+  calculateDistance,
+  estimateDeliveryTime,
+  type Coordinates,
+} from "../../src/services/location";
+import type { OrderRoute } from "../../src/types";
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: string; color: string }> = {
   preparing: { label: "Preparando", icon: "chef-hat", color: "#fbac1d" },
@@ -66,24 +76,99 @@ export default function TrackingScreen() {
     ?? activeOrders[0]
     ?? null;
 
-  // Coordenadas baseadas no pedido selecionado
-  const restaurantLocation: Coordinates = selectedOrder?.address.neighborhood === "Ingombota"
-    ? MOCK_COORDINATES.ingombota
-    : selectedOrder?.address.neighborhood === "Talatona"
-    ? MOCK_COORDINATES.talatona
-    : MOCK_COORDINATES.mutamba;
-
-  const customerLocation: Coordinates = selectedOrder?.address.label === "Trabalho"
-    ? MOCK_COORDINATES.ingombota
-    : MOCK_COORDINATES.maianga;
-
-  const [driverLocation, setDriverLocation] = useState<Coordinates>(restaurantLocation);
+  const [routeInfo, setRouteInfo] = useState<OrderRoute | null>(null);
+  const [driverLocation, setDriverLocation] = useState<Coordinates>(MOCK_COORDINATES.mutamba);
   const [driverProgress, setDriverProgress] = useState(0);
 
-  // Simula movimento do entregador
+  const fallbackRestaurant: Coordinates =
+    selectedOrder?.address.neighborhood === "Ingombota"
+      ? MOCK_COORDINATES.ingombota
+      : selectedOrder?.address.neighborhood === "Talatona"
+        ? MOCK_COORDINATES.talatona
+        : MOCK_COORDINATES.mutamba;
+
+  const fallbackCustomer: Coordinates =
+    selectedOrder?.address.label === "Trabalho"
+      ? MOCK_COORDINATES.ingombota
+      : MOCK_COORDINATES.maianga;
+
+  const restaurantLocation: Coordinates = routeInfo?.origem ?? fallbackRestaurant;
+  const customerLocation: Coordinates = routeInfo?.destino ?? fallbackCustomer;
+
+  // REST fallback: última posição persistida do entregador
   useEffect(() => {
-    if (!selectedOrder || selectedOrder.status !== "delivering") {
-      setDriverLocation(restaurantLocation);
+    if (!selectedOrder || selectedOrder.id.startsWith("local-")) {
+      setRouteInfo(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchRoute = async () => {
+      try {
+        const { data } = await orderApi.getRoute(selectedOrder.id);
+        if (cancelled) return;
+        const route = data as OrderRoute;
+        setRouteInfo(route);
+        if (route.lastKnown.latitude != null && route.lastKnown.longitude != null) {
+          setDriverLocation({
+            latitude: route.lastKnown.latitude,
+            longitude: route.lastKnown.longitude,
+          });
+        } else if (route.origem) {
+          setDriverLocation(route.origem);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch order route:", err);
+      }
+    };
+
+    fetchRoute();
+    const interval = setInterval(fetchRoute, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [selectedOrder?.id]);
+
+  // Live updates via WebSocket quando disponíveis
+  useEffect(() => {
+    if (!selectedOrder || selectedOrder.id.startsWith("local-")) return;
+
+    let unsubscribe: (() => void) | undefined;
+    subscribeOrderLocation(selectedOrder.id, (payload) => {
+      setDriverLocation({
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+      });
+      setRouteInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              lastKnown: {
+                ...prev.lastKnown,
+                latitude: payload.latitude,
+                longitude: payload.longitude,
+                heading: payload.heading,
+                timestamp: payload.timestamp,
+              },
+            }
+          : prev
+      );
+    })
+      .then((fn) => {
+        unsubscribe = fn;
+      })
+      .catch((err) => console.warn("WS location subscribe failed:", err));
+
+    return () => unsubscribe?.();
+  }, [selectedOrder?.id]);
+
+  // Fallback de simulação só para pedidos locais / sem lastKnown
+  useEffect(() => {
+    const hasRealLocation =
+      routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
+    if (!selectedOrder || selectedOrder.status !== "delivering" || hasRealLocation) {
       setDriverProgress(0);
       return;
     }
@@ -95,14 +180,13 @@ export default function TrackingScreen() {
           clearInterval(interval);
           return 1;
         }
-        const newLocation = simulateDriverMovement(restaurantLocation, customerLocation, next);
-        setDriverLocation(newLocation);
+        setDriverLocation(simulateDriverMovement(restaurantLocation, customerLocation, next));
         return next;
       });
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [selectedOrder, restaurantLocation, customerLocation]);
+  }, [selectedOrder?.id, selectedOrder?.status, restaurantLocation, customerLocation, routeInfo?.lastKnown.latitude]);
 
   const distance = calculateDistance(driverLocation, customerLocation);
   const estimatedMinutes = estimateDeliveryTime(distance);
@@ -550,7 +634,10 @@ export default function TrackingScreen() {
                     </View>
                     <Text style={styles.actionButtonText}>Chat</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => startVoipCall(selectedOrder.id)}
+                  >
                     <View style={styles.actionButtonCircle}>
                       <MaterialCommunityIcons name="phone" size={22} color={colors.white} />
                     </View>

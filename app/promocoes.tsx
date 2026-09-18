@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -11,19 +12,61 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../src/components/ui/Header";
-import { useAppSelector } from "../src/store";
+import { useAppDispatch, useAppSelector } from "../src/store";
 import {
     selectActiveCoupons,
     selectActivePromotions,
+    setPromotions,
+    type Promotion,
 } from "../src/store/promotionsSlice";
+import { promotionApi } from "../src/services/api";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
+import type { PromotionSummary } from "../src/types";
+
+function mapApiPromotion(promo: PromotionSummary): Promotion {
+  const endsAt = promo.endsAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const percent = promo.discountPercent ?? null;
+  return {
+    id: promo.id,
+    title: promo.title,
+    description: promo.description ?? promo.restaurant?.name ?? "",
+    image: promo.image ?? undefined,
+    badge: promo.restaurant?.name ?? "Oferta",
+    discount: percent != null ? `${percent}% OFF` : "Promoção",
+    expiresAt: endsAt,
+    isActive: promo.active !== false,
+    restaurantIds: promo.restaurantId ? [promo.restaurantId] : undefined,
+  };
+}
 
 export default function PromotionsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { colors } = useTheme();
   const promotions = useAppSelector(selectActivePromotions);
   const coupons = useAppSelector(selectActiveCoupons);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await promotionApi.list({ limit: 30 });
+        const rows = (data.data ?? data) as PromotionSummary[];
+        if (!cancelled && Array.isArray(rows)) {
+          dispatch(setPromotions(rows.map(mapApiPromotion)));
+        }
+      } catch (err) {
+        console.warn("Failed to load promotions:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -140,7 +183,14 @@ export default function PromotionsScreen() {
       <Header title="Promoções" showBack onBackPress={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        {promotions.length > 0 && (
+        {loading ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color={colors.primary[500]} />
+            <Text style={styles.emptyText}>A carregar promoções...</Text>
+          </View>
+        ) : null}
+
+        {!loading && promotions.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Ofertas especiais</Text>
             {promotions.map((promo) => (
@@ -186,7 +236,7 @@ export default function PromotionsScreen() {
           </>
         )}
 
-        {promotions.length === 0 && coupons.length === 0 && (
+        {!loading && promotions.length === 0 && coupons.length === 0 && (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="tag-off" size={48} color={colors.neutral[300]} />
             <Text style={styles.emptyText}>Nenhuma promoção ativa no momento</Text>

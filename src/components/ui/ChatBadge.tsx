@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useAppSelector } from "../../store";
 import { selectHasUnreadChat } from "../../store/chatSlice";
 import { useTheme } from "../../hooks/useTheme";
+import { orderApi } from "../../services/api";
 
 interface ChatBadgeProps {
   orderId?: string;
@@ -15,9 +16,36 @@ interface ChatBadgeProps {
 export function ChatBadge({ orderId, size = 24 }: ChatBadgeProps) {
   const router = useRouter();
   const { colors } = useTheme();
-  const hasUnread = useAppSelector((state) =>
+  const localUnread = useAppSelector((state) =>
     orderId ? selectHasUnreadChat(state, orderId) : false
   );
+  const [remoteUnread, setRemoteUnread] = useState(0);
+
+  useEffect(() => {
+    if (!orderId || orderId.startsWith("local-")) {
+      setRemoteUnread(0);
+      return;
+    }
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data } = await orderApi.getUnreadMessages(orderId);
+        if (!cancelled) setRemoteUnread(Number(data.unreadCount ?? 0));
+      } catch {
+        // Mantém badge local se a API falhar.
+      }
+    };
+
+    load();
+    const interval = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [orderId]);
+
+  const hasUnread = remoteUnread > 0 || localUnread;
 
   const styles = useMemo(() => StyleSheet.create({
     container: {

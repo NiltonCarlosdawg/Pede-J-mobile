@@ -9,64 +9,11 @@ export type DemoRole = "client" | "delivery";
 
 let memorySession: DemoSession | null = null;
 
-export const DEMO_LOGIN = {
-  client: {
-    email: "demo@pedeja.com",
-    password: "123456",
-  },
-  delivery: {
-    email: "entregador@pedeja.com",
-    password: "123456",
-  },
-};
-
-export const DEMO_CLIENT_USER: User = {
-  id: "demo-client",
-  name: "Alexandre João",
-  email: DEMO_LOGIN.client.email,
-  phone: "+244 923 123 456",
-  avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2e?w=200",
-  role: "cliente",
-  createdAt: "2026-05-08T00:00:00.000Z",
-};
-
-export const DEMO_DELIVERY_USER: User = {
-  id: "demo-delivery",
-  name: "Carlos N'zau",
-  email: DEMO_LOGIN.delivery.email,
-  phone: "+244 923 555 900",
-  avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
-  role: "entregador",
-  createdAt: "2026-05-08T00:00:00.000Z",
-};
-
 export type DemoSession = {
   token: string;
   user: User;
   role: DemoRole;
 };
-
-export function isDemoCredentials(
-  email: string,
-  password: string,
-  role: DemoRole
-) {
-  const credentials =
-    role === "delivery" ? DEMO_LOGIN.delivery : DEMO_LOGIN.client;
-
-  return (
-    email.trim().toLowerCase() === credentials.email &&
-    password === credentials.password
-  );
-}
-
-export function createDemoSession(role: DemoRole): DemoSession {
-  return {
-    token: role === "delivery" ? "demo-delivery-token" : "demo-client-token",
-    user: role === "delivery" ? DEMO_DELIVERY_USER : DEMO_CLIENT_USER,
-    role,
-  };
-}
 
 export async function loadDemoSession(): Promise<DemoSession | null> {
   if (memorySession) {

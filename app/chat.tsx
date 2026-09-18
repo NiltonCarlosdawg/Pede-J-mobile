@@ -58,7 +58,11 @@ export default function ChatScreen() {
     if (!orderId) return;
     try {
       const { data } = await orderApi.getMessages(orderId, { limit: 100 });
-      setMessages(data.data ?? data);
+      const list = (data.data ?? data) as ChatMessage[];
+      setMessages(list);
+      const last = list[list.length - 1];
+      const lastReadAt = last?.createdAt ?? last?.timestamp;
+      await orderApi.markMessagesRead(orderId, lastReadAt).catch(() => undefined);
     } catch (err) {
       console.error("Failed to fetch messages:", err);
     } finally {
@@ -100,7 +104,8 @@ export default function ChatScreen() {
 
   function renderMessage({ item, index }: { item: ChatMessage; index: number }) {
     const isClient = item.senderRole === "cliente";
-    const isSystem = item.tipo === "sistema";
+    const isSystem = item.tipo === "sistema" || item.tipo === "system";
+    const timeValue = item.createdAt ?? item.timestamp ?? "";
 
     return (
       <View
@@ -124,7 +129,7 @@ export default function ChatScreen() {
         >
           {item.texto}
         </Text>
-        {!isSystem && (
+        {!isSystem && timeValue ? (
           <Text
             style={[
               styles.messageTime,
@@ -132,9 +137,9 @@ export default function ChatScreen() {
               !isClient && !isSystem && styles.deliveryTime,
             ]}
           >
-            {formatChatTime(item.timestamp)}
+            {formatChatTime(timeValue)}
           </Text>
-        )}
+        ) : null}
       </View>
     );
   }
@@ -164,7 +169,7 @@ export default function ChatScreen() {
             ref={flatListRef}
             data={messages}
             renderItem={renderMessage}
-            keyExtractor={(_, index) => String(index)}
+            keyExtractor={(item, index) => item.id ?? String(index)}
             contentContainerStyle={styles.messagesList}
             initialNumToRender={20}
             maxToRenderPerBatch={15}

@@ -26,8 +26,10 @@ import {
 import type { OrderMutationError } from "../src/hooks/useSubmitOrderMutation";
 import { useTheme } from "../src/hooks/useTheme";
 import { notifyOrderConfirmed } from "../src/services/notifications";
+import { promotionApi } from "../src/services/api";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import {
+  addCoupon,
   applyCoupon,
   removeCoupon,
   selectAppliedCoupon,
@@ -384,13 +386,39 @@ export default function CheckoutScreen() {
     return descriptions[method.type] || method.label;
   }
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     Keyboard.dismiss();
     if (!couponCode.trim()) return;
+    const code = couponCode.trim().toUpperCase();
 
-    const coupon = activeCoupons.find(
-      (c) => c.code.toUpperCase() === couponCode.trim().toUpperCase()
-    );
+    try {
+      const { data } = await promotionApi.validateCoupon(code, subtotal);
+      if (!data.valido) {
+        setCouponError(data.mensagem ?? "Cupão inválido ou expirado");
+        return;
+      }
+      dispatch(addCoupon({
+        id: code,
+        code,
+        description: data.mensagem,
+        discountType: data.tipo === "percentual" ? "percentage" : "fixed",
+        discountValue:
+          data.tipo === "percentual" && subtotal > 0
+            ? Math.round((data.desconto / subtotal) * 100)
+            : data.desconto,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        isActive: true,
+        usageCount: 0,
+      }));
+      dispatch(applyCoupon(code));
+      setCouponError("");
+      setCouponCode("");
+      return;
+    } catch {
+      // Mantém fallback local quando a API estiver indisponível.
+    }
+
+    const coupon = activeCoupons.find((c) => c.code.toUpperCase() === code);
 
     if (!coupon) {
       setCouponError("Cupão inválido ou expirado");
@@ -402,7 +430,7 @@ export default function CheckoutScreen() {
       return;
     }
 
-    dispatch(applyCoupon(couponCode.trim()));
+    dispatch(applyCoupon(code));
     setCouponError("");
     setCouponCode("");
   };
@@ -440,7 +468,16 @@ export default function CheckoutScreen() {
           body: payload,
           idempotencyKey,
         });
-        return { remoteId: data && typeof data === "object" && "id" in data ? String((data as { id: unknown }).id) : undefined };
+        const remoteOrder =
+          data && typeof data === "object" && "order" in data
+            ? (data as { order?: { id?: unknown } }).order
+            : data;
+        return {
+          remoteId:
+            remoteOrder && typeof remoteOrder === "object" && "id" in remoteOrder
+              ? String((remoteOrder as { id: unknown }).id)
+              : undefined,
+        };
       } catch (error) {
         const classified = classifyOrderError(error);
         Sentry.captureException(error);
