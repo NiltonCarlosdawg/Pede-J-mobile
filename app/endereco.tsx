@@ -11,29 +11,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { FALLBACK_ADDRESSES } from "../src/constants/checkoutFallbacks";
 import { useGetAddressesQuery } from "../src/hooks/useApi";
 import { Header } from "../src/components/ui/Header";
 import { spacing, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 import type { Address } from "../src/types";
+import { Button } from "../src/components/ui/Button";
 
 const ROW_HIT_SLOP = { top: 12, bottom: 12, left: 8, right: 8 };
 
 export default function AddressScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { data: apiAddresses, isFetching } = useGetAddressesQuery(undefined, {
+  const { data: apiAddresses, isFetching, isError, refetch } = useGetAddressesQuery(undefined, {
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
 
-  const addresses = useMemo((): Address[] => {
-    if (apiAddresses?.data && apiAddresses.data.length > 0) {
-      return apiAddresses.data;
-    }
-    return FALLBACK_ADDRESSES;
-  }, [apiAddresses]);
+  const addresses: Address[] = apiAddresses?.data ?? [];
 
   const styles = useMemo(
     () =>
@@ -162,14 +157,20 @@ export default function AddressScreen() {
         {isFetching ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={colors.primary[500]} />
-            <Text style={styles.loadingText}>A sincronizar endereços…</Text>
+            <Text style={styles.loadingText}>A carregar endereços da API…</Text>
           </View>
         ) : null}
-
-        {!apiAddresses?.data?.length ? (
-          <Text style={styles.offlineHint}>
-            A mostrar endereços locais — liga-te ao servidor para atualizar automaticamente.
-          </Text>
+        {isError ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
+            <Text style={[styles.offlineHint, { flex: 1, color: colors.error }]}>Falha ao carregar endereços da API (PostgreSQL).</Text>
+            <TouchableOpacity onPress={() => refetch()}><Text style={{ color: colors.primary[500], fontWeight: "700" }}>Tentar novamente</Text></TouchableOpacity>
+          </View>
+        ) : null}
+        {!isFetching && !isError && addresses.length === 0 ? (
+          <View style={{ alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
+            <MaterialCommunityIcons name="map-marker-off" size={32} color={colors.neutral[400]} />
+            <Text style={[styles.offlineHint, { textAlign: "center" }]}>Nenhum endereço cadastrado ainda. Os endereços vêm do banco (POST /users/me/addresses) — sem dados mock.</Text>
+          </View>
         ) : null}
 
         <FlatList

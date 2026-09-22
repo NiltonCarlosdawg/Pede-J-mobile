@@ -18,7 +18,6 @@ import * as Sentry from "@sentry/react-native";
 import { Header } from "../src/components/ui/Header";
 import { Button } from "../src/components/ui/Button";
 import { Input } from "../src/components/ui/Input";
-import { FALLBACK_ADDRESSES } from "../src/constants/checkoutFallbacks";
 import {
   classifyOrderError,
   useSubmitOrderMutation,
@@ -104,17 +103,12 @@ export default function CheckoutScreen() {
   const paymentMethods = useAppSelector(selectPaymentMethods);
   const { colors } = useTheme();
 
-  const { data: apiAddresses, isFetching: addressesLoading } = useGetAddressesQuery(
+  const { data: apiAddresses, isFetching: addressesLoading, error: addressesError, refetch: refetchAddresses } = useGetAddressesQuery(
     undefined,
     { refetchOnFocus: true, refetchOnReconnect: true }
   );
 
-  const addresses = useMemo((): Address[] => {
-    if (apiAddresses?.data && apiAddresses.data.length > 0) {
-      return apiAddresses.data;
-    }
-    return FALLBACK_ADDRESSES;
-  }, [apiAddresses]);
+  const addresses: Address[] = apiAddresses?.data ?? [];
 
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedPayment, setSelectedPayment] = useState<string>("");
@@ -603,41 +597,58 @@ export default function CheckoutScreen() {
                     hitSlop={ROW_HIT_SLOP}
                     disabled={confirming}
                   >
-                    <Text style={styles.sectionAction}>Editar</Text>
+                    <Text style={styles.sectionAction}>Gerenciar</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={styles.addressOptions}>
-                  {addresses.map((address) => (
-                    <Pressable
-                      key={address.id}
-                      hitSlop={ROW_HIT_SLOP}
-                      disabled={confirming}
-                      onPress={() => setSelectedAddress(address.id)}
-                      style={[
-                        styles.addressItem,
-                        selectedAddress === address.id && styles.addressItemSelected,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={
-                          selectedAddress === address.id ? "radiobox-marked" : "radiobox-blank"
-                        }
-                        size={22}
-                        color={
-                          selectedAddress === address.id
-                            ? colors.primary[500]
-                            : colors.neutral[300]
-                        }
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.addressLabel}>{address.label}</Text>
-                        <Text style={styles.addressDetails}>
-                          {address.address}, {address.neighborhood}, {address.city}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
+                {addressesLoading ? (
+                  <Text style={styles.loadingHint}>A carregar endereços da API…</Text>
+                ) : addresses.length === 0 ? (
+                  <View style={{ gap: spacing.sm }}>
+                    <Text style={{ ...typography.bodySm, color: colors.neutral[600] }}>
+                      Nenhum endereço cadastrado. Adicione um endereço real para prosseguir (dados do banco, sem fallback).
+                    </Text>
+                    <Button title="Adicionar endereço" onPress={() => router.push("/endereco")} variant="secondary" />
+                  </View>
+                ) : (
+                  <View style={styles.addressOptions}>
+                    {addresses.map((address) => (
+                      <Pressable
+                        key={address.id}
+                        hitSlop={ROW_HIT_SLOP}
+                        disabled={confirming}
+                        onPress={() => setSelectedAddress(address.id)}
+                        style={[
+                          styles.addressItem,
+                          selectedAddress === address.id && styles.addressItemSelected,
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={
+                            selectedAddress === address.id ? "radiobox-marked" : "radiobox-blank"
+                          }
+                          size={22}
+                          color={
+                            selectedAddress === address.id
+                              ? colors.primary[500]
+                              : colors.neutral[300]
+                          }
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.addressLabel}>{address.label}</Text>
+                          <Text style={styles.addressDetails}>
+                            {address.address}, {address.neighborhood}, {address.city}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+                {addressesError ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.sm }}>
+                    <Text style={{ ...typography.bodySm, color: colors.error, flex: 1 }}>Falha ao carregar endereços da API.</Text>
+                    <TouchableOpacity onPress={() => refetchAddresses()}><Text style={{ color: colors.primary[500], fontWeight: "700" }}>Tentar novamente</Text></TouchableOpacity>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.sectionCard}>

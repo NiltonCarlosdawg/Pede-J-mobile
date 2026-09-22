@@ -34,72 +34,30 @@ export default function RestaurantDashboard() {
       setLoading(true);
       setError(null);
       const [statsRes, ordersRes] = await Promise.all([
-        restaurantManageApi.getStats().catch(() => ({
-          data: {
-            todayOrders: 12,
-            todayRevenue: 45000,
-            weekOrders: 78,
-            weekRevenue: 312000,
-            monthOrders: 312,
-            monthRevenue: 1248000,
-            averageRating: 4.7,
-            totalRatings: 89,
-          },
-        })),
-        restaurantManageApi.getOrders({ limit: 5 }).catch(() => ({
-          data: {
-            data: [
-              {
-                id: "ord-001",
-                clientName: "Alexandre João",
-                items: [
-                  { id: "1", name: "Burger Clássico", quantity: 2, price: 2500 },
-                  { id: "2", name: "Batata Frita", quantity: 1, price: 1200 },
-                ],
-                status: "pending",
-                total: 6200,
-                deliveryFee: 500,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              {
-                id: "ord-002",
-                clientName: "Maria Santos",
-                items: [
-                  { id: "3", name: "Pizza Margherita", quantity: 1, price: 3500 },
-                ],
-                status: "confirmed",
-                total: 4000,
-                deliveryFee: 500,
-                createdAt: new Date(Date.now() - 1800000).toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-              {
-                id: "ord-003",
-                clientName: "Pedro Silva",
-                items: [
-                  { id: "4", name: "Frango Grelhado", quantity: 1, price: 2800 },
-                  { id: "5", name: "Salada", quantity: 1, price: 1500 },
-                ],
-                status: "preparing",
-                total: 4300,
-                deliveryFee: 500,
-                createdAt: new Date(Date.now() - 3600000).toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-            ],
-          },
-        })),
+        restaurantManageApi.getStats(),
+        restaurantManageApi.getOrders({ limit: 5 }),
       ]);
       setStats(statsRes.data);
-      setRecentOrders(ordersRes.data.data ?? ordersRes.data);
+      setRecentOrders(ordersRes.data.data ?? []);
     } catch (err: any) {
       console.error("[RestaurantDashboard] fetchData error:", err);
-      setError("Erro ao carregar dados. Puxe para atualizar.");
+      const msg = err?.response?.data?.message ?? "Erro ao carregar dados reais da API (PostgreSQL). Verifique se o restaurante está aprovado.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleToggleOpen = useCallback(async () => {
+    const next = !isOpen;
+    try {
+      await restaurantManageApi.toggleOpen(next);
+      setIsOpen(next);
+    } catch (err: any) {
+      console.error("[RestaurantDashboard] toggleOpen error:", err);
+      setError(err?.response?.data?.message ?? "Não foi possível alterar o estado da loja.");
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     fetchData();
@@ -347,7 +305,7 @@ export default function RestaurantDashboard() {
             </View>
             <TouchableOpacity
               style={styles.openToggle}
-              onPress={() => setIsOpen(!isOpen)}
+              onPress={handleToggleOpen}
             >
               <MaterialCommunityIcons
                 name={isOpen ? "store" : "store-outline"}

@@ -13,8 +13,6 @@ import { orderApi } from "../../src/services/api";
 import { subscribeOrderLocation } from "../../src/services/realtime";
 import { startVoipCall } from "../../src/services/voip";
 import {
-  MOCK_COORDINATES,
-  simulateDriverMovement,
   calculateDistance,
   estimateDeliveryTime,
   type Coordinates,
@@ -77,23 +75,12 @@ export default function TrackingScreen() {
     ?? null;
 
   const [routeInfo, setRouteInfo] = useState<OrderRoute | null>(null);
-  const [driverLocation, setDriverLocation] = useState<Coordinates>(MOCK_COORDINATES.mutamba);
+  const [driverLocation, setDriverLocation] = useState<Coordinates | null>(null);
   const [driverProgress, setDriverProgress] = useState(0);
 
-  const fallbackRestaurant: Coordinates =
-    selectedOrder?.address.neighborhood === "Ingombota"
-      ? MOCK_COORDINATES.ingombota
-      : selectedOrder?.address.neighborhood === "Talatona"
-        ? MOCK_COORDINATES.talatona
-        : MOCK_COORDINATES.mutamba;
-
-  const fallbackCustomer: Coordinates =
-    selectedOrder?.address.label === "Trabalho"
-      ? MOCK_COORDINATES.ingombota
-      : MOCK_COORDINATES.maianga;
-
-  const restaurantLocation: Coordinates = routeInfo?.origem ?? fallbackRestaurant;
-  const customerLocation: Coordinates = routeInfo?.destino ?? fallbackCustomer;
+  const restaurantLocation: Coordinates | null = routeInfo?.origem ?? null;
+  const customerLocation: Coordinates | null = routeInfo?.destino ?? null;
+  const hasRoute = Boolean(restaurantLocation && customerLocation);
 
   // REST fallback: última posição persistida do entregador
   useEffect(() => {
@@ -171,28 +158,8 @@ export default function TrackingScreen() {
     ? Date.now() - new Date(routeInfo!.lastKnown.timestamp).getTime()
     : null;
 
-  // Simulação apenas para pedidos locais (demonstração offline). Pedidos reais nunca inventam posição.
-  useEffect(() => {
-    if (!selectedOrder || !isLocalOrder || selectedOrder.status !== "delivering" || hasRealLocation) {
-      setDriverProgress(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setDriverProgress((prev) => {
-        const next = prev + 0.02;
-        if (next >= 1) {
-          clearInterval(interval);
-          return 1;
-        }
-        setDriverLocation(simulateDriverMovement(restaurantLocation, customerLocation, next));
-        return next;
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [selectedOrder?.id, selectedOrder?.status, restaurantLocation, customerLocation, routeInfo?.lastKnown.latitude, isLocalOrder, hasRealLocation]);
-
-  const distance = calculateDistance(driverLocation, customerLocation);
-  const estimatedMinutes = estimateDeliveryTime(distance);
+  const distance = driverLocation && customerLocation ? calculateDistance(driverLocation, customerLocation) : null;
+  const estimatedMinutes = distance != null ? estimateDeliveryTime(distance) : null;
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
@@ -554,13 +521,28 @@ export default function TrackingScreen() {
       <Header title="Acompanhamento" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Map Area - Real Map */}
+        {/* Map Area - Real Map apenas com dados do Postgres (sem coordenadas mock) */}
         <View style={styles.mapContainer}>
-          <TrackingMap
-            restaurantLocation={restaurantLocation}
-            customerLocation={customerLocation}
-            driverLocation={driverLocation}
-          />
+          {hasRoute && driverLocation ? (
+            <TrackingMap
+              restaurantLocation={restaurantLocation!}
+              customerLocation={customerLocation!}
+              driverLocation={driverLocation}
+            />
+          ) : hasRoute ? (
+            <TrackingMap
+              restaurantLocation={restaurantLocation!}
+              customerLocation={customerLocation!}
+              driverLocation={restaurantLocation!}
+            />
+          ) : (
+            <View style={{ flex: 1, backgroundColor: colors.surfaceContainer, alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <MaterialCommunityIcons name="map-marker-off" size={32} color={colors.neutral[400]} />
+              <Text style={{ color: colors.neutral[500], textAlign: "center", paddingHorizontal: 24 }}>
+                Rota indisponível — aguardando dados reais do restaurante e cliente no banco (origem/destino).
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -596,7 +578,7 @@ export default function TrackingScreen() {
             <>
               <View style={styles.statusSection}>
                 <Text style={styles.arrivalTime}>
-                  {selectedOrder.status === "delivering" && hasRealLocation
+                  {selectedOrder.status === "delivering" && hasRealLocation && estimatedMinutes != null
                     ? `Chegando em ${estimatedMinutes} min`
                     : selectedOrder.status === "delivering"
                     ? "Entregador a caminho"
@@ -606,7 +588,7 @@ export default function TrackingScreen() {
                 </Text>
                 <Text style={styles.arrivalRange}>
                   {selectedOrder.status === "delivering" ? (
-                    hasRealLocation ? (
+                    hasRealLocation && distance != null ? (
                       <Text>
                         {distance.toFixed(1)} km restantes · Pedido #{selectedOrder.id.slice(-4)} ·{" "}
                         {STATUS_CONFIG[selectedOrder.status].label}

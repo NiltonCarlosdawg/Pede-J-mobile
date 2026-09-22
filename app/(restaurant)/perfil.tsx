@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert,
     ScrollView,
@@ -35,24 +35,51 @@ export default function RestaurantProfileScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Form state
+  // Form state — sem mocks: carregado da API real
   const [formName, setFormName] = useState(user?.name ?? "");
-  const [formDescription, setFormDescription] = useState("Restaurante de comida angolana e internacional");
+  const [formDescription, setFormDescription] = useState("");
   const [formPhone, setFormPhone] = useState(user?.phone ?? "");
   const [formDeliveryFee, setFormDeliveryFee] = useState("500");
   const [formDeliveryTime, setFormDeliveryTime] = useState("30-45 min");
-  const [isOpen, setIsOpen] = useState(true);
-
-  // Opening hours mock
+  const [isOpen, setIsOpen] = useState(false);
   const [openingHours, setOpeningHours] = useState([
-    { day: 1, open: "08:00", close: "22:00", active: true },
-    { day: 2, open: "08:00", close: "22:00", active: true },
-    { day: 3, open: "08:00", close: "22:00", active: true },
-    { day: 4, open: "08:00", close: "22:00", active: true },
-    { day: 5, open: "08:00", close: "23:00", active: true },
-    { day: 6, open: "09:00", close: "23:00", active: true },
+    { day: 1, open: "08:00", close: "22:00", active: false },
+    { day: 2, open: "08:00", close: "22:00", active: false },
+    { day: 3, open: "08:00", close: "22:00", active: false },
+    { day: 4, open: "08:00", close: "22:00", active: false },
+    { day: 5, open: "08:00", close: "23:00", active: false },
+    { day: 6, open: "09:00", close: "23:00", active: false },
     { day: 0, open: "09:00", close: "21:00", active: false },
   ]);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Carrega perfil real da API (PostgreSQL) — sem dados mock
+  const loadProfile = useCallback(async () => {
+    try {
+      setProfileLoading(true);
+      const api = (await import("../../src/services/api")).default;
+      const { data } = await api.get("/restaurants/me");
+      const r = data as any;
+      if (r?.name) setFormName(r.name);
+      if (r?.description) setFormDescription(r.description);
+      if (r?.owner?.phone ?? r?.phone) setFormPhone(r.owner?.phone ?? r.phone);
+      if (r?.deliveryFee != null) setFormDeliveryFee(String(Number(r.deliveryFee)));
+      if (r?.deliveryTime) setFormDeliveryTime(r.deliveryTime);
+      if (typeof r?.isOpen === "boolean") setIsOpen(r.isOpen);
+      if (Array.isArray(r?.openingHours)) {
+        setOpeningHours(prev => prev.map(p => {
+          const found = r.openingHours.find((h: any) => h.diaSemana === p.day);
+          return found ? { ...p, open: found.abre, close: found.fecha, active: true } : { ...p, active: false };
+        }));
+      }
+    } catch (err) {
+      console.warn("[RestaurantProfile] loadProfile sem dados ainda (restaurante precisa ser aprovado):", err);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadProfile(); }, [loadProfile]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -65,14 +92,14 @@ export default function RestaurantProfileScreen() {
         deliveryTime: formDeliveryTime,
       });
       await restaurantManageApi.updateOpeningHours(
-        openingHours.map((h) => ({ diaSemana: h.day, abre: h.open, fecha: h.close }))
+        openingHours.filter(h => h.active).map((h) => ({ diaSemana: h.day, abre: h.open, fecha: h.close }))
       );
       await restaurantManageApi.toggleOpen(isOpen);
       setEditing(false);
-      Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
-    } catch (err) {
+      Alert.alert("Sucesso", "Perfil atualizado na API (PostgreSQL)!");
+    } catch (err: any) {
       console.error("[RestaurantProfile] handleSave error:", err);
-      Alert.alert("Erro", "Não foi possível salvar as alterações.");
+      Alert.alert("Erro", err?.response?.data?.message ?? "Não foi possível salvar na API real.");
     } finally {
       setSaving(false);
     }
