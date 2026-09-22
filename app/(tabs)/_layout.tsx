@@ -9,7 +9,7 @@ export default function TabLayout() {
   const tabBarStyle = useMemo(() => ({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: colors.primary[100],
     height: 64,
     paddingBottom: 8,
     paddingTop: 8,

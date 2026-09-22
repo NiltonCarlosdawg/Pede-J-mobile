@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { safeGetItem, safeRemoveItem } from '../utils/storage';
+import { clearDemoSession, loadDemoSession, saveDemoSession } from './demoAuth';
+import { API_URL } from './config';
 
-export const BASE_URL = 'http://localhost:3000/v1';
+export const BASE_URL = API_URL;
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -9,23 +10,65 @@ const api: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
+type SessionRequest = InternalAxiosRequestConfig & { retried?: boolean; sessionUserId?: string };
+const publicAuth = (url?: string) => /^\/auth\/(login|register|refresh|otp\/)/.test(url ?? '');
+
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await safeGetItem('authToken');
-      if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
-    } catch (error) { console.error('Error getting token:', error); }
+      if (!publicAuth(config.url)) {
+        const session = await loadDemoSession();
+        const request = config as SessionRequest;
+        if (request.sessionUserId && request.sessionUserId !== session?.user.id) throw new Error('Sessão alterada.');
+        if (session) {
+          config.headers.Authorization = `Bearer ${session.token}`;
+          request.sessionUserId = session.user.id;
+        }
+      }
+    } catch { throw new Error('Não foi possível aceder à sessão segura.'); }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+let refreshPromise: Promise<string> | null = null;
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await safeRemoveItem('authToken');
-      await safeRemoveItem('user');
+    const original = error.config as SessionRequest | undefined;
+    if (error.response?.status === 401 && original && !publicAuth(original.url)) {
+      const session = await loadDemoSession();
+      if (original.sessionUserId !== session?.user.id) return Promise.reject(error);
+      const requestToken = String(original.headers.Authorization ?? '');
+      if (session && requestToken !== `Bearer ${session.token}` && !original.retried) {
+        original.retried = true;
+        return api(original);
+      }
+      if (!session) return Promise.reject(error);
+      if (original.retried || !session.refreshToken) {
+        await clearDemoSession();
+        return Promise.reject(error);
+      }
+      try {
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken: session.refreshToken }, { timeout: 15000 });
+            if ((await loadDemoSession())?.token !== session.token) throw new Error('Sessão alterada.');
+            if (typeof response.data.token !== 'string' || !response.data.token) throw new Error('Token inválido.');
+            await saveDemoSession({ ...session, token: response.data.token,
+              refreshToken: response.data.refreshToken ?? session.refreshToken });
+            return response.data.token as string;
+          })().finally(() => { refreshPromise = null; });
+        }
+        await refreshPromise;
+        original.retried = true;
+        return api(original);
+      } catch (refreshError) {
+        if (axios.isAxiosError(refreshError) && [400, 401, 403].includes(refreshError.response?.status ?? 0)) {
+          if ((await loadDemoSession())?.token === session.token) await clearDemoSession();
+        }
+        return Promise.reject(refreshError);
+      }
     }
     return Promise.reject(error);
   }
@@ -36,15 +79,15 @@ export const authApi = {
     api.post('/auth/login', credentials),
   register: (data: { nome: string; email: string; telefone: string; password: string; role: string }) =>
     api.post('/auth/register', data),
-  getProfile: () => api.get('/auth/me'),
+  getProfile: async () => api.get('/auth/me', { headers: { Authorization: `Bearer ${(await loadDemoSession())?.token ?? ''}` } }),
   updateProfile: (data: { name?: string; phone?: string; avatar?: string }) =>
     api.patch('/users/me', data),
-  logout: () => api.post('/auth/logout'),
+  logout: async () => api.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${(await loadDemoSession())?.token ?? ''}` }, timeout: 5000 }),
   requestOtp: (telefone: string) => api.post('/auth/otp/request', { telefone }),
   verifyOtp: (telefone: string, codigo: string) =>
     api.post('/auth/otp/verify', { telefone, codigo }),
   refresh: (refreshToken: string) =>
-    api.post('/auth/refresh', {}, { headers: { Authorization: `Bearer ${refreshToken}` } }),
+    api.post('/auth/refresh', { refreshToken }),
 };
 
 export const restaurantApi = {

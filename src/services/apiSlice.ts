@@ -2,7 +2,8 @@ import {
   createApi,
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query/react';
-import { safeGetItem } from '../utils/storage';
+import axios from 'axios';
+import http from './api';
 
 import { BASE_URL } from './api';
 import type {
@@ -72,29 +73,16 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithAuth = async (args: Parameters<typeof rawBaseQuery>[0], api: Parameters<typeof rawBaseQuery>[1], extraOptions: Parameters<typeof rawBaseQuery>[2]) => {
-  const token = await safeGetItem('authToken');
-
-  if (!token) {
-    return rawBaseQuery(args, api, extraOptions);
+  const request = typeof args === 'string' ? { url: args } : args;
+  try {
+    const response = await http.request({ url: request.url, method: request.method ?? 'GET',
+      data: request.body, params: request.params, signal: api.signal,
+      headers: request.headers as Record<string, string> | undefined });
+    return { data: response.data };
+  } catch (error) {
+    return { error: { status: axios.isAxiosError(error) ? error.response?.status ?? 'FETCH_ERROR' : 'CUSTOM_ERROR',
+      data: { message: 'Não foi possível concluir o pedido ao servidor.' } } };
   }
-
-  const requestArgs =
-    typeof args === 'string'
-      ? {
-          url: args,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      : {
-          ...args,
-          headers: {
-            ...(args.headers || {}),
-            Authorization: `Bearer ${token}`,
-          },
-        };
-
-  return rawBaseQuery(requestArgs, api, extraOptions);
 };
 
 export const apiSlice = createApi({

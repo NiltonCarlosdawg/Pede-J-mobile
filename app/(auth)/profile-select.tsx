@@ -146,10 +146,14 @@ export default function ProfileSelectScreen() {
 
   function handleContinue() {
     if (selectedRole) {
-      router.push({
-        pathname: "/(auth)/login",
-        params: { role: selectedRole },
-      });
+      if (selectedRole === "client") {
+        router.push({ pathname: "/(auth)/register", params: { role: "cliente" } });
+      } else {
+        router.push({
+          pathname: "/(auth)/login",
+          params: { role: selectedRole },
+        });
+      }
     }
   }
 

@@ -164,15 +164,19 @@ export default function TrackingScreen() {
     return () => unsubscribe?.();
   }, [selectedOrder?.id]);
 
-  // Fallback de simulação só para pedidos locais / sem lastKnown
+  const isLocalOrder = Boolean(selectedOrder?.id.startsWith("local-"));
+  const hasRealLocation =
+    routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
+  const lastKnownAgeMs = hasRealLocation
+    ? Date.now() - new Date(routeInfo!.lastKnown.timestamp).getTime()
+    : null;
+
+  // Simulação apenas para pedidos locais (demonstração offline). Pedidos reais nunca inventam posição.
   useEffect(() => {
-    const hasRealLocation =
-      routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
-    if (!selectedOrder || selectedOrder.status !== "delivering" || hasRealLocation) {
+    if (!selectedOrder || !isLocalOrder || selectedOrder.status !== "delivering" || hasRealLocation) {
       setDriverProgress(0);
       return;
     }
-
     const interval = setInterval(() => {
       setDriverProgress((prev) => {
         const next = prev + 0.02;
@@ -184,9 +188,8 @@ export default function TrackingScreen() {
         return next;
       });
     }, 2000);
-
     return () => clearInterval(interval);
-  }, [selectedOrder?.id, selectedOrder?.status, restaurantLocation, customerLocation, routeInfo?.lastKnown.latitude]);
+  }, [selectedOrder?.id, selectedOrder?.status, restaurantLocation, customerLocation, routeInfo?.lastKnown.latitude, isLocalOrder, hasRealLocation]);
 
   const distance = calculateDistance(driverLocation, customerLocation);
   const estimatedMinutes = estimateDeliveryTime(distance);
@@ -593,19 +596,41 @@ export default function TrackingScreen() {
             <>
               <View style={styles.statusSection}>
                 <Text style={styles.arrivalTime}>
-                  {selectedOrder.status === "delivering"
+                  {selectedOrder.status === "delivering" && hasRealLocation
                     ? `Chegando em ${estimatedMinutes} min`
+                    : selectedOrder.status === "delivering"
+                    ? "Entregador a caminho"
                     : selectedOrder.status === "ready"
                     ? "Pronto para entrega"
                     : "Preparando seu pedido"}
                 </Text>
                 <Text style={styles.arrivalRange}>
-                  {selectedOrder.status === "delivering"
-                    ? `${distance.toFixed(1)} km restantes · `
-                    : ""}
-                  Pedido #{selectedOrder.id.slice(-4)} ·{" "}
-                  {STATUS_CONFIG[selectedOrder.status].label}
+                  {selectedOrder.status === "delivering" ? (
+                    hasRealLocation ? (
+                      <Text>
+                        {distance.toFixed(1)} km restantes · Pedido #{selectedOrder.id.slice(-4)} ·{" "}
+                        {STATUS_CONFIG[selectedOrder.status].label}
+                        {lastKnownAgeMs != null && lastKnownAgeMs > 30000
+                          ? ` · actualizado há ${Math.round(lastKnownAgeMs / 1000)}s`
+                          : ""}
+                      </Text>
+                    ) : (
+                      <Text>
+                        Pedido #{selectedOrder.id.slice(-4)} · {STATUS_CONFIG[selectedOrder.status].label} · Aguardando localização
+                        {isLocalOrder ? " (demonstração)" : ""}
+                      </Text>
+                    )
+                  ) : (
+                    <Text>
+                      Pedido #{selectedOrder.id.slice(-4)} · {STATUS_CONFIG[selectedOrder.status].label}
+                    </Text>
+                  )}
                 </Text>
+                {selectedOrder.status === "delivering" && !hasRealLocation && !isLocalOrder ? (
+                  <Text style={{ fontSize: 12, color: colors.neutral[500], marginTop: 8, textAlign: "center" }}>
+                    A localização em tempo real aparecerá quando o entregador iniciar a partilha e o servidor confirmar.
+                  </Text>
+                ) : null}
               </View>
 
               <View style={styles.restaurantCard}>

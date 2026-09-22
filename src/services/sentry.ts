@@ -1,7 +1,9 @@
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
-  dsn: 'https://YOUR_SENTRY_DSN_HERE@o123456.ingest.sentry.io/1234567',
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
+  enabled: Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN) && !__DEV__,
+  sendDefaultPii: false,
   environment: __DEV__ ? 'development' : 'production',
   tracesSampleRate: __DEV__ ? 0.0 : 0.2,
   profilesSampleRate: __DEV__ ? 0.0 : 0.1,
@@ -11,6 +13,12 @@ Sentry.init({
   maxBreadcrumbs: 50,
   beforeSend: (event) => {
     if (__DEV__) return null;
+    delete event.user;
+    delete event.request;
+    // HTTP errors can contain credentials, messages and payment payloads.
+    delete event.extra;
+    event.breadcrumbs = event.breadcrumbs?.filter((item) => item.category !== 'console')
+      .map((item) => ({ ...item, data: undefined }));
     return event;
   },
 });

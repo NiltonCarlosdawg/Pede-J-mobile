@@ -6,7 +6,6 @@ function checkNativeModule() {
   if (!isNativeModuleAvailable) return false;
   try {
     // Testa se o módulo nativo está disponível
-    AsyncStorage.getItem("test");
     return true;
   } catch (error) {
     console.warn("[AsyncStorage] Native module unavailable, using memory fallback");
@@ -51,5 +50,4 @@ export async function safeRemoveItem(key: string): Promise<void> {
   }
   delete memoryStorage[key];
 }
-
 

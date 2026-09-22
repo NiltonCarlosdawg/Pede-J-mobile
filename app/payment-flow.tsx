@@ -41,8 +41,7 @@ export default function PaymentFlowScreen() {
   const [timer, setTimer] = useState(180);
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const isFacipay = paymentMethod?.type === "facipay";
-  const isMulticaixa = paymentMethod?.type === "multicaixa_express";
+  const hasServerOrder = Boolean(order && orderId && !orderId.startsWith("local-"));
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
@@ -189,7 +188,7 @@ export default function PaymentFlowScreen() {
   }, [step, timer]);
 
   useEffect(() => {
-    if (step !== "awaiting" || !payment?.id || !orderId || orderId.startsWith("local-")) return;
+    if (step !== "awaiting" || !payment?.id || !orderId) return;
 
     const interval = setInterval(async () => {
       try {
@@ -230,42 +229,25 @@ export default function PaymentFlowScreen() {
           Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ])
       ).start();
-
-      if (orderId.startsWith("local-")) {
-        const timeout = setTimeout(() => {
-          setStep("success");
-          dispatch(updateTransactionStatus({
-            transactionId: `tx-${Date.now()}`,
-            status: "completed",
-            completedAt: new Date().toISOString(),
-          }));
-        }, 6000);
-
-        return () => clearTimeout(timeout);
-      }
     }
-  }, [dispatch, orderId, step]);
+  }, [step]);
+
+  const paymentIdempotencyKeyRef = useRef<string | null>(null);
 
   async function initiateBackendPayment(phoneNumber?: string) {
-    if (!paymentMethod) return;
-    const idempotencyKey = `${orderId}-${paymentMethod.type}-${Date.now()}`;
-
-    if (orderId.startsWith("local-")) {
-      dispatch(createPaymentTransaction({
-        orderId,
-        methodType: paymentMethod.type,
-        amount: order?.total ?? 0,
-        status: "processing",
-      }));
-      setStep(paymentMethod.type === "multicaixa_express" || paymentMethod.type === "facipay" ? "awaiting" : "processing");
-      if (paymentMethod.type !== "multicaixa_express" && paymentMethod.type !== "facipay") simulatePaymentProcessing();
+    if (!paymentMethod || !orderId) {
+      setError("Pedido sem confirmação do servidor. Volte ao checkout.");
+      setStep("confirm");
       return;
+    }
+    if (!paymentIdempotencyKeyRef.current) {
+      paymentIdempotencyKeyRef.current = `${orderId}-${paymentMethod.type}-${Date.now()}`;
     }
 
     const { data } = await paymentApi.initiate(
       orderId,
       { methodType: paymentMethod.type, phoneNumber },
-      idempotencyKey
+      paymentIdempotencyKeyRef.current
     );
     const nextPayment = data.payment as PaymentResponse;
     setPayment(nextPayment);
@@ -290,7 +272,10 @@ export default function PaymentFlowScreen() {
   }
 
   function handleConfirm() {
-    if (!paymentMethod) return;
+    if (!paymentMethod || !order) {
+      setError("Pedido não encontrado. Volte ao carrinho.");
+      return;
+    }
 
     if (paymentMethod.type === "multicaixa_express" || paymentMethod.type === "facipay") {
       setStep("phone");
@@ -300,14 +285,8 @@ export default function PaymentFlowScreen() {
     setStep("processing");
     initiateBackendPayment().catch((err) => {
       console.error("Failed to initiate payment:", err);
-      setError("Não foi possível iniciar o pagamento no servidor. A confirmar localmente.");
-      dispatch(createPaymentTransaction({
-        orderId,
-        methodType: paymentMethod.type,
-        amount: order?.total ?? 0,
-        status: "pending",
-      }));
-      simulatePaymentProcessing();
+      setError("Não foi possível iniciar o pagamento no servidor. Verifique a ligação e tente novamente.");
+      setStep("confirm");
     });
   }
 
@@ -315,31 +294,18 @@ export default function PaymentFlowScreen() {
   const ENTITY_NAME = "PedeJá Lda";
 
   function handlePhoneSubmit() {
-    if (phone.length < 9) {
-      setError("Número de telefone inválido");
+    const normalized = phone.replace(/\D/g, "");
+    if (normalized.length < 9) {
+      setError("Número de telefone inválido. Use 9 dígitos.");
       return;
     }
     setError("");
     setStep("processing");
-    initiateBackendPayment(`+244${phone}`).catch((err) => {
+    initiateBackendPayment(`+244${normalized.slice(-9)}`).catch((err) => {
       console.error("Failed to initiate phone payment:", err);
-      dispatch(createPaymentTransaction({
-        orderId,
-        methodType: paymentMethod?.type ?? "multicaixa_express",
-        amount: order?.total ?? 0,
-        status: "processing",
-      }));
-      setTimer(90);
-      setStep("awaiting");
+      setError("Não foi possível iniciar o pagamento. Tente novamente.");
+      setStep("phone");
     });
-  }
-
-  function simulatePaymentProcessing() {
-    setTimeout(() => {
-      setStep("success");
-      const tx = { transactionId: `tx-${Date.now()}`, status: "completed" as const, completedAt: new Date().toISOString() };
-      dispatch(updateTransactionStatus(tx));
-    }, 3000);
   }
 
   function handlePinConfirm() {
@@ -351,7 +317,8 @@ export default function PaymentFlowScreen() {
     setStep("processing");
     initiateBackendPayment().catch((err) => {
       console.error("Failed to initiate wallet payment:", err);
-      simulatePaymentProcessing();
+      setError("Não foi possível iniciar o pagamento. Verifique o PIN e tente novamente.");
+      setStep("confirm");
     });
   }
 

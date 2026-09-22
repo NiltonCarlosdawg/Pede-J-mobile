@@ -22,7 +22,7 @@ import { clearSession } from "../../src/store/authSlice";
 import { clearCart } from "../../src/store/cartSlice";
 import { clearDemoSession } from "../../src/services/demoAuth";
 import { requestLocationPermissions } from "../../src/services/location";
-import { deliveryApi } from "../../src/services/api";
+import { deliveryApi, authApi } from "../../src/services/api";
 import { LOCATION_SHARING_STORAGE_KEY } from "../../src/hooks/useDriverLocationPublisher";
 import { safeGetItem, safeSetItem } from "../../src/utils/storage";
 import { spacing } from "../../src/theme";
@@ -464,18 +464,13 @@ export default function DeliveryProfileScreen() {
   async function handleLogout() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     try {
+      await authApi.logout().catch(() => undefined);
+    } finally {
       await clearDemoSession();
       dispatch(clearCart());
       dispatch(clearSession());
-
       router.replace("/(auth)/login");
-    } catch (error) {
-      console.error("[logout] error:", error);
-    } finally {
       setIsLoggingOut(false);
     }
   }

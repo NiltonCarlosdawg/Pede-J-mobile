@@ -62,7 +62,17 @@
           "sounds": [],
           "mode": "production"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O PedeJá precisa da sua localização para mostrar o mapa e acompanhar entregas.",
+          "locationAlwaysPermission": "Permitir localização sempre para partilha durante entregas.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

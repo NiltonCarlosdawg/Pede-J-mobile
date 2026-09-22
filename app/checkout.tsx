@@ -48,11 +48,10 @@ import { selectPaymentMethods } from "../src/store/paymentMethodsSlice";
 import { useGetAddressesQuery } from "../src/hooks/useApi";
 import { formatPrice, spacing, typography } from "../src/theme";
 import type { Address, PaymentMethod } from "../src/types";
+import * as Crypto from "expo-crypto";
 
 const ROW_HIT_SLOP = { top: 14, bottom: 14, left: 10, right: 10 };
 const DEMO_RESTAURANT_ID = "5";
-const ORDER_SYNC_WARNING =
-  "O pedido foi registado neste dispositivo, mas a confirmação no servidor falhou. Ele ficará visível em 'Meus pedidos' enquanto tenta nova sincronização.";
 
 function buildLocalOrder(params: {
   items: ReturnType<typeof selectCartItems>;
@@ -448,7 +447,18 @@ export default function CheckoutScreen() {
 
   const doSubmitOrder = useCallback(
     async (retrying = false): Promise<SubmitResult> => {
-      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      if (!currentAddress?.id || !currentPayment) {
+        const validation: OrderMutationError = {
+          type: "VALIDATION_ERROR",
+          message: "Selecione endereço e método de pagamento.",
+        };
+        setOrderError(validation);
+        return { error: validation, fatal: true };
+      }
+      let idempotencyKey = retryPayloadRef.current?.idempotencyKey;
+      if (!retrying || !idempotencyKey) {
+        idempotencyKey = Crypto.randomUUID();
+      }
 
       const payload = {
         restaurantId: cartRestaurantId ?? DEMO_RESTAURANT_ID,
@@ -456,8 +466,9 @@ export default function CheckoutScreen() {
           productId: item.id,
           quantity: item.quantity,
         })),
-        addressId: currentAddress?.id ?? "",
-        paymentMethod: `${currentPayment?.type ?? ""}:${currentPayment?.label ?? ""}`,
+        addressId: currentAddress.id,
+        paymentMethod: `${currentPayment.type}:${currentPayment.label}`,
+        ...(appliedCoupon ? { cupomAplicado: appliedCoupon.code } : {}),
       };
 
       retryPayloadRef.current = { payload, idempotencyKey };
@@ -472,49 +483,31 @@ export default function CheckoutScreen() {
           data && typeof data === "object" && "order" in data
             ? (data as { order?: { id?: unknown } }).order
             : data;
-        return {
-          remoteId:
-            remoteOrder && typeof remoteOrder === "object" && "id" in remoteOrder
-              ? String((remoteOrder as { id: unknown }).id)
-              : undefined,
-        };
+        const remoteId =
+          remoteOrder && typeof remoteOrder === "object" && "id" in remoteOrder
+            ? String((remoteOrder as { id: unknown }).id)
+            : undefined;
+        if (!remoteId) throw new Error("Resposta do servidor sem identificador do pedido.");
+        return { remoteId };
       } catch (error) {
         const classified = classifyOrderError(error);
-        Sentry.captureException(error);
-
-        if (
-          !retrying &&
-          (classified.type === "SERVER_ERROR" || classified.type === "TIMEOUT_ERROR" || classified.type === "NETWORK_ERROR")
-        ) {
-          setOrderError(classified);
-          return { error: classified };
+        if (classified.type !== "VALIDATION_ERROR" && classified.type !== "CONFLICT_ERROR") {
+          Sentry.captureException(error);
         }
-
-        if (classified.type === "VALIDATION_ERROR" || classified.type === "CONFLICT_ERROR") {
-          setOrderError(classified);
-          return { error: classified, fatal: true };
-        }
-
-        return { error: classified };
+        setOrderError(classified);
+        const fatal = classified.type === "VALIDATION_ERROR" || classified.type === "CONFLICT_ERROR";
+        return { error: classified, fatal };
       }
     },
-    [currentAddress, currentPayment, cartRestaurantId, items, submitMutation]
+    [currentAddress, currentPayment, cartRestaurantId, items, submitMutation, appliedCoupon]
   );
 
   const handleConfirmOrder = async () => {
     if (!hasItems || !currentAddress || !currentPayment || submitMutation.isPending) return;
-
     setRetryCount(0);
-
-    const result = await doSubmitOrder();
-
-    if (result.fatal) {
-      return;
-    }
-
-    const orderId = result.remoteId ?? `local-${Date.now()}`;
-    const apiFailed = !!result.error;
-
+    retryPayloadRef.current = null;
+    const result = await doSubmitOrder(false);
+    if (result.error || !result.remoteId) return;
     const order = buildLocalOrder({
       items,
       address: currentAddress,
@@ -523,34 +516,22 @@ export default function CheckoutScreen() {
       deliveryFee,
       discount,
       total,
-      orderId,
+      orderId: result.remoteId,
     });
-
     dispatch(addOrder(order));
     dispatch(clearCart());
-
     await notifyOrderConfirmed(order.id, "Restaurante");
-
     router.push({
       pathname: "/payment-flow",
-      params: {
-        orderId: order.id,
-        methodId: currentPayment?.id ?? "",
-      },
+      params: { orderId: order.id, methodId: currentPayment.id },
     });
   };
 
   const handleRetry = async () => {
     if (!retryPayloadRef.current || !currentAddress || !currentPayment || submitMutation.isPending) return;
-
     setRetryCount((prev) => prev + 1);
-
     const result = await doSubmitOrder(true);
-    if (result.fatal) return;
-
-    const orderId = result.remoteId ?? `local-${Date.now()}`;
-    const apiFailed = !!result.error;
-
+    if (result.error || !result.remoteId) return;
     const order = buildLocalOrder({
       items,
       address: currentAddress,
@@ -559,20 +540,14 @@ export default function CheckoutScreen() {
       deliveryFee,
       discount,
       total,
-      orderId,
+      orderId: result.remoteId,
     });
-
     dispatch(addOrder(order));
     dispatch(clearCart());
-
     await notifyOrderConfirmed(order.id, "Restaurante");
-
     router.push({
       pathname: "/payment-flow",
-      params: {
-        orderId: order.id,
-        methodId: currentPayment?.id ?? "",
-      },
+      params: { orderId: order.id, methodId: currentPayment.id },
     });
   };
 
@@ -820,7 +795,7 @@ export default function CheckoutScreen() {
           )}
         </ScrollView>
 
-        {hasItems && paymentMethods.length > 0 ? (
+          {hasItems && paymentMethods.length > 0 ? (
             <SafeAreaView edges={["bottom"]} style={styles.footerBar}>
               {orderError ? (
                 <View style={{ gap: spacing.sm }}>
@@ -870,7 +845,7 @@ export default function CheckoutScreen() {
                       <View style={{ flexDirection: "row", gap: spacing.sm }}>
                         <View style={{ flex: 1 }}>
                           <Button
-                            title="Tentar novamente"
+                            title={`Tentar novamente${retryCount ? ` (${retryCount})` : ""}`}
                             onPress={handleRetry}
                             loading={submitMutation.isPending}
                             variant="secondary"
@@ -878,8 +853,8 @@ export default function CheckoutScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Button
-                            title="Registar localmente"
-                            onPress={handleConfirmOrder}
+                            title="Alterar dados"
+                            onPress={() => setOrderError(null)}
                             disabled={submitMutation.isPending}
                             variant="ghost"
                           />
@@ -890,8 +865,8 @@ export default function CheckoutScreen() {
                   {(orderError.type === "VALIDATION_ERROR" ||
                     orderError.type === "CONFLICT_ERROR") && (
                     <Button
-                      title="Voltar"
-                      onPress={() => router.back()}
+                      title="Corrigir dados"
+                      onPress={() => setOrderError(null)}
                       variant="ghost"
                     />
                   )}
@@ -904,6 +879,11 @@ export default function CheckoutScreen() {
                   loading={confirming}
                 />
               )}
+              {orderError && orderError.type !== "VALIDATION_ERROR" && orderError.type !== "CONFLICT_ERROR" ? (
+                <Text style={{ ...typography.bodySm, color: colors.neutral[500], marginTop: spacing.sm, textAlign: "center" }}>
+                  O carrinho foi preservado. Use a mesma tentativa para evitar duplicação (idempotência).
+                </Text>
+              ) : null}
             </SafeAreaView>
           ) : null}
       </KeyboardAvoidingView>

@@ -139,9 +139,10 @@ async function bindCallKeepListeners() {
   });
 
   RNCallKeep.addEventListener('didPerformSetMutedCallAction', ({ callUUID, muted }) => {
-    if (activeCall?.uuid === callUUID) {
-      activeCall = { ...activeCall, muted: Boolean(muted) };
-      void persistActiveCall(activeCall);
+    if (activeCall && activeCall.uuid === callUUID) {
+      const next: ActiveVoipCall = { ...activeCall, muted: Boolean(muted) };
+      activeCall = next;
+      void persistActiveCall(next);
     }
   });
 

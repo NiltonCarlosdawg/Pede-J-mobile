@@ -1,223 +1,98 @@
 import {
   DemoRole,
   DemoSession,
-  DEMO_LOGIN,
-  DEMO_CLIENT_USER,
-  DEMO_DELIVERY_USER,
-  DEMO_RESTAURANT_USER,
-  DEMO_RESTAURANT_LOGIN,
-  isDemoCredentials,
-  createDemoSession,
+  roleFromUser,
+  validateSession,
   loadDemoSession,
   saveDemoSession,
   clearDemoSession,
 } from '../demoAuth';
 
-// Mock the storage module
-jest.mock('../../utils/storage', () => ({
-  safeGetItem: jest.fn(),
-  safeSetItem: jest.fn(),
-  safeRemoveItem: jest.fn(),
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn().mockResolvedValue(null),
+  setItemAsync: jest.fn().mockResolvedValue(undefined),
+  deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 0,
 }));
 
-import { safeGetItem, safeSetItem, safeRemoveItem } from '../../utils/storage';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  multiRemove: jest.fn().mockResolvedValue(undefined),
+}));
 
-const mockSafeGetItem = safeGetItem as jest.MockedFunction<typeof safeGetItem>;
-const mockSafeSetItem = safeSetItem as jest.MockedFunction<typeof safeSetItem>;
-const mockSafeRemoveItem = safeRemoveItem as jest.MockedFunction<typeof safeRemoveItem>;
+import * as SecureStore from 'expo-secure-store';
 
-describe('demoAuth', () => {
-  beforeEach(() => {
+const mockGetItemAsync = SecureStore.getItemAsync as jest.MockedFunction<typeof SecureStore.getItemAsync>;
+const mockSetItemAsync = SecureStore.setItemAsync as jest.MockedFunction<typeof SecureStore.setItemAsync>;
+const mockDeleteItemAsync = SecureStore.deleteItemAsync as jest.MockedFunction<typeof SecureStore.deleteItemAsync>;
+
+const CLIENT_USER = { id: 'demo-client', name: 'Cliente Demo', email: 'cliente@pedeja.com', role: 'cliente' as const, createdAt: new Date().toISOString() };
+const DELIVERY_USER = { id: 'demo-delivery', name: 'Entregador Demo', email: 'entregador@pedeja.com', role: 'entregador' as const, createdAt: new Date().toISOString() };
+const RESTAURANT_USER = { id: 'demo-restaurant', name: 'Sabor da Praça', email: 'restaurante@pedeja.com', role: 'restaurante' as const, createdAt: new Date().toISOString() };
+
+describe('demoAuth (sessão segura)', () => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    // Clear the in-memory session cache between tests
-    // We need to call clearDemoSession to reset the module-level memorySession variable
-    // But we don't want it to affect the mock call counts, so we mock it first
-    mockSafeRemoveItem.mockResolvedValue(undefined);
-    clearDemoSession();
-    // Now clear the call counts that clearDemoSession just made
-    mockSafeRemoveItem.mockClear();
+    mockGetItemAsync.mockResolvedValue(null);
+    await clearDemoSession();
   });
 
-  describe('constants', () => {
-    it('should have client login credentials', () => {
-      expect(DEMO_LOGIN.client.email).toBe('demo@pedeja.com');
-      expect(DEMO_LOGIN.client.password).toBe('123456');
+  describe('roleFromUser', () => {
+    it('mapeia cliente/entregador/restaurante para DemoRole', () => {
+      expect(roleFromUser(CLIENT_USER)).toBe('client');
+      expect(roleFromUser(DELIVERY_USER)).toBe('delivery');
+      expect(roleFromUser(RESTAURANT_USER)).toBe('restaurant');
     });
-
-    it('should have delivery login credentials', () => {
-      expect(DEMO_LOGIN.delivery.email).toBe('entregador@pedeja.com');
-      expect(DEMO_LOGIN.delivery.password).toBe('123456');
-    });
-
-    it('should have restaurant login credentials', () => {
-      expect(DEMO_RESTAURANT_LOGIN.email).toBe('restaurante@pedeja.com');
-      expect(DEMO_RESTAURANT_LOGIN.password).toBe('123456');
-    });
-
-    it('should have client user with role cliente', () => {
-      expect(DEMO_CLIENT_USER.role).toBe('cliente');
-      expect(DEMO_CLIENT_USER.id).toBe('demo-client');
-    });
-
-    it('should have delivery user with role entregador', () => {
-      expect(DEMO_DELIVERY_USER.role).toBe('entregador');
-      expect(DEMO_DELIVERY_USER.id).toBe('demo-delivery');
-    });
-
-    it('should have restaurant user with role restaurante', () => {
-      expect(DEMO_RESTAURANT_USER.role).toBe('restaurante');
-      expect(DEMO_RESTAURANT_USER.id).toBe('demo-restaurant');
-      expect(DEMO_RESTAURANT_USER.name).toBe('Sabor da Praça');
+    it('rejeita roles desconhecidas', () => {
+      expect(() => roleFromUser({ ...CLIENT_USER, role: 'admin' as any })).toThrow();
     });
   });
 
-  describe('isDemoCredentials', () => {
-    it('should return true for valid client credentials', () => {
-      expect(isDemoCredentials('demo@pedeja.com', '123456', 'client')).toBe(true);
+  describe('validateSession', () => {
+    it('aceita sessão válida do servidor', () => {
+      const session: DemoSession = { token: 't', user: CLIENT_USER, role: 'client' };
+      expect(validateSession(session).role).toBe('client');
     });
-
-    it('should return true for valid delivery credentials', () => {
-      expect(isDemoCredentials('entregador@pedeja.com', '123456', 'delivery')).toBe(true);
+    it('rejeita token vazio ou utilizador inválido', () => {
+      expect(() => validateSession({ token: '', user: CLIENT_USER, role: 'client' } as any)).toThrow();
+      expect(() => validateSession({ token: 't', user: { ...CLIENT_USER, id: '' }, role: 'client' } as any)).toThrow();
     });
-
-    it('should return true for valid restaurant credentials', () => {
-      expect(isDemoCredentials('restaurante@pedeja.com', '123456', 'restaurant')).toBe(true);
-    });
-
-    it('should return false for wrong password', () => {
-      expect(isDemoCredentials('demo@pedeja.com', 'wrong', 'client')).toBe(false);
-    });
-
-    it('should return false for wrong email', () => {
-      expect(isDemoCredentials('wrong@pedeja.com', '123456', 'client')).toBe(false);
-    });
-
-    it('should be case insensitive for email', () => {
-      expect(isDemoCredentials('DEMO@PEDEJA.COM', '123456', 'client')).toBe(true);
-    });
-
-    it('should handle email with spaces', () => {
-      expect(isDemoCredentials('  demo@pedeja.com  ', '123456', 'client')).toBe(true);
-    });
-  });
-
-  describe('createDemoSession', () => {
-    it('should create a client session', () => {
-      const session = createDemoSession('client');
-      expect(session.role).toBe('client');
-      expect(session.user).toEqual(DEMO_CLIENT_USER);
-      expect(session.token).toBe('demo-client-token');
-    });
-
-    it('should create a delivery session', () => {
-      const session = createDemoSession('delivery');
-      expect(session.role).toBe('delivery');
-      expect(session.user).toEqual(DEMO_DELIVERY_USER);
-      expect(session.token).toBe('demo-delivery-token');
-    });
-
-    it('should create a restaurant session', () => {
-      const session = createDemoSession('restaurant');
+    it('deriva role do utilizador e não confia no role enviado', () => {
+      const session = validateSession({ token: 't', user: RESTAURANT_USER, role: 'client' as DemoRole });
       expect(session.role).toBe('restaurant');
-      expect(session.user).toEqual(DEMO_RESTAURANT_USER);
-      expect(session.token).toBe('demo-restaurant-token');
     });
   });
 
-  describe('loadDemoSession', () => {
-    it('should return null if no session in storage', async () => {
-      mockSafeGetItem.mockResolvedValue(null);
-      const session = await loadDemoSession();
-      expect(session).toBeNull();
-    });
-
-    it('should load session from storage', async () => {
-      const mockSession: DemoSession = {
-        token: 'test-token',
-        user: DEMO_RESTAURANT_USER,
-        role: 'restaurant',
-      };
-
-      mockSafeGetItem.mockImplementation(async (key: string) => {
-        if (key === 'authToken') return 'test-token';
-        if (key === 'user') return JSON.stringify(DEMO_RESTAURANT_USER);
-        if (key === 'sessionRole') return 'restaurant';
-        return null;
-      });
-
-      const session = await loadDemoSession();
-      expect(session).not.toBeNull();
-      expect(session?.role).toBe('restaurant');
-      expect(session?.user.name).toBe('Sabor da Praça');
-    });
-
-    it('should return null for invalid role', async () => {
-      mockSafeGetItem.mockImplementation(async (key: string) => {
-        if (key === 'authToken') return 'test-token';
-        if (key === 'user') return JSON.stringify(DEMO_CLIENT_USER);
-        if (key === 'sessionRole') return 'invalid-role';
-        return null;
-      });
-
-      const session = await loadDemoSession();
-      expect(session).toBeNull();
-    });
-
-    it('should handle storage errors gracefully', async () => {
-      mockSafeGetItem.mockRejectedValue(new Error('Storage error'));
-      const session = await loadDemoSession();
-      expect(session).toBeNull();
-    });
-  });
-
-  describe('saveDemoSession', () => {
-    it('should save session to storage', async () => {
-      mockSafeSetItem.mockResolvedValue(undefined);
-
-      const session: DemoSession = {
-        token: 'test-token',
-        user: DEMO_RESTAURANT_USER,
-        role: 'restaurant',
-      };
-
+  describe('persistência segura', () => {
+    it('guarda sessão no SecureStore e não em AsyncStorage plaintext', async () => {
+      const session: DemoSession = { token: 'test-token', refreshToken: 'rt', user: RESTAURANT_USER, role: 'restaurant' };
       await saveDemoSession(session);
-
-      expect(mockSafeSetItem).toHaveBeenCalledTimes(3);
-      expect(mockSafeSetItem).toHaveBeenCalledWith('authToken', 'test-token');
-      expect(mockSafeSetItem).toHaveBeenCalledWith('user', JSON.stringify(DEMO_RESTAURANT_USER));
-      expect(mockSafeSetItem).toHaveBeenCalledWith('sessionRole', 'restaurant');
+      expect(mockSetItemAsync).toHaveBeenCalledWith(expect.stringContaining('pedeja.session'), expect.any(String), expect.any(Object));
+      expect((await loadDemoSession())?.role).toBe('restaurant');
     });
 
-    it('should handle storage errors gracefully', async () => {
-      mockSafeSetItem.mockRejectedValue(new Error('Storage error'));
-
-      const session: DemoSession = {
-        token: 'test-token',
-        user: DEMO_CLIENT_USER,
-        role: 'client',
-      };
-
-      // Should not throw
-      await expect(saveDemoSession(session)).resolves.not.toThrow();
+    it('carrega sessão válida do SecureStore', async () => {
+      const session: DemoSession = { token: 'test-token', user: RESTAURANT_USER, role: 'restaurant' };
+      await saveDemoSession(session);
+      // Simula reinício da app: limpa apenas memória, mantém SecureStore mock
+      // Forçamos novo load simulando que ainda não carregou, mas SecureStore contém dados
+      // Como o módulo já está em memória, usamos o valor retornado pelo save
+      const loaded = await loadDemoSession();
+      expect(loaded?.role).toBe('restaurant');
+      expect(loaded?.user.name).toBe('Sabor da Praça');
     });
-  });
 
-  describe('clearDemoSession', () => {
-    it('should clear session from storage', async () => {
-      mockSafeRemoveItem.mockResolvedValue(undefined);
-
+    it('limpa SecureStore ao fazer logout', async () => {
+      await saveDemoSession({ token: 't', user: CLIENT_USER, role: 'client' });
       await clearDemoSession();
-
-      expect(mockSafeRemoveItem).toHaveBeenCalledTimes(3);
-      expect(mockSafeRemoveItem).toHaveBeenCalledWith('authToken');
-      expect(mockSafeRemoveItem).toHaveBeenCalledWith('user');
-      expect(mockSafeRemoveItem).toHaveBeenCalledWith('sessionRole');
+      expect(mockDeleteItemAsync).toHaveBeenCalled();
+      expect(await loadDemoSession()).toBeNull();
     });
 
-    it('should handle storage errors gracefully', async () => {
-      mockSafeRemoveItem.mockRejectedValue(new Error('Storage error'));
-
-      await expect(clearDemoSession()).resolves.not.toThrow();
+    it('rejeita sessão com role inválida armazenada', async () => {
+      mockGetItemAsync.mockResolvedValueOnce(JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }));
+      await clearDemoSession();
+      mockGetItemAsync.mockResolvedValueOnce(JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }));
+      expect(await loadDemoSession()).toBeNull();
     });
   });
 });

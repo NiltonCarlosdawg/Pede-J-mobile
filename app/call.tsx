@@ -33,15 +33,20 @@ export default function CallScreen() {
   const callerName = params.callerName ?? active?.callerName ?? "Chamada PedeJá";
   const orderId = params.orderId ?? active?.orderId ?? "";
   const direction = params.direction ?? active?.direction ?? "outgoing";
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     initializeCallAudio();
-    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => {
-      clearInterval(timer);
       cleanupCallAudio();
     };
   }, []);
+
+  useEffect(() => {
+    if (!connected) return;
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [connected]);
 
   const styles = useMemo(
     () =>
@@ -153,16 +158,32 @@ export default function CallScreen() {
       <View style={styles.content}>
         <View style={styles.top}>
           <Text style={styles.status}>
-            {direction === "incoming" ? "Chamada recebida" : "A ligar…"}
+            {!connected
+              ? direction === "incoming"
+                ? "Chamada recebida"
+                : "A ligar…"
+              : "Em chamada"}
           </Text>
           <Text style={styles.name}>{callerName}</Text>
           <Text style={styles.meta}>
             Pedido #{orderId ? orderId.slice(-4) : "----"} · VoIP
+            {!connected ? " · a aguardar atendimento real" : ""}
           </Text>
           <View style={styles.avatar}>
             <MaterialCommunityIcons name="account" size={56} color={colors.white} />
           </View>
-          <Text style={styles.timer}>{formatTimer(seconds)}</Text>
+          <Text style={styles.timer}>{connected ? formatTimer(seconds) : "--:--"}</Text>
+          {!connected ? (
+            <TouchableOpacity
+              style={{ marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: 12, backgroundColor: colors.white }}
+              onPress={() => setConnected(true)}
+            >
+              <Text style={{ color: colors.onSurface, fontWeight: "700" }}>Simular atendimento (backend deve confirmar)</Text>
+            </TouchableOpacity>
+          ) : null}
+          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: spacing.sm, textAlign: "center" }}>
+            O cronómetro só avança após atendimento confirmado pelo servidor/SDK de voz. Integrar provedor WebRTC/Twilio aqui.
+          </Text>
         </View>
 
         <View style={styles.controls}>

@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
 import { authApi } from "../../src/services/api";
-import { saveDemoSession } from "../../src/services/demoAuth";
+import { saveDemoSession, roleFromUser } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { clearSession, setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
@@ -219,14 +219,37 @@ export default function LoginScreen() {
         password,
       });
 
-      const { token, user } = response.data;
-      const sessionRole: "client" | "delivery" | "restaurant" = role;
+      const { token, refreshToken, user } = response.data;
+      const sessionRole = roleFromUser(user);
 
-      await saveDemoSession({ token, user, role: sessionRole });
+      await saveDemoSession({ token, refreshToken, user, role: sessionRole });
       dispatch(setSession({ token, user, role: sessionRole }));
     } catch (loginError: any) {
-      console.error("[auth] login failed", loginError);
-      const message = loginError?.response?.data?.message || "Email ou senha incorretos.";
+      const data = loginError?.response?.data;
+      const code = data?.code;
+      const message = data?.message || "Email ou senha incorretos.";
+      if (code === "PHONE_NOT_VERIFIED") {
+        setError("Conta ainda não verificada. A confirmar automaticamente...");
+        try {
+          await authApi.requestOtp(normalizedEmail).catch(() => authApi.requestOtp(email.trim()));
+        } catch {}
+        // tenta verificar via dev-code se estiver em dev
+        if (__DEV__) {
+          try {
+            const tel = email.trim();
+            // tenta como telefone também
+            const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone: tel } }).catch(() => null);
+            if (devRes?.data?.codigo) {
+              const verifyRes = await authApi.verifyOtp(tel, devRes.data.codigo);
+              const { token: t, refreshToken: rt, user: u } = verifyRes.data;
+              const sRole = roleFromUser(u);
+              await saveDemoSession({ token: t, refreshToken: rt, user: u, role: sRole });
+              dispatch(setSession({ token: t, user: u, role: sRole }));
+              return;
+            }
+          } catch {}
+        }
+      }
       setError(message);
       triggerShake();
     } finally {
@@ -295,6 +318,33 @@ export default function LoginScreen() {
               <Text style={[styles.roleText, role === "restaurant" && styles.roleTextActive]}>
                 Restaurante
               </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontSize: 12, color: colors.neutral[500], textAlign: "center", marginBottom: 4 }}>
+            O painel que verás depende da tua conta (cliente / entregador / restaurante), não do botão acima.
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+            <TouchableOpacity
+              onPress={() => { setEmail("restaurante@pedeja.com"); setPassword("123456"); setRole("restaurant"); }}
+              style={{ flex: 1, backgroundColor: colors.surfaceContainer, borderRadius: 10, padding: 8, alignItems: "center", borderWidth: 1, borderColor: colors.surfaceVariant }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.onSurface }}>Demo Restaurante</Text>
+              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>restaurante@pedeja.com</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setEmail("demo-ent@pedeja.ao"); setPassword("segredo123"); setRole("delivery"); }}
+              style={{ flex: 1, backgroundColor: colors.surfaceContainer, borderRadius: 10, padding: 8, alignItems: "center", borderWidth: 1, borderColor: colors.surfaceVariant }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.onSurface }}>Demo Entregador</Text>
+              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>demo-ent@pedeja.ao</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setEmail(""); setPassword(""); setRole("client"); }}
+              style={{ flex: 1, backgroundColor: colors.surfaceContainer, borderRadius: 10, padding: 8, alignItems: "center", borderWidth: 1, borderColor: colors.surfaceVariant }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.onSurface }}>Cliente</Text>
+              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>auto-registo</Text>
             </TouchableOpacity>
           </View>
 

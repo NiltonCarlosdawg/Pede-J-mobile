@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   Animated,
   Image,
@@ -18,14 +19,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/components/ui/Button";
 import { useTheme } from "../../src/hooks/useTheme";
 import { authApi } from "../../src/services/api";
-import { saveDemoSession } from "../../src/services/demoAuth";
+import { saveDemoSession, roleFromUser } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { setSession } from "../../src/store/authSlice";
 import { spacing } from "../../src/theme";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ role?: string }>();
+  const initialRole = params.role === "entregador" ? "entregador" : params.role === "restaurante" ? "restaurante" : "cliente";
   const { colors } = useTheme();
+  const [selectedRole, setSelectedRole] = useState<"cliente" | "entregador" | "restaurante">(initialRole as any);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -186,7 +190,7 @@ export default function RegisterScreen() {
     }
 
     if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+      setError("A palavra-passe deve ter pelo menos 6 caracteres.");
       triggerShake();
       return false;
     }
@@ -199,6 +203,10 @@ export default function RegisterScreen() {
 
     return true;
   };
+
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [pendingPhone, setPendingPhone] = useState("");
 
   async function handleRegister() {
     setError(null);
@@ -215,19 +223,95 @@ export default function RegisterScreen() {
         email: email.trim().toLowerCase(),
         telefone: phone.trim(),
         password,
-        role: "cliente",
+        role: selectedRole,
       });
 
-      const { token, user } = response.data;
+      // Backend devolve { user, requiresOtp } sem tokens — é preciso verificar OTP
+      if (response.data?.token && response.data?.user) {
+        const { token, refreshToken, user } = response.data;
+        const role = roleFromUser(user);
+        await saveDemoSession({ token, refreshToken, user, role });
+        dispatch(setSession({ token, user, role }));
+        router.replace("/(tabs)");
+        return;
+      }
 
-      await saveDemoSession({ token, user, role: "client" });
-      dispatch(setSession({ token, user, role: "client" }));
+      // Fluxo OTP (obrigatório no backend atual)
+      const telefone = phone.trim();
+      setPendingPhone(telefone);
+      await authApi.requestOtp(telefone);
+      // Em dev, tenta obter o código automaticamente via /auth/otp/dev-code
+      try {
+        const { data } = await authApi.verifyOtp(telefone, "000000").catch(() => ({ data: null }));
+        // Se chegou aqui, não há auto-verify — tenta buscar dev-code
+        if (__DEV__) {
+          const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone } }).catch(() => null);
+          if (devRes?.data?.codigo) {
+            const verifyRes = await authApi.verifyOtp(telefone, devRes.data.codigo);
+            const { token, refreshToken, user } = verifyRes.data;
+            const role = roleFromUser(user);
+            await saveDemoSession({ token, refreshToken, user, role });
+            dispatch(setSession({ token, user, role }));
+            router.replace("/(tabs)");
+            return;
+          }
+        }
+      } catch {}
+      setOtpStep(true);
+      setError("Enviámos um código por SMS. Em desenvolvimento, verifica o console do backend ou usa o código de teste.");
+    } catch (err: any) {
+      const data = err?.response?.data;
+      const message = data?.message || (Array.isArray(data?.message) ? data.message.join(", ") : null) || "Não foi possível criar a conta. Tente novamente.";
+      if (data?.code === "EMAIL_TAKEN" || data?.code === "PHONE_TAKEN") {
+        setError(message);
+      } else {
+        setError(message);
+      }
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      setError("Insira o código de 6 dígitos enviado por SMS.");
+      triggerShake();
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await authApi.verifyOtp(pendingPhone, otpCode.trim());
+      const { token, refreshToken, user } = res.data;
+      const role = roleFromUser(user);
+      await saveDemoSession({ token, refreshToken, user, role });
+      dispatch(setSession({ token, user, role }));
       router.replace("/(tabs)");
     } catch (err: any) {
-      console.error("[register] error:", err);
-      const message = err?.response?.data?.message || "Não foi possível criar a conta. Tente novamente.";
-      setError(message);
+      const msg = err?.response?.data?.message || "Código inválido ou expirado. Peça um novo.";
+      setError(msg);
       triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendOtp() {
+    if (!pendingPhone) return;
+    setLoading(true);
+    try {
+      await authApi.requestOtp(pendingPhone);
+      setError(null);
+      // Tenta auto-preencher em dev
+      if (__DEV__) {
+        try {
+          const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone: pendingPhone } });
+          if (devRes?.data?.codigo) setOtpCode(devRes.data.codigo);
+        } catch {}
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Não foi possível reenviar o código.");
     } finally {
       setLoading(false);
     }
@@ -254,6 +338,34 @@ export default function RegisterScreen() {
           </View>
 
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.neutral[700], textAlign: "center" }}>Tipo de conta</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {[
+                { id: "cliente", label: "Cliente", icon: "person" },
+                { id: "entregador", label: "Entregador", icon: "bicycle" },
+                { id: "restaurante", label: "Restaurante", icon: "storefront" },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => setSelectedRole(opt.id as any)}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: selectedRole === opt.id ? colors.primary[500] : colors.neutral[200],
+                    backgroundColor: selectedRole === opt.id ? colors.primary[500] : colors.surfaceContainer,
+                  }}
+                >
+                  <MaterialCommunityIcons name={opt.icon as any} size={16} color={selectedRole === opt.id ? colors.white : colors.neutral[500]} />
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: selectedRole === opt.id ? colors.white : colors.neutral[500] }}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <View style={styles.inputWrapper}>
               <Ionicons
                 name="person-outline"
@@ -369,12 +481,40 @@ export default function RegisterScreen() {
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Button
-              title={loading ? "Criando conta..." : "Criar conta"}
-              onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
-            />
+            {!otpStep ? (
+              <Button
+                title={loading ? "Criando conta..." : "Criar conta"}
+                onPress={handleRegister}
+                loading={loading}
+                disabled={loading}
+              />
+            ) : (
+              <>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="keypad-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Código de 6 dígitos"
+                    placeholderTextColor={colors.neutral[500]}
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!loading}
+                  />
+                </View>
+                <Button
+                  title={loading ? "Verificando..." : "Verificar código"}
+                  onPress={handleVerifyOtp}
+                  loading={loading}
+                  disabled={loading}
+                />
+                <TouchableOpacity onPress={handleResendOtp} disabled={loading} style={{ alignItems: "center", paddingVertical: 8 }}>
+                  <Text style={styles.footerLink}>Reenviar código</Text>
+                </TouchableOpacity>
+                <Text style={[styles.termsText, { textAlign: "center" }]}>Enviado para {pendingPhone}. Em dev, o código aparece no terminal do backend (SMS_PROVIDER=console).</Text>
+              </>
+            )}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Já tem conta? </Text>

@@ -328,16 +328,13 @@ export default function PerfilScreen() {
   async function handleLogout() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
-
     try {
-      await authApi.logout().catch(() => {});
+      await authApi.logout().catch(() => undefined);
+    } finally {
       await clearDemoSession();
       dispatch(clearCart());
       dispatch(clearSession());
       router.replace("/(auth)/login");
-    } catch (error) {
-      console.error("[logout] error:", error);
-    } finally {
       setIsLoggingOut(false);
     }
   }

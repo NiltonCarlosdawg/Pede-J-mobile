@@ -80,10 +80,13 @@ export default function RestaurantProfileScreen() {
 
   const handleLogout = useCallback(async () => {
     try {
+      const { authApi } = await import("../../src/services/api");
+      await authApi.logout().catch(() => undefined);
+    } finally {
       await clearDemoSession();
+      const { clearCart } = await import("../../src/store/cartSlice");
+      dispatch(clearCart());
       dispatch(clearSession());
-    } catch (err) {
-      console.error("[RestaurantProfile] logout error:", err);
     }
   }, [dispatch]);
 

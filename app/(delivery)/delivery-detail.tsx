@@ -12,37 +12,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
 import { Header } from "../../src/components/ui/Header";
-import { spacing } from "../../src/theme";
+import { spacing, formatPrice } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useDriverLocationPublisher } from "../../src/hooks/useDriverLocationPublisher";
 import { startVoipCall } from "../../src/services/voip";
-
-const DELIVERY_STATUS = [
-  { id: "accepted", label: "Pedido aceito", time: "14:30", completed: true },
-  { id: "picked", label: "Retirado do restaurante", time: "14:45", completed: true },
-  { id: "transit", label: "A caminho", time: "14:50", completed: true },
-  { id: "delivered", label: "Entregue", time: "15:10", completed: false },
-];
-
-const RESTAURANT_INFO = {
-  name: "Sabor da Praça",
-  address: "Rua das Flores, 123 - Centro",
-  phone: "+244 923 456 789",
-};
-
-const CUSTOMER_INFO = {
-  name: "Alexandre João",
-  address: "Rua da Mutamba, 45 - Apto 12",
-  phone: "+244 923 123 456",
-  notes: "Portão azul. Interfone 12.",
-};
+import { deliveryApi, orderApi } from "../../src/services/api";
+import type { Order } from "../../src/types";
 
 export default function DeliveryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ jobId?: string }>();
   const orderId = params.jobId ?? "";
   useDriverLocationPublisher(orderId || null);
-  const [currentStatus, setCurrentStatus] = useState("transit");
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { colors } = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
@@ -217,10 +202,67 @@ export default function DeliveryDetailScreen() {
     },
   }), [colors]);
 
-  function handleUpdateStatus() {
-    const statusIndex = DELIVERY_STATUS.findIndex((s) => s.id === currentStatus);
-    if (statusIndex < DELIVERY_STATUS.length - 1) {
-      setCurrentStatus(DELIVERY_STATUS[statusIndex + 1].id);
+  const fetchOrder = React.useCallback(async () => {
+    if (!orderId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setError(null);
+      const { data } = await deliveryApi.getDelivery(orderId).catch(() => orderApi.getById(orderId));
+      setOrder((data.order ?? data) as Order);
+    } catch (err) {
+      console.error("[delivery-detail] load error", err);
+      setError("Não foi possível carregar esta entrega. Verifique a ligação.");
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  React.useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  const statusOrder: Record<string, number> = {
+    pending: 0,
+    confirmed: 1,
+    preparing: 2,
+    ready: 3,
+    delivering: 3,
+    accepted: 1,
+    picked_up: 2,
+    in_transit: 3,
+    delivered: 4,
+  };
+  const deliveryStatus = (order?.status ?? "pending") as string;
+  const timeline = [
+    { id: "accepted", label: "Pedido atribuído" },
+    { id: "picked_up", label: "Retirado do restaurante" },
+    { id: "in_transit", label: "A caminho do cliente" },
+    { id: "delivered", label: "Entregue" },
+  ];
+
+  async function handleUpdateStatus() {
+    if (!order || updating) return;
+    const next =
+      deliveryStatus === "accepted" || deliveryStatus === "pending" || deliveryStatus === "confirmed" || deliveryStatus === "preparing" || deliveryStatus === "ready"
+        ? "picked_up"
+        : deliveryStatus === "picked_up"
+        ? "in_transit"
+        : deliveryStatus === "in_transit" || deliveryStatus === "delivering"
+        ? "delivered"
+        : null;
+    if (!next) return;
+    try {
+      setUpdating(true);
+      setError(null);
+      await deliveryApi.updateStatus(order.id, next);
+      setOrder({ ...order, status: next as Order["status"] });
+    } catch (err) {
+      console.error("[delivery-detail] status error", err);
+      setError("Não foi possível atualizar o estado. Tente novamente.");
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -228,20 +270,51 @@ export default function DeliveryDetailScreen() {
     router.back();
   }
 
-  const isDelivered = currentStatus === "delivered";
+  const isDelivered = deliveryStatus === "delivered";
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <Header title="Detalhe da Entrega" showBack showCart={false} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg }}>
+          <Text style={{ color: colors.neutral[500] }}>A carregar entrega…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !order) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <Header title="Detalhe da Entrega" showBack showCart={false} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg, gap: spacing.md }}>
+          <Text style={{ color: colors.error, textAlign: "center" }}>{error}</Text>
+          <Button title="Tentar novamente" onPress={fetchOrder} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Header title="Detalhe da Entrega" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+        {error ? (
+          <View style={{ backgroundColor: colors.secondary[100], padding: spacing.md, borderRadius: 12, marginBottom: spacing.md }}>
+            <Text style={{ color: colors.neutral[700] }}>{error}</Text>
+          </View>
+        ) : null}
         {/* Status Timeline */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Status da Entrega</Text>
+          <Text style={{ color: colors.neutral[500], marginBottom: spacing.md }}>
+            Pedido #{order?.id.slice(-4) ?? "----"} · {order?.status ?? "pendente"}
+          </Text>
           <View style={styles.timeline}>
-            {DELIVERY_STATUS.map((status, index) => {
-              const isActive = status.id === currentStatus;
-              const isCompleted = DELIVERY_STATUS.findIndex((s) => s.id === currentStatus) >= index;
+            {timeline.map((status, index) => {
+              const isActive = status.id === deliveryStatus;
+              const isCompleted = (statusOrder[deliveryStatus] ?? -1) >= statusOrder[status.id];
 
               return (
                 <View key={status.id} style={styles.timelineItem}>
@@ -257,7 +330,7 @@ export default function DeliveryDetailScreen() {
                         <MaterialCommunityIcons name="check" size={12} color={colors.white} />
                       )}
                     </View>
-                    {index < DELIVERY_STATUS.length - 1 && (
+                    {index < timeline.length - 1 && (
                       <View
                         style={[
                           styles.timelineLine,
@@ -275,7 +348,6 @@ export default function DeliveryDetailScreen() {
                     >
                       {status.label}
                     </Text>
-                    <Text style={styles.timelineTime}>{status.time}</Text>
                   </View>
                 </View>
               );
@@ -287,13 +359,15 @@ export default function DeliveryDetailScreen() {
         <View style={[styles.card, styles.earningsCard]}>
           <View style={styles.earningsRow}>
             <View>
-              <Text style={styles.earningsLabel}>Valor da entrega</Text>
-              <Text style={styles.earningsValue}>Kz 1.400</Text>
+              <Text style={styles.earningsLabel}>Total do pedido</Text>
+              <Text style={styles.earningsValue}>{order ? formatPrice(order.total) : "—"}</Text>
             </View>
-            <View style={styles.distanceBadge}>
-              <MaterialCommunityIcons name="map-marker-distance" size={16} color={colors.primary[500]} />
-              <Text style={styles.distanceText}>2.1 km</Text>
-            </View>
+            {order?.deliveryFee != null ? (
+              <View style={styles.distanceBadge}>
+                <MaterialCommunityIcons name="moped" size={16} color={colors.primary[500]} />
+                <Text style={styles.distanceText}>Taxa {formatPrice(order.deliveryFee)}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -305,21 +379,21 @@ export default function DeliveryDetailScreen() {
               <MaterialCommunityIcons name="store" size={20} color={colors.primary[500]} />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>{RESTAURANT_INFO.name}</Text>
-              <Text style={styles.infoText}>{RESTAURANT_INFO.address}</Text>
+              <Text style={styles.infoTitle}>{order?.restaurant.name ?? "Restaurante"}</Text>
+              <Text style={styles.infoText}>{order?.restaurant.description ?? order?.restaurant.cuisine ?? ""}</Text>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: spacing.md }}>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => startVoipCall(orderId)}
+              onPress={() => order && startVoipCall(order.id)}
             >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId } })}
+              onPress={() => order && router.push({ pathname: "/(delivery)/chat", params: { orderId: order.id } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -335,27 +409,23 @@ export default function DeliveryDetailScreen() {
               <MaterialCommunityIcons name="account" size={20} color={colors.primary[500]} />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>{CUSTOMER_INFO.name}</Text>
-              <Text style={styles.infoText}>{CUSTOMER_INFO.address}</Text>
+              <Text style={styles.infoTitle}>{order?.address.label ?? "Cliente"}</Text>
+              <Text style={styles.infoText}>
+                {[order?.address.address, order?.address.neighborhood, order?.address.city].filter(Boolean).join(" · ")}
+              </Text>
             </View>
           </View>
-          {CUSTOMER_INFO.notes && (
-            <View style={styles.notesBox}>
-              <MaterialCommunityIcons name="information" size={16} color={colors.secondary[500]} />
-              <Text style={styles.notesText}>{CUSTOMER_INFO.notes}</Text>
-            </View>
-          )}
           <View style={{ flexDirection: "row", gap: spacing.md }}>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => startVoipCall(orderId)}
+              onPress={() => order && startVoipCall(order.id)}
             >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => router.push({ pathname: "/(delivery)/chat", params: { orderId } })}
+              onPress={() => order && router.push({ pathname: "/(delivery)/chat", params: { orderId: order.id } })}
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -367,8 +437,16 @@ export default function DeliveryDetailScreen() {
         <View style={styles.actionContainer}>
           {!isDelivered ? (
             <Button
-              title={currentStatus === "accepted" ? "Marcar como retirado" : "Marcar como entregue"}
+              title={
+                deliveryStatus === "accepted" || deliveryStatus === "pending"
+                  ? "Confirmar recolha no restaurante"
+                  : deliveryStatus === "picked_up"
+                  ? "Iniciar entrega"
+                  : "Confirmar entrega ao cliente"
+              }
               onPress={handleUpdateStatus}
+              loading={updating}
+              disabled={updating || !order}
             />
           ) : (
             <Button
@@ -377,6 +455,9 @@ export default function DeliveryDetailScreen() {
               variant="secondary"
             />
           )}
+          <Text style={{ fontSize: 12, color: colors.neutral[500], marginTop: spacing.sm, textAlign: "center" }}>
+            Cada transição é validada no servidor e refletida para cliente e restaurante.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

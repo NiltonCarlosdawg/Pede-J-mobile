@@ -9,7 +9,7 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
-import { Platform, StatusBar, Text } from "react-native";
+import { Platform, StatusBar, Text, View, Button } from "react-native";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
@@ -19,7 +19,9 @@ import { Provider } from "react-redux";
 
 
 import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
-import { loadDemoSession } from "../src/services/demoAuth";
+import { loadDemoSession, clearDemoSession, saveDemoSession, onSessionChange } from "../src/services/demoAuth";
+import { authApi } from "../src/services/api";
+import axios from 'axios';
 import { initializeNotifications, setupNotificationListener } from "../src/services/notifications";
 import { initializeVoip, maybeHandleVoipNotificationData } from "../src/services/voip";
 import "../src/services/sentry";
@@ -39,7 +41,7 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 60_000, retry: 2 },
-    mutations: { retry: 1 },
+    mutations: { retry: false },
   },
 });
 
@@ -79,34 +81,47 @@ function RootLayoutNav() {
   const { initialized } = useAppSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
+  const [bootError, setBootError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
     (async () => {
-      // Initialize notifications + native VoIP (CallKit / ConnectionService / PushKit)
-      await initializeNotifications();
-      await initializeVoip();
-
-      const session = await loadDemoSession();
-
-      if (!isMounted) return;
-
-      if (session) {
-        dispatch(hydrateSession(session));
-      } else {
-        dispatch(clearSession());
+      try {
+        setBootError(false);
+        const session = await loadDemoSession();
+        if (session) {
+          const { data } = await authApi.getProfile();
+          if (!isMounted) return;
+          const current = await loadDemoSession();
+          if (current) await saveDemoSession({ ...current, user: data.user ?? data });
+        } else if (isMounted) dispatch(clearSession());
+        if (isMounted) setIsLoading(false);
+      } catch (error) {
+        if (!isMounted) return;
+        if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
+          await clearDemoSession();
+          setIsLoading(false);
+        } else {
+          setBootError(true);
+          await SplashScreen.hideAsync();
+        }
       }
-
-      dispatch(hydratePaymentMethods());
-
-      setIsLoading(false);
     })();
 
     return () => {
       isMounted = false;
     };
-  }, [dispatch]);
+  }, [dispatch, attempt]);
+
+  useEffect(() => onSessionChange(() => { queryClient.clear(); }), []);
+
+  if (bootError) return <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
+    <Text>Não foi possível verificar a sessão. Verifique a ligação e tente novamente.</Text>
+    <Button title="Tentar novamente" onPress={() => setAttempt((value) => value + 1)} />
+    <Button title="Entrar com outra conta" onPress={() => { void clearDemoSession().then(() => { setBootError(false); setIsLoading(false); }); }} />
+  </View>;
 
   const isReady = !isLoading && initialized;
 
@@ -136,19 +151,21 @@ function RootLayoutNavContent() {
   const { isDark, colors } = useTheme();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    dispatch(hydratePaymentMethods());
+    void initializeNotifications().catch(() => undefined);
+    void initializeVoip().catch(() => undefined);
+  }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
       router.replace("/(auth)/login" as never);
       return;
     }
-
     let target: string;
-    if (role === "delivery") {
-      target = "/(delivery)";
-    } else if (role === "restaurant") {
-      target = "/(restaurant)";
-    } else {
-      target = "/(tabs)";
-    }
+    if (role === "delivery") target = "/(delivery)";
+    else if (role === "restaurant") target = "/(restaurant)";
+    else target = "/(tabs)";
     router.replace(target as never);
   }, [isAuthenticated, role]);
 
@@ -189,6 +206,7 @@ function RootLayoutNavContent() {
           animation: "slide_from_right",
         }}
       >
+        <Stack.Protected guard={isAuthenticated && role === 'client'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: "modal" }} />
@@ -196,17 +214,27 @@ function RootLayoutNavContent() {
         <Stack.Screen name="endereco" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="search" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="payment-methods" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="call" options={{ headerShown: false, presentation: "fullScreenModal" }} />
         <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="avaliacao-entregador" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="payment-flow" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
         <Stack.Screen name="produto-modal" options={{ headerShown: false, presentation: "modal" }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated && role === 'delivery'}>
         <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated && role === 'restaurant'}>
         <Stack.Screen name="(restaurant)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated}>
+        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="call" options={{ headerShown: false, presentation: "fullScreenModal" }} />
+        <Stack.Screen name="modal" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!isAuthenticated}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>
   );

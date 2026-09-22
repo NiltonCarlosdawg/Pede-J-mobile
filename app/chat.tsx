@@ -87,11 +87,12 @@ export default function ChatScreen() {
   }, [messages.length]);
 
   async function handleSend(text: string = inputText.trim()) {
-    if (!text || !orderId) return;
+    const normalized = text.trim().slice(0, 500);
+    if (!normalized || !orderId || normalized.length < 1) return;
 
     setSending(true);
     try {
-      await orderApi.sendMessage(orderId, text, "texto");
+      await orderApi.sendMessage(orderId, normalized, "texto");
       setInputText("");
       setShowQuickMessages(false);
       await fetchMessages();
