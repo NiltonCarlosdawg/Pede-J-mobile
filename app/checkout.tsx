@@ -108,7 +108,11 @@ export default function CheckoutScreen() {
     { refetchOnFocus: true, refetchOnReconnect: true }
   );
 
-  const addresses: Address[] = apiAddresses?.data ?? [];
+  const addresses: Address[] = useMemo(() => {
+    if (Array.isArray(apiAddresses)) return apiAddresses as unknown as Address[];
+    if (Array.isArray((apiAddresses as any)?.data)) return (apiAddresses as any).data as Address[];
+    return [];
+  }, [apiAddresses]);
 
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedPayment, setSelectedPayment] = useState<string>("");

@@ -172,13 +172,14 @@ export const apiSlice = createApi({
         url: '/users/me/addresses',
         params: params || undefined,
       }),
-      providesTags: (result) =>
-        Array.isArray(result?.data)
-          ? [
-              ...result.data.map(({ id }) => ({ type: 'Address' as const, id })),
-              { type: 'Address' as const, id: 'LIST' },
-            ]
-          : [{ type: 'Address' as const, id: 'LIST' }],
+      providesTags: (result) => {
+        const list: Address[] | undefined = Array.isArray(result as unknown as Address[])
+          ? (result as unknown as Address[])
+          : (result as AddressPage | undefined)?.data;
+        return Array.isArray(list) && list.length
+          ? [...list.map(({ id }) => ({ type: 'Address' as const, id })), { type: 'Address' as const, id: 'LIST' }]
+          : [{ type: 'Address' as const, id: 'LIST' }];
+      },
     }),
     addAddress: builder.mutation<Address, AddAddressPayload>({
       query: (body) => ({

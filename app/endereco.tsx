@@ -1,17 +1,24 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location";
 
 import { useGetAddressesQuery } from "../src/hooks/useApi";
+import { userApi } from "../src/services/api";
 import { Header } from "../src/components/ui/Header";
 import { spacing, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
@@ -28,7 +35,80 @@ export default function AddressScreen() {
     refetchOnReconnect: true,
   });
 
-  const addresses: Address[] = apiAddresses?.data ?? [];
+  const addresses: Address[] = useMemo(() => {
+    if (Array.isArray(apiAddresses)) return apiAddresses as unknown as Address[];
+    if (Array.isArray((apiAddresses as any)?.data)) return (apiAddresses as any).data as Address[];
+    return [];
+  }, [apiAddresses]);
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formLabel, setFormLabel] = useState("Casa");
+  const [formAddress, setFormAddress] = useState("");
+  const [formNeighborhood, setFormNeighborhood] = useState("");
+  const [formCity, setFormCity] = useState("Luanda");
+  const [formLat, setFormLat] = useState("");
+  const [formLng, setFormLng] = useState("");
+  const [formDefault, setFormDefault] = useState(false);
+
+  const resetForm = useCallback(() => {
+    setFormLabel("Casa");
+    setFormAddress("");
+    setFormNeighborhood("");
+    setFormCity("Luanda");
+    setFormLat("");
+    setFormLng("");
+    setFormDefault(addresses.length === 0);
+  }, [addresses.length]);
+
+  const handleUseLocation = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Permite o acesso à localização para preencher coordenadas.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setFormLat(String(loc.coords.latitude));
+      setFormLng(String(loc.coords.longitude));
+    } catch (e) {
+      Alert.alert("Erro", "Não foi possível obter a localização.");
+    }
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!formAddress.trim() || !formNeighborhood.trim() || !formCity.trim()) {
+      Alert.alert("Campos obrigatórios", "Preencha endereço, bairro e cidade.");
+      return;
+    }
+    const lat = parseFloat(formLat);
+    const lng = parseFloat(formLng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      Alert.alert("Coordenadas", "Preencha latitude e longitude válidas (use 'Usar minha localização').");
+      return;
+    }
+    setSaving(true);
+    try {
+      await userApi.addAddress({
+        label: formLabel.trim() || "Casa",
+        address: formAddress.trim(),
+        neighborhood: formNeighborhood.trim(),
+        city: formCity.trim(),
+        latitude: lat,
+        longitude: lng,
+        isDefault: formDefault || addresses.length === 0,
+      });
+      setShowAdd(false);
+      resetForm();
+      refetch();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      const detail = Array.isArray(msg) ? msg.join("\n") : msg;
+      Alert.alert("Erro ao gravar", detail || "Não foi possível gravar o endereço na API real.");
+    } finally {
+      setSaving(false);
+    }
+  }, [formLabel, formAddress, formNeighborhood, formCity, formLat, formLng, formDefault, addresses.length, refetch, resetForm]);
 
   const styles = useMemo(
     () =>
@@ -210,12 +290,139 @@ export default function AddressScreen() {
             </TouchableOpacity>
           )}
           ListFooterComponent={
-            <TouchableOpacity style={styles.addButton} activeOpacity={0.85} hitSlop={ROW_HIT_SLOP}>
+            <TouchableOpacity style={styles.addButton} activeOpacity={0.85} hitSlop={ROW_HIT_SLOP} onPress={() => { resetForm(); setShowAdd(true); }}>
               <MaterialCommunityIcons name="plus" size={20} color={colors.primary[500]} />
               <Text style={styles.addButtonText}>Adicionar novo endereço</Text>
             </TouchableOpacity>
           }
         />
+
+        <Modal
+          visible={showAdd}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowAdd(false)}
+          statusBarTranslucent
+        >
+          <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }} onPress={() => setShowAdd(false)}>
+            <Pressable
+              style={{ backgroundColor: colors.surfaceContainerLowest, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "90%" }}
+              onPress={() => {}}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
+                <Text style={{ ...typography.h3, color: colors.onSurface }}>Novo endereço (API real)</Text>
+                <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={ROW_HIT_SLOP} accessibilityLabel="Fechar modal">
+                  <MaterialCommunityIcons name="close" size={24} color={colors.neutral[500]} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.lg }}>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                  {["Casa", "Trabalho", "Outro"].map((opt) => (
+                    <TouchableOpacity
+                      key={opt}
+                      onPress={() => setFormLabel(opt)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 12,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor: formLabel === opt ? colors.primary[500] : colors.neutral[200],
+                        backgroundColor: formLabel === opt ? colors.primary[500] : colors.surfaceContainer,
+                      }}
+                    >
+                      <Text style={{ fontWeight: "700", color: formLabel === opt ? colors.white : colors.neutral[700] }}>{opt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View>
+                  <Text style={{ ...typography.labelLg, color: colors.neutral[700], marginBottom: 4 }}>Endereço *</Text>
+                  <TextInput
+                    value={formAddress}
+                    onChangeText={setFormAddress}
+                    placeholder="Rua, nº, apto"
+                    placeholderTextColor={colors.neutral[400]}
+                    style={{ backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.onSurface }}
+                  />
+                </View>
+                <View>
+                  <Text style={{ ...typography.labelLg, color: colors.neutral[700], marginBottom: 4 }}>Bairro *</Text>
+                  <TextInput
+                    value={formNeighborhood}
+                    onChangeText={setFormNeighborhood}
+                    placeholder="Ex: Maianga"
+                    placeholderTextColor={colors.neutral[400]}
+                    style={{ backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.onSurface }}
+                  />
+                </View>
+                <View>
+                  <Text style={{ ...typography.labelLg, color: colors.neutral[700], marginBottom: 4 }}>Cidade *</Text>
+                  <TextInput
+                    value={formCity}
+                    onChangeText={setFormCity}
+                    placeholder="Luanda"
+                    placeholderTextColor={colors.neutral[400]}
+                    style={{ backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.onSurface }}
+                  />
+                </View>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.labelLg, color: colors.neutral[700], marginBottom: 4 }}>Latitude *</Text>
+                    <TextInput
+                      value={formLat}
+                      onChangeText={setFormLat}
+                      placeholder="-8.8390"
+                      keyboardType="numeric"
+                      placeholderTextColor={colors.neutral[400]}
+                      style={{ backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.onSurface }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.labelLg, color: colors.neutral[700], marginBottom: 4 }}>Longitude *</Text>
+                    <TextInput
+                      value={formLng}
+                      onChangeText={setFormLng}
+                      placeholder="13.2894"
+                      keyboardType="numeric"
+                      placeholderTextColor={colors.neutral[400]}
+                      style={{ backgroundColor: colors.neutral[50], borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: colors.onSurface }}
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleUseLocation} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
+                  <MaterialCommunityIcons name="crosshairs-gps" size={18} color={colors.primary[500]} />
+                  <Text style={{ color: colors.primary[500], fontWeight: "700" }}>Usar minha localização</Text>
+                </TouchableOpacity>
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setFormDefault((v) => !v)}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: formDefault ? colors.primary[500] : colors.neutral[300],
+                      backgroundColor: formDefault ? colors.primary[500] : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {formDefault ? <MaterialCommunityIcons name="check" size={14} color={colors.white} /> : null}
+                  </TouchableOpacity>
+                  <Text style={{ color: colors.neutral[700] }}>Definir como principal</Text>
+                </View>
+
+                <Button title={saving ? "A gravar..." : "Gravar na API"} onPress={handleSave} loading={saving} disabled={saving} />
+                <Text style={{ ...typography.bodySm, color: colors.neutral[500], textAlign: "center" }}>
+                  POST /users/me/addresses → Postgres (sem mock)
+                </Text>
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </SafeAreaView>
   );
