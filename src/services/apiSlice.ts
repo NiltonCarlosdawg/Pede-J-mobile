@@ -124,7 +124,7 @@ export const apiSlice = createApi({
         params: params || undefined,
       }),
       providesTags: (result) =>
-        result
+        Array.isArray(result?.data)
           ? [
               ...result.data.map(({ id }) => ({ type: 'Restaurant' as const, id })),
               { type: 'Restaurant' as const, id: 'LIST' },
@@ -147,7 +147,7 @@ export const apiSlice = createApi({
         params: params || undefined,
       }),
       providesTags: (result) =>
-        result
+        Array.isArray(result?.data)
           ? [
               ...result.data.map(({ id }) => ({ type: 'Order' as const, id })),
               { type: 'Order' as const, id: 'LIST' },
@@ -173,7 +173,7 @@ export const apiSlice = createApi({
         params: params || undefined,
       }),
       providesTags: (result) =>
-        result
+        Array.isArray(result?.data)
           ? [
               ...result.data.map(({ id }) => ({ type: 'Address' as const, id })),
               { type: 'Address' as const, id: 'LIST' },
