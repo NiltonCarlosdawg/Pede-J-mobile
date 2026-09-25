@@ -72,7 +72,7 @@ export default function OrderSuccessScreen() {
       marginBottom: spacing.xl,
     },
     circleOuter: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderRadius: 80,
       backgroundColor: colors.primary[100],
       opacity: 0.5,

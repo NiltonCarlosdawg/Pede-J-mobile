@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   container: { overflow: "hidden", position: "relative" },
   hidden: { opacity: 0 },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f0f0f0",

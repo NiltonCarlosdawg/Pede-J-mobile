@@ -1,16 +1,12 @@
-import { Audio } from "expo-av";
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from "expo-audio";
 
-let successSound: Audio.Sound | null = null;
-let notificationSound: Audio.Sound | null = null;
-let statusSound: Audio.Sound | null = null;
+let successSound: AudioPlayer | null = null;
+let notificationSound: AudioPlayer | null = null;
+let statusSound: AudioPlayer | null = null;
 
-async function loadSound(uri: string): Promise<Audio.Sound | null> {
+async function loadSound(uri: string): Promise<AudioPlayer | null> {
   try {
-    const { sound } = await Audio.Sound.createAsync(
-      { uri },
-      { shouldPlay: false }
-    );
-    return sound;
+    return createAudioPlayer(uri);
   } catch {
     return null;
   }
@@ -18,9 +14,9 @@ async function loadSound(uri: string): Promise<Audio.Sound | null> {
 
 export async function initSounds() {
   try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
     });
   } catch {
     // ignore
@@ -34,8 +30,8 @@ export async function playPaymentSuccess() {
       successSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
     }
     if (successSound) {
-      await successSound.setPositionAsync(0);
-      await successSound.playAsync();
+      await successSound.seekTo(0);
+      successSound.play();
     }
   } catch {
     // ignore audio errors
@@ -49,8 +45,8 @@ export async function playNewOrder() {
       notificationSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
     }
     if (notificationSound) {
-      await notificationSound.setPositionAsync(0);
-      await notificationSound.playAsync();
+      await notificationSound.seekTo(0);
+      notificationSound.play();
     }
   } catch {
     // ignore audio errors
@@ -64,8 +60,8 @@ export async function playStatusChange() {
       statusSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2868/2868-preview.mp3");
     }
     if (statusSound) {
-      await statusSound.setPositionAsync(0);
-      await statusSound.playAsync();
+      await statusSound.seekTo(0);
+      statusSound.play();
     }
   } catch {
     // ignore audio errors
@@ -75,15 +71,15 @@ export async function playStatusChange() {
 export async function unloadSounds() {
   try {
     if (successSound) {
-      await successSound.unloadAsync();
+      successSound.remove();
       successSound = null;
     }
     if (notificationSound) {
-      await notificationSound.unloadAsync();
+      notificationSound.remove();
       notificationSound = null;
     }
     if (statusSound) {
-      await statusSound.unloadAsync();
+      statusSound.remove();
       statusSound = null;
     }
   } catch {

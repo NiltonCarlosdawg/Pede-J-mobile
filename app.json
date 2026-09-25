@@ -7,18 +7,18 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pedejmobile",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "O PedeJá precisa da sua localização para mostrar o mapa e calcular rotas de entrega.",
         "NSLocationAlwaysUsageDescription": "O PedeJá precisa da sua localização em segundo plano para acompanhar entregas em tempo real.",
         "NSMicrophoneUsageDescription": "O PedeJá precisa do microfone para chamadas de voz com o entregador/cliente.",
-        "UIBackgroundModes": ["voip", "audio", "remote-notification", "location"]
+        "UIBackgroundModes": [
+          "voip",
+          "audio",
+          "remote-notification",
+          "location"
+        ]
       },
       "bundleIdentifier": "com.iamcarlos182.pedejmobile",
       "entitlements": {
@@ -30,7 +30,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
@@ -57,6 +56,15 @@
       "@config-plugins/react-native-callkeep",
       "./plugins/withVoipNative.js",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
         "expo-notifications",
         {
           "sounds": [],
@@ -72,7 +80,8 @@
           "isAndroidBackgroundLocationEnabled": true
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

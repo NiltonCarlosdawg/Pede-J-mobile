@@ -1,5 +1,5 @@
 import { Alert, AppState, NativeModules, Platform } from 'react-native';
-import { Audio } from 'expo-av';
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
@@ -362,16 +362,16 @@ export function getVoipChannelId() {
   return cachedConfig?.native?.android?.channelId ?? VOIP_CHANNEL_ID;
 }
 
-let currentSound: Audio.Sound | null = null;
+let currentSound: AudioPlayer | null = null;
 
 export async function initializeCallAudio(): Promise<void> {
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
+    await setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'doNotMix',
+      shouldRouteThroughEarpiece: false,
     });
   } catch (err) {
     console.warn('[voip] audio init failed:', err);
@@ -380,11 +380,11 @@ export async function initializeCallAudio(): Promise<void> {
 
 export async function setSpeakerEnabled(enabled: boolean): Promise<void> {
   try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: !enabled,
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'doNotMix',
+      shouldRouteThroughEarpiece: !enabled,
     });
   } catch (err) {
     console.warn('[voip] speaker toggle failed:', err);
@@ -394,7 +394,7 @@ export async function setSpeakerEnabled(enabled: boolean): Promise<void> {
 export async function playCallSound(type: 'ringtone' | 'connected' | 'ended'): Promise<void> {
   try {
     if (currentSound) {
-      await currentSound.unloadAsync();
+      currentSound.remove();
       currentSound = null;
     }
 
@@ -409,9 +409,9 @@ export async function playCallSound(type: 'ringtone' | 'connected' | 'ended'): P
     }
 
     if (soundSource) {
-      const { sound } = await Audio.Sound.createAsync(soundSource);
-      currentSound = sound;
-      await sound.playAsync();
+      const player = createAudioPlayer(soundSource);
+      player.play();
+      currentSound = player;
     }
   } catch (err) {
     console.warn('[voip] play sound failed:', err);
@@ -421,8 +421,8 @@ export async function playCallSound(type: 'ringtone' | 'connected' | 'ended'): P
 export async function stopCallSound(): Promise<void> {
   try {
     if (currentSound) {
-      await currentSound.stopAsync();
-      await currentSound.unloadAsync();
+      currentSound.pause();
+      currentSound.remove();
       currentSound = null;
     }
   } catch (err) {
@@ -433,12 +433,12 @@ export async function stopCallSound(): Promise<void> {
 export async function cleanupCallAudio(): Promise<void> {
   await stopCallSound();
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: false,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: true,
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: false,
+      shouldPlayInBackground: false,
+      interruptionMode: 'duckOthers',
+      shouldRouteThroughEarpiece: true,
     });
   } catch (err) {
     console.warn('[voip] audio cleanup failed:', err);
