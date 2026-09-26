@@ -5,7 +5,7 @@ import { apiSlice } from '../services/apiSlice';
 import { authReducer, clearSession, hydrateSession } from './authSlice';
 import { onSessionChange } from '../services/demoAuth';
 import { disconnectRealtime } from '../services/realtime';
-import { cartReducer } from './cartSlice';
+import { cartReducer, clearCart, decrementItem, incrementItem, addItem, persistCart, removeItem } from './cartSlice';
 import { chatReducer } from './chatSlice';
 import { notificationsReducer } from './notificationsSlice';
 import { ordersReducer } from './ordersSlice';
@@ -32,6 +32,16 @@ paymentPersistListener.startListening({
   },
 });
 
+const cartPersistListener = createListenerMiddleware();
+
+cartPersistListener.startListening({
+  matcher: isAnyOf(addItem, incrementItem, decrementItem, removeItem, clearCart),
+  effect: async (_action, listenerApi) => {
+    const { items, restaurantId } = (listenerApi.getState() as RootState).cart;
+    await persistCart({ items, restaurantId });
+  },
+});
+
 const appReducer = combineReducers({
     auth: authReducer,
     cart: cartReducer,
@@ -51,6 +61,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .prepend(paymentPersistListener.middleware)
+      .prepend(cartPersistListener.middleware)
       .concat(apiSlice.middleware),
 });
 
