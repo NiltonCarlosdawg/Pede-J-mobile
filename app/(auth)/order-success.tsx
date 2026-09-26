@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     Animated,
     Dimensions,
@@ -35,11 +35,11 @@ export default function OrderSuccessScreen() {
     syncMessage?: string;
   }>();
   const { colors } = useTheme();
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const checkmarkScale = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const buttonTranslate = useRef(new Animated.Value(50)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
+  const [checkmarkScale] = useState(() => new Animated.Value(0));
+  const [textOpacity] = useState(() => new Animated.Value(0));
+  const [buttonTranslate] = useState(() => new Animated.Value(50));
   const orders = useAppSelector(selectOrders);
   const readParam = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;

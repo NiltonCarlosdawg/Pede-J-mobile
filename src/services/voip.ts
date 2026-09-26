@@ -3,8 +3,7 @@ import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
-import { voipApi } from './api';
-import api from './api';
+import api, { voipApi } from './api';
 import { safeGetItem, safeSetItem } from '../utils/storage';
 import type { VoipConfig, VoipTokenResponse } from '../types';
 
@@ -146,7 +145,7 @@ async function bindCallKeepListeners() {
     }
   });
 
-  RNCallKeep.addEventListener('didLoadWithEvents', (events: Array<{ name: string; data: any }>) => {
+  RNCallKeep.addEventListener('didLoadWithEvents', (events: { name: string; data: any }[]) => {
     if (!Array.isArray(events)) return;
     for (const event of events) {
       if (event?.name === 'RNCallKeepPerformAnswerCallAction' && event.data?.callUUID) {

@@ -13,8 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../../src/components/ui/Header";
 import { useAppSelector } from "../../src/store";
-import { selectOrders, selectCurrentOrder } from "../../src/store/ordersSlice";
-import type { Order } from "../../src/store/ordersSlice";
+import { selectOrders, selectCurrentOrder, type Order } from "../../src/store/ordersSlice";
 import { selectRatingByOrder, selectDriverRatingByOrder } from "../../src/store/ratingsSlice";
 import { spacing, formatPrice, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -147,14 +146,14 @@ export default function OrdersScreen() {
   );
 
   const sections = useMemo(() => {
-    const result: Array<{ title: string; data: Order[]; isActive: boolean }> = [];
+    const result: { title: string; data: Order[]; isActive: boolean }[] = [];
     if (activeOrders.length > 0) result.push({ title: "Em andamento", data: activeOrders, isActive: true });
     if (pastOrders.length > 0) result.push({ title: "Histórico", data: pastOrders, isActive: false });
     return result;
   }, [activeOrders, pastOrders]);
 
   const flatData = useMemo(() => {
-    const items: Array<{ type: "header" | "order"; title?: string; order?: Order; isActive?: boolean }> = [];
+    const items: { type: "header" | "order"; title?: string; order?: Order; isActive?: boolean }[] = [];
     for (const section of sections) {
       items.push({ type: "header", title: section.title });
       for (const order of section.data.slice(0, page * PAGE_SIZE)) {

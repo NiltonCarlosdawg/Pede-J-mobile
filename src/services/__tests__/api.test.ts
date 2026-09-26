@@ -1,4 +1,6 @@
 // Mock the entire api module
+import { restaurantManageApi } from '../api';
+
 const mockApiGet = jest.fn();
 const mockApiPost = jest.fn();
 const mockApiPatch = jest.fn();
@@ -85,8 +87,6 @@ jest.mock('../api', () => {
     },
   };
 });
-
-import { restaurantManageApi } from '../api';
 
 describe('restaurantManageApi', () => {
   beforeEach(() => {

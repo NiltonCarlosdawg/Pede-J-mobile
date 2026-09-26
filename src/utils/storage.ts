@@ -1,20 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-let isNativeModuleAvailable = true;
-
-function checkNativeModule() {
-  if (!isNativeModuleAvailable) return false;
-  try {
-    // Testa se o módulo nativo está disponível
-    return true;
-  } catch (error) {
-    console.warn("[AsyncStorage] Native module unavailable, using memory fallback");
-    isNativeModuleAvailable = false;
-    return false;
-  }
-}
-
 const memoryStorage: Record<string, string> = {};
+
+/**
+ * O import acima só resolve se o módulo existir no bundle; se este módulo
+ * carregou, o módulo nativo está disponível. Mantido como função para
+ * centralizar a decisão caso passe a exigir verificação em runtime.
+ */
+function checkNativeModule(): boolean {
+  return true;
+}
 
 export async function safeGetItem(key: string): Promise<string | null> {
   try {

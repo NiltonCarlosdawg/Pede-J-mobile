@@ -1,5 +1,5 @@
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Animated,
     Easing,
@@ -17,13 +17,13 @@ interface SplashScreenProps {
 
 export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const logoScale = useRef(new Animated.Value(0.5)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoRotate = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [logoScale] = useState(() => new Animated.Value(0.5));
+  const [logoOpacity] = useState(() => new Animated.Value(0));
+  const [logoRotate] = useState(() => new Animated.Value(0));
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
-  const containerOpacity = useRef(new Animated.Value(1)).current;
-  const loadingOpacity = useRef(new Animated.Value(0)).current;
+  const [containerOpacity] = useState(() => new Animated.Value(1));
+  const [loadingOpacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     // Animação de entrada do logo

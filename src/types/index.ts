@@ -300,9 +300,9 @@ export interface Earnings {
   totalGanho: number;
   totalEntregas: number;
   mediaPorEntrega: number;
-  detalhe: Array<{
+  detalhe: {
     data: string;
     ganho: number;
     entregas: number;
-  }>;
+  }[];
 }

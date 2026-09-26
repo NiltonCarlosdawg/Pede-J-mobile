@@ -202,7 +202,7 @@ export const restaurantManageApi = {
     api.get('/restaurant/stats', { params }),
   updateProfile: (data: { name?: string; description?: string; phone?: string; image?: string; logo?: string; deliveryFee?: number; deliveryTime?: string }) =>
     api.patch('/restaurant/profile', data),
-  updateOpeningHours: (hours: Array<{ diaSemana: number; abre: string; fecha: string }>) =>
+  updateOpeningHours: (hours: { diaSemana: number; abre: string; fecha: string }[]) =>
     api.patch('/restaurant/opening-hours', { hours }),
   toggleOpen: (isOpen: boolean) =>
     api.patch('/restaurant/toggle-open', { isOpen }),

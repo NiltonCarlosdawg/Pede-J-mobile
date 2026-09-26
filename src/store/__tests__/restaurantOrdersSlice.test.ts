@@ -16,8 +16,10 @@ import {
   selectReadyOrders,
   selectActiveOrders,
   restaurantOrdersReducer,
+  type RestaurantOrder,
+  type RestaurantStats,
+  type RestaurantOrdersState,
 } from '../restaurantOrdersSlice';
-import type { RestaurantOrder, RestaurantStats, RestaurantOrdersState } from '../restaurantOrdersSlice';
 
 const mockOrder: RestaurantOrder = {
   id: 'ord-001',

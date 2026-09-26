@@ -3,6 +3,8 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { notifyDriverOnTheWay, notifyOrderDelivered } from "../services/notifications";
 import { playStatusChange } from "../utils/sounds";
 
+import type { PaymentMethodType } from "../types";
+
 export interface OrderItem {
   id: string;
   title: string;
@@ -17,8 +19,6 @@ export interface OrderAddress {
   neighborhood: string;
   city: string;
 }
-
-import type { PaymentMethodType } from "../types";
 
 export interface OrderPayment {
   id: string;

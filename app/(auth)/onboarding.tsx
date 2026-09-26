@@ -36,7 +36,7 @@ export default function OnboardingScreen() {
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const [scrollX] = useState(() => new Animated.Value(0));
 
   const SLIDES: OnboardingSlide[] = [
     {
@@ -65,9 +65,9 @@ export default function OnboardingScreen() {
     },
   ];
 
-  const viewabilityConfig = useRef({
+  const [viewabilityConfig] = useState(() => ({
     viewAreaCoveragePercentThreshold: 50,
-  }).current;
+  }));
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {

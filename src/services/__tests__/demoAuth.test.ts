@@ -8,6 +8,8 @@ import {
   clearDemoSession,
 } from '../demoAuth';
 
+import * as SecureStore from 'expo-secure-store';
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
@@ -18,8 +20,6 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn().mockResolvedValue(undefined),
 }));
-
-import * as SecureStore from 'expo-secure-store';
 
 const mockGetItemAsync = SecureStore.getItemAsync as jest.MockedFunction<typeof SecureStore.getItemAsync>;
 const mockSetItemAsync = SecureStore.setItemAsync as jest.MockedFunction<typeof SecureStore.setItemAsync>;

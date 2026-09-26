@@ -1,7 +1,11 @@
+const preset = require('jest-expo/jest-preset');
+
 module.exports = {
   preset: 'jest-expo',
+  // Preservar os setupFiles do preset e acrescentar o mock global de storage.
+  setupFiles: [...preset.setupFiles, '<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-paper|react-native-reanimated|react-native-gesture-handler|react-native-maps|react-native-safe-area-context|react-native-screens|react-native-web|@reduxjs/toolkit|react-redux|@tanstack/react-query|axios|immer)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-paper|react-native-reanimated|react-native-gesture-handler|react-native-maps|react-native-safe-area-context|react-native-screens|react-native-web|@reduxjs/toolkit|react-redux|axios|immer)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
