@@ -122,7 +122,7 @@ describe('cartSlice hidratação', () => {
       JSON.stringify({
         items: [{ id: 'item-1', title: 'Burger', price: 2500, quantity: 3 }],
         restaurantId: 'rest-9',
-      })
+      }),
     );
     const store = makeStore();
     await store.dispatch(hydrateCart());
@@ -143,7 +143,7 @@ describe('cartSlice hidratação', () => {
           null,
         ],
         restaurantId: 'rest-1',
-      })
+      }),
     );
     const store = makeStore();
     await store.dispatch(hydrateCart());
@@ -166,7 +166,7 @@ describe('cartSlice hidratação', () => {
       JSON.stringify({
         items: [{ id: 'remoto', title: 'Remoto', price: 999, quantity: 5 }],
         restaurantId: 'rest-remoto',
-      })
+      }),
     );
     const store = makeStore();
     await store.dispatch(hydrateCart());
@@ -206,14 +206,12 @@ describe('persistCart', () => {
       JSON.stringify({
         items: [{ id: 'item-1', title: 'Burger', price: 2500, quantity: 2 }],
         restaurantId: 'rest-1',
-      })
+      }),
     );
   });
 
   it('não propaga erro quando o storage falha', async () => {
     (AsyncStorage.setItem as jest.Mock).mockRejectedValue(new Error('disk full'));
-    await expect(
-      persistCart({ items: [], restaurantId: null })
-    ).resolves.toBeUndefined();
+    await expect(persistCart({ items: [], restaurantId: null })).resolves.toBeUndefined();
   });
 });

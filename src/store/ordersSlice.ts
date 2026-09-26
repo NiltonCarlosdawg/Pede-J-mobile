@@ -1,9 +1,9 @@
-import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 
-import { notifyDriverOnTheWay, notifyOrderDelivered } from "../services/notifications";
-import { playStatusChange } from "../utils/sounds";
+import { notifyDriverOnTheWay, notifyOrderDelivered } from '../services/notifications';
+import { playStatusChange } from '../utils/sounds';
 
-import type { PaymentMethodType } from "../types";
+import type { PaymentMethodType } from '../types';
 
 export interface OrderItem {
   id: string;
@@ -41,7 +41,7 @@ export interface DeliveryConfirmation {
   clientConfirmedAt?: string;
 }
 
-export type OrderStatus = "preparing" | "ready" | "delivering" | "delivered" | "cancelled";
+export type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -70,7 +70,7 @@ const initialState: OrdersState = {
 };
 
 const ordersSlice = createSlice({
-  name: "orders",
+  name: 'orders',
   initialState,
   reducers: {
     addOrder(state, action: PayloadAction<Order>) {
@@ -80,19 +80,13 @@ const ordersSlice = createSlice({
     setCurrentOrder(state, action: PayloadAction<Order | null>) {
       state.currentOrder = action.payload;
     },
-    updateOrderStatus(
-      state,
-      action: PayloadAction<{ orderId: string; status: OrderStatus }>
-    ) {
+    updateOrderStatus(state, action: PayloadAction<{ orderId: string; status: OrderStatus }>) {
       const order = state.orders.find((o) => o.id === action.payload.orderId);
       if (order) {
         order.status = action.payload.status;
         playStatusChange();
       }
-      if (
-        state.currentOrder &&
-        state.currentOrder.id === action.payload.orderId
-      ) {
+      if (state.currentOrder && state.currentOrder.id === action.payload.orderId) {
         state.currentOrder.status = action.payload.status;
       }
     },
@@ -125,7 +119,10 @@ const ordersSlice = createSlice({
       }
       if (state.currentOrder && state.currentOrder.id === orderId) {
         if (!state.currentOrder.deliveryConfirmation) {
-          state.currentOrder.deliveryConfirmation = { driverFinished: true, clientConfirmed: false };
+          state.currentOrder.deliveryConfirmation = {
+            driverFinished: true,
+            clientConfirmed: false,
+          };
         } else {
           state.currentOrder.deliveryConfirmation.driverFinished = true;
         }
@@ -145,7 +142,10 @@ const ordersSlice = createSlice({
       }
       if (state.currentOrder && state.currentOrder.id === orderId) {
         if (!state.currentOrder.deliveryConfirmation) {
-          state.currentOrder.deliveryConfirmation = { driverFinished: false, clientConfirmed: true };
+          state.currentOrder.deliveryConfirmation = {
+            driverFinished: false,
+            clientConfirmed: true,
+          };
         } else {
           state.currentOrder.deliveryConfirmation.clientConfirmed = true;
         }
@@ -156,12 +156,18 @@ const ordersSlice = createSlice({
       const orderId = action.payload;
       const order = state.orders.find((o) => o.id === orderId);
       if (order) {
-        order.status = "delivered";
-        order.deliveryConfirmation = order.deliveryConfirmation ?? { driverFinished: true, clientConfirmed: true };
+        order.status = 'delivered';
+        order.deliveryConfirmation = order.deliveryConfirmation ?? {
+          driverFinished: true,
+          clientConfirmed: true,
+        };
       }
       if (state.currentOrder && state.currentOrder.id === orderId) {
-        state.currentOrder.status = "delivered";
-        state.currentOrder.deliveryConfirmation = state.currentOrder.deliveryConfirmation ?? { driverFinished: true, clientConfirmed: true };
+        state.currentOrder.status = 'delivered';
+        state.currentOrder.deliveryConfirmation = state.currentOrder.deliveryConfirmation ?? {
+          driverFinished: true,
+          clientConfirmed: true,
+        };
       }
     },
   },
@@ -181,26 +187,23 @@ export const {
 
 export const ordersReducer = ordersSlice.reducer;
 
-export const selectOrders = (state: { orders: OrdersState }) =>
-  state.orders.orders;
-export const selectCurrentOrder = (state: { orders: OrdersState }) =>
-  state.orders.currentOrder;
-export const selectOrdersCount = (state: { orders: OrdersState }) =>
-  state.orders.orders.length;
+export const selectOrders = (state: { orders: OrdersState }) => state.orders.orders;
+export const selectCurrentOrder = (state: { orders: OrdersState }) => state.orders.currentOrder;
+export const selectOrdersCount = (state: { orders: OrdersState }) => state.orders.orders.length;
 
 // Async thunks with notifications
 export const setOrderDelivering = createAsyncThunk(
-  "orders/setDelivering",
+  'orders/setDelivering',
   async ({ orderId, driverName }: { orderId: string; driverName: string }, { dispatch }) => {
-    dispatch(updateOrderStatus({ orderId, status: "delivering" }));
+    dispatch(updateOrderStatus({ orderId, status: 'delivering' }));
     await notifyDriverOnTheWay(orderId, driverName);
-  }
+  },
 );
 
 export const setOrderDelivered = createAsyncThunk(
-  "orders/setDelivered",
+  'orders/setDelivered',
   async (orderId: string, { dispatch }) => {
-    dispatch(updateOrderStatus({ orderId, status: "delivered" }));
+    dispatch(updateOrderStatus({ orderId, status: 'delivered' }));
     await notifyOrderDelivered(orderId);
-  }
+  },
 );

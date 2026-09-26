@@ -1,5 +1,5 @@
 export interface NotificationData {
-  type: "order" | "delivery" | "promotion" | "system";
+  type: 'order' | 'delivery' | 'promotion' | 'system';
   orderId?: string;
   title: string;
   body: string;
@@ -23,7 +23,7 @@ export async function scheduleLocalNotification(
   _title: string,
   _body: string,
   _data?: Record<string, any>,
-  _delaySeconds: number = 0
+  _delaySeconds: number = 0,
 ) {
   // no-op on web
 }

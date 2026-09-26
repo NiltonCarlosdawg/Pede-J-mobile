@@ -1,10 +1,10 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import type { PaymentMethod, PaymentTransaction, MulticaixaExpressReference } from "../types";
-import { safeGetItem, safeSetItem } from "../utils/storage";
+import type { PaymentMethod, PaymentTransaction, MulticaixaExpressReference } from '../types';
+import { safeGetItem, safeSetItem } from '../utils/storage';
 
-export const PAYMENT_METHODS_STORAGE_KEY = "pedeja_payment_methods_v2";
-export const PAYMENT_TRANSACTIONS_STORAGE_KEY = "pedeja_payment_transactions_v1";
+export const PAYMENT_METHODS_STORAGE_KEY = 'pedeja_payment_methods_v2';
+export const PAYMENT_TRANSACTIONS_STORAGE_KEY = 'pedeja_payment_transactions_v1';
 
 export interface PaymentMethodsState {
   hydrated: boolean;
@@ -13,10 +13,15 @@ export interface PaymentMethodsState {
 }
 
 const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "pm-paypay", type: "paypay", label: "PayPay", isDefault: true },
-  { id: "pm-multicaixa", type: "multicaixa_express", label: "Multicaixa Express", isDefault: false },
-  { id: "pm-unitel", type: "unitel_money", label: "Unitel Money", isDefault: false },
-  { id: "pm-facipay", type: "facipay", label: "FaciPay", isDefault: false },
+  { id: 'pm-paypay', type: 'paypay', label: 'PayPay', isDefault: true },
+  {
+    id: 'pm-multicaixa',
+    type: 'multicaixa_express',
+    label: 'Multicaixa Express',
+    isDefault: false,
+  },
+  { id: 'pm-unitel', type: 'unitel_money', label: 'Unitel Money', isDefault: false },
+  { id: 'pm-facipay', type: 'facipay', label: 'FaciPay', isDefault: false },
 ];
 
 const initialState: PaymentMethodsState = {
@@ -25,28 +30,25 @@ const initialState: PaymentMethodsState = {
   transactions: [],
 };
 
-const VALID_METHOD_TYPES = ["paypay", "multicaixa_express", "unitel_money", "facipay"];
+const VALID_METHOD_TYPES = ['paypay', 'multicaixa_express', 'unitel_money', 'facipay'];
 
-export const hydratePaymentMethods = createAsyncThunk(
-  "paymentMethods/hydrate",
-  async () => {
-    const raw = await safeGetItem(PAYMENT_METHODS_STORAGE_KEY);
-    if (!raw) {
-      return [] as PaymentMethod[];
-    }
-    try {
-      const parsed = JSON.parse(raw) as PaymentMethod[];
-      if (!Array.isArray(parsed)) return [];
-      const valid = parsed.filter((m) => m && VALID_METHOD_TYPES.includes(m.type));
-      return valid.length > 0 ? valid : ([] as PaymentMethod[]);
-    } catch {
-      return [];
-    }
+export const hydratePaymentMethods = createAsyncThunk('paymentMethods/hydrate', async () => {
+  const raw = await safeGetItem(PAYMENT_METHODS_STORAGE_KEY);
+  if (!raw) {
+    return [] as PaymentMethod[];
   }
-);
+  try {
+    const parsed = JSON.parse(raw) as PaymentMethod[];
+    if (!Array.isArray(parsed)) return [];
+    const valid = parsed.filter((m) => m && VALID_METHOD_TYPES.includes(m.type));
+    return valid.length > 0 ? valid : ([] as PaymentMethod[]);
+  } catch {
+    return [];
+  }
+});
 
 const paymentMethodsSlice = createSlice({
-  name: "paymentMethods",
+  name: 'paymentMethods',
   initialState,
   reducers: {
     setDefaultPaymentMethod(state, action: PayloadAction<string>) {
@@ -60,7 +62,7 @@ const paymentMethodsSlice = createSlice({
     },
     createPaymentTransaction(
       state,
-      action: PayloadAction<Omit<PaymentTransaction, "id" | "timestamp"> & { id?: string }>
+      action: PayloadAction<Omit<PaymentTransaction, 'id' | 'timestamp'> & { id?: string }>,
     ) {
       const newTransaction: PaymentTransaction = {
         ...action.payload,
@@ -71,7 +73,11 @@ const paymentMethodsSlice = createSlice({
     },
     updateTransactionStatus(
       state,
-      action: PayloadAction<{ transactionId: string; status: PaymentTransaction["status"]; completedAt?: string }>
+      action: PayloadAction<{
+        transactionId: string;
+        status: PaymentTransaction['status'];
+        completedAt?: string;
+      }>,
     ) {
       const tx = state.transactions.find((t) => t.id === action.payload.transactionId);
       if (tx) {
@@ -81,7 +87,10 @@ const paymentMethodsSlice = createSlice({
         }
       }
     },
-    addMulticaixaReference(state, action: PayloadAction<{ transactionId: string; reference: MulticaixaExpressReference }>) {
+    addMulticaixaReference(
+      state,
+      action: PayloadAction<{ transactionId: string; reference: MulticaixaExpressReference }>,
+    ) {
       const tx = state.transactions.find((t) => t.id === action.payload.transactionId);
       if (tx) {
         tx.reference = action.payload.reference;
@@ -115,15 +124,16 @@ export const paymentMethodsReducer = paymentMethodsSlice.reducer;
 export const selectPaymentMethods = (state: { paymentMethods: PaymentMethodsState }) =>
   state.paymentMethods.methods;
 
-export const selectPaymentMethodsHydrated = (state: {
-  paymentMethods: PaymentMethodsState;
-}) => state.paymentMethods.hydrated;
+export const selectPaymentMethodsHydrated = (state: { paymentMethods: PaymentMethodsState }) =>
+  state.paymentMethods.hydrated;
 
 export const selectTransactions = (state: { paymentMethods: PaymentMethodsState }) =>
   state.paymentMethods.transactions;
 
-export const selectTransactionByOrder = (state: { paymentMethods: PaymentMethodsState }, orderId: string) =>
-  state.paymentMethods.transactions.find((t) => t.orderId === orderId);
+export const selectTransactionByOrder = (
+  state: { paymentMethods: PaymentMethodsState },
+  orderId: string,
+) => state.paymentMethods.transactions.find((t) => t.orderId === orderId);
 
 export async function persistPaymentMethods(methods: PaymentMethod[]): Promise<void> {
   await safeSetItem(PAYMENT_METHODS_STORAGE_KEY, JSON.stringify(methods));

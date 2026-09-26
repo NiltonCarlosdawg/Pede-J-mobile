@@ -18,13 +18,23 @@ function ensureTask() {
       console.warn('[location] background error', error);
       return;
     }
-    const locations = (data as { locations?: { coords: { latitude: number; longitude: number; heading: number | null } }[] })?.locations;
+    const locations = (
+      data as {
+        locations?: { coords: { latitude: number; longitude: number; heading: number | null } }[];
+      }
+    )?.locations;
     const coords = locations?.[0]?.coords;
     if (!coords || !validCoordinates(coords)) return;
-    const orderId = (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId;
+    const orderId = (globalThis as unknown as { __pedejaActiveOrderId?: string })
+      .__pedejaActiveOrderId;
     if (!orderId) return;
     try {
-      await publishDriverLocation({ orderId, latitude: coords.latitude, longitude: coords.longitude, heading: coords.heading ?? undefined });
+      await publishDriverLocation({
+        orderId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        heading: coords.heading ?? undefined,
+      });
     } catch {}
   });
 }
@@ -39,10 +49,12 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
 
   useEffect(() => {
     if (Platform.OS === 'web' || !activeOrderId || activeOrderId.startsWith('local-')) {
-      (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId = undefined;
+      (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId =
+        undefined;
       return;
     }
-    (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId = activeOrderId;
+    (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId =
+      activeOrderId;
     let cancelled = false;
     let backgroundActive = false;
 
@@ -53,7 +65,9 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
 
       const foreground = await Location.requestForegroundPermissionsAsync();
       if (foreground.status !== 'granted' || cancelled) return;
-      const background = await Location.requestBackgroundPermissionsAsync().catch(() => ({ status: 'denied' as const }));
+      const background = await Location.requestBackgroundPermissionsAsync().catch(() => ({
+        status: 'denied' as const,
+      }));
       const canBackground = background.status === 'granted';
 
       try {
@@ -63,8 +77,12 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
       }
       if (cancelled) return;
 
-      if (canBackground && Platform.OS !== 'android' && Platform.OS !== 'ios' ? false : canBackground) {
-        const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK).catch(() => false);
+      if (
+        canBackground && Platform.OS !== 'android' && Platform.OS !== 'ios' ? false : canBackground
+      ) {
+        const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK).catch(
+          () => false,
+        );
         if (!hasStarted) {
           await Location.startLocationUpdatesAsync(BACKGROUND_TASK, {
             accuracy: Location.Accuracy.Balanced,
@@ -96,14 +114,15 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
               longitude: loc.coords.longitude,
               heading: loc.coords.heading ?? undefined,
             }).catch((err: unknown) => console.warn('location publish failed:', err));
-          }
+          },
         );
       }
     })();
 
     return () => {
       cancelled = true;
-      (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId = undefined;
+      (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId =
+        undefined;
       watchRef.current?.remove();
       watchRef.current = null;
       if (backgroundActive) {

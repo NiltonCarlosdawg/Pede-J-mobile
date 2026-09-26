@@ -13,12 +13,7 @@
         "NSLocationWhenInUseUsageDescription": "O PedeJá precisa da sua localização para mostrar o mapa e calcular rotas de entrega.",
         "NSLocationAlwaysUsageDescription": "O PedeJá precisa da sua localização em segundo plano para acompanhar entregas em tempo real.",
         "NSMicrophoneUsageDescription": "O PedeJá precisa do microfone para chamadas de voz com o entregador/cliente.",
-        "UIBackgroundModes": [
-          "voip",
-          "audio",
-          "remote-notification",
-          "location"
-        ]
+        "UIBackgroundModes": ["voip", "audio", "remote-notification", "location"]
       },
       "bundleIdentifier": "com.iamcarlos182.pedejmobile",
       "entitlements": {

@@ -1,14 +1,8 @@
-import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useState } from "react";
-import {
-    Animated,
-    Easing,
-    Image,
-    StyleSheet,
-    View,
-} from "react-native";
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useState } from 'react';
+import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from "../../theme";
+import { colors, spacing } from '../../theme';
 
 interface SplashScreenProps {
   isReady: boolean;
@@ -76,7 +70,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     pulseAnimation.start();
@@ -112,28 +106,20 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
   });
 
   return (
-    <Animated.View 
-      style={[
-        styles.container,
-        { opacity: containerOpacity }
-      ]}
-    >
+    <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
       <View style={styles.content}>
         <Animated.View
           style={[
             styles.logoContainer,
             {
               opacity: logoOpacity,
-              transform: [
-                { scale: logoScale },
-                { rotate: spin },
-              ],
+              transform: [{ scale: logoScale }, { rotate: spin }],
             },
           ]}
         >
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <Image
-              source={require("../../../assets/images/P.png")}
+              source={require('../../../assets/images/P.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -157,17 +143,17 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.background,
     zIndex: 999,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.lg,
   },
   logoImage: {
@@ -176,14 +162,14 @@ const styles = StyleSheet.create({
     borderRadius: 32,
   },
   footer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: spacing.xxl,
-    alignItems: "center",
+    alignItems: 'center',
   },
   loadingContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    alignItems: "center",
+    alignItems: 'center',
   },
   loadingDot: {
     width: 8,

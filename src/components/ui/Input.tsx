@@ -98,7 +98,7 @@ export function Input({
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
-        returnKeyType={returnKeyType ?? "done"}
+        returnKeyType={returnKeyType ?? 'done'}
         onSubmitEditing={onSubmitEditing ?? (() => Keyboard.dismiss())}
         editable={!disabled}
         numberOfLines={numberOfLines}

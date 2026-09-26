@@ -22,14 +22,14 @@ function patchObjCAppDelegate(contents) {
     `#import "AppDelegate.h"
 #import <PushKit/PushKit.h>
 #import "RNVoipPushNotificationManager.h"
-#import "RNCallKeep.h"`
+#import "RNCallKeep.h"`,
   );
 
   if (!contents.includes('voipRegistration')) {
     contents = contents.replace(
       /(- \(BOOL\)application:\(UIApplication \*\)application didFinishLaunchingWithOptions:\(NSDictionary \*\)launchOptions\s*\{)/,
       `$1
-  [RNVoipPushNotificationManager voipRegistration];`
+  [RNVoipPushNotificationManager voipRegistration];`,
     );
   }
 
@@ -69,7 +69,7 @@ didReceiveIncomingPushWithPayload:(PKPushPayload *)payload
 }
 
 @end
-`
+`,
     );
   }
 
@@ -83,21 +83,18 @@ function patchSwiftAppDelegate(contents) {
   }
 
   if (!contents.includes('import PushKit')) {
-    contents = contents.replace(
-      /^(import\s+Expo)/m,
-      `import PushKit\n$1`
-    );
+    contents = contents.replace(/^(import\s+Expo)/m, `import PushKit\n$1`);
   }
 
   contents = contents.replace(
     /public class AppDelegate:\s*ExpoAppDelegate/,
-    'public class AppDelegate: ExpoAppDelegate, PKPushRegistryDelegate'
+    'public class AppDelegate: ExpoAppDelegate, PKPushRegistryDelegate',
   );
 
   if (!contents.includes('voipRegistration')) {
     contents = contents.replace(
       /(return\s+super\.application\(application,\s*didFinishLaunchingWithOptions:\s*launchOptions\))/,
-      `RNVoipPushNotificationManager.voipRegistration()\n    $1`
+      `RNVoipPushNotificationManager.voipRegistration()\n    $1`,
     );
   }
 

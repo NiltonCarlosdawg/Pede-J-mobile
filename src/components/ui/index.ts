@@ -9,4 +9,3 @@ export { PaymentMethodCard } from './PaymentMethodCard';
 export { ProductCard } from './ProductCard';
 export { RestaurantCard } from './RestaurantCard';
 export { SearchBar } from './SearchBar';
-

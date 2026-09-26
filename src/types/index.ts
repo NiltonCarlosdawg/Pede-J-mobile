@@ -1,6 +1,7 @@
 export type Role = 'cliente' | 'entregador' | 'restaurante' | 'admin';
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled';
 
 export type RestaurantStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'suspended';
 
@@ -8,7 +9,8 @@ export type SubscriptionStatus = 'active' | 'expired' | 'revoked';
 
 export type PaymentMethodType = 'paypay' | 'multicaixa_express' | 'unitel_money' | 'facipay';
 
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+export type PaymentStatus =
+  'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
 
 export interface User {
   id: string;

@@ -1,10 +1,10 @@
-import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Coupon {
   id: string;
   code: string;
   description: string;
-  discountType: "percentage" | "fixed";
+  discountType: 'percentage' | 'fixed';
   discountValue: number;
   minOrderValue?: number;
   maxDiscount?: number;
@@ -39,12 +39,12 @@ const initialState: PromotionsState = {
 };
 
 const promotionsSlice = createSlice({
-  name: "promotions",
+  name: 'promotions',
   initialState,
   reducers: {
     applyCoupon(state, action: PayloadAction<string>) {
       const coupon = state.coupons.find(
-        (c) => c.code.toUpperCase() === action.payload.toUpperCase() && c.isActive
+        (c) => c.code.toUpperCase() === action.payload.toUpperCase() && c.isActive,
       );
       if (coupon) {
         state.appliedCoupon = coupon;
@@ -74,46 +74,28 @@ const promotionsSlice = createSlice({
   },
 });
 
-export const {
-  applyCoupon,
-  removeCoupon,
-  useCoupon,
-  addCoupon,
-  addPromotion,
-  setPromotions,
-} = promotionsSlice.actions;
+export const { applyCoupon, removeCoupon, useCoupon, addCoupon, addPromotion, setPromotions } =
+  promotionsSlice.actions;
 
 export const promotionsReducer = promotionsSlice.reducer;
 
-export const selectCoupons = (state: { promotions: PromotionsState }) =>
-  state.promotions.coupons;
+export const selectCoupons = (state: { promotions: PromotionsState }) => state.promotions.coupons;
 
-export const selectActiveCoupons = createSelector(
-  [selectCoupons],
-  (coupons) =>
-    coupons.filter(
-      (c) => c.isActive && new Date(c.expiresAt) > new Date()
-    )
+export const selectActiveCoupons = createSelector([selectCoupons], (coupons) =>
+  coupons.filter((c) => c.isActive && new Date(c.expiresAt) > new Date()),
 );
 
 export const selectPromotions = (state: { promotions: PromotionsState }) =>
   state.promotions.promotions;
 
-export const selectActivePromotions = createSelector(
-  [selectPromotions],
-  (promotions) =>
-    promotions.filter(
-      (p) => p.isActive && new Date(p.expiresAt) > new Date()
-    )
+export const selectActivePromotions = createSelector([selectPromotions], (promotions) =>
+  promotions.filter((p) => p.isActive && new Date(p.expiresAt) > new Date()),
 );
 
 export const selectAppliedCoupon = (state: { promotions: PromotionsState }) =>
   state.promotions.appliedCoupon;
 
-export function calculateDiscount(
-  subtotal: number,
-  coupon: Coupon | null
-): number {
+export function calculateDiscount(subtotal: number, coupon: Coupon | null): number {
   if (!coupon) return 0;
 
   if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
@@ -121,7 +103,7 @@ export function calculateDiscount(
   }
 
   let discount = 0;
-  if (coupon.discountType === "percentage") {
+  if (coupon.discountType === 'percentage') {
     discount = (subtotal * coupon.discountValue) / 100;
   } else {
     discount = coupon.discountValue;

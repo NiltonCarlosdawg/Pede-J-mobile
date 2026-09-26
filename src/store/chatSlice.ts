@@ -1,6 +1,6 @@
-import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type ChatParticipant = "client" | "delivery" | "system";
+export type ChatParticipant = 'client' | 'delivery' | 'system';
 
 export interface ChatMessage {
   id: string;
@@ -29,10 +29,10 @@ function trimMessages(state: ChatState) {
 }
 
 const chatSlice = createSlice({
-  name: "chat",
+  name: 'chat',
   initialState,
   reducers: {
-    sendMessage(state, action: PayloadAction<Omit<ChatMessage, "id" | "timestamp" | "read">>) {
+    sendMessage(state, action: PayloadAction<Omit<ChatMessage, 'id' | 'timestamp' | 'read'>>) {
       const newMessage: ChatMessage = {
         ...action.payload,
         id: `msg-${Date.now()}`,
@@ -47,19 +47,16 @@ const chatSlice = createSlice({
     },
     markMessagesAsRead(state, action: PayloadAction<string>) {
       state.messages
-        .filter((m) => m.orderId === action.payload && m.sender !== "client")
+        .filter((m) => m.orderId === action.payload && m.sender !== 'client')
         .forEach((m) => {
           m.read = true;
         });
     },
-    addSystemMessage(
-      state,
-      action: PayloadAction<{ orderId: string; text: string }>
-    ) {
+    addSystemMessage(state, action: PayloadAction<{ orderId: string; text: string }>) {
       const newMessage: ChatMessage = {
         id: `msg-${Date.now()}`,
         orderId: action.payload.orderId,
-        sender: "system",
+        sender: 'system',
         text: action.payload.text,
         timestamp: new Date().toISOString(),
         read: false,
@@ -74,8 +71,7 @@ const chatSlice = createSlice({
   },
 });
 
-export const { sendMessage, markMessagesAsRead, addSystemMessage, clearChat } =
-  chatSlice.actions;
+export const { sendMessage, markMessagesAsRead, addSystemMessage, clearChat } = chatSlice.actions;
 
 export const chatReducer = chatSlice.reducer;
 
@@ -83,18 +79,16 @@ const selectChatMessages = (state: { chat: ChatState }) => state.chat.messages;
 
 export const selectMessagesByOrder = createSelector(
   [selectChatMessages, (state: { chat: ChatState }, orderId: string) => orderId],
-  (messages, orderId) => messages.filter((m) => m.orderId === orderId)
+  (messages, orderId) => messages.filter((m) => m.orderId === orderId),
 );
 
 export const selectUnreadMessages = createSelector(
   [selectChatMessages, (state: { chat: ChatState }, orderId: string) => orderId],
   (messages, orderId) =>
-    messages.filter((m) => m.orderId === orderId && !m.read && m.sender !== "client")
+    messages.filter((m) => m.orderId === orderId && !m.read && m.sender !== 'client'),
 );
 
 export const selectActiveChats = (state: { chat: ChatState }) => state.chat.activeChats;
 
 export const selectHasUnreadChat = (state: { chat: ChatState }, orderId: string) =>
-  state.chat.messages.some(
-    (m) => m.orderId === orderId && !m.read && m.sender !== "client"
-  );
+  state.chat.messages.some((m) => m.orderId === orderId && !m.read && m.sender !== 'client');

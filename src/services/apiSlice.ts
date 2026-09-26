@@ -1,7 +1,4 @@
-import {
-  createApi,
-  fetchBaseQuery,
-} from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import axios from 'axios';
 import http, { BASE_URL } from './api';
 
@@ -114,12 +111,21 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-const baseQueryWithAuth = async (args: Parameters<typeof rawBaseQuery>[0], api: Parameters<typeof rawBaseQuery>[1], extraOptions: Parameters<typeof rawBaseQuery>[2]) => {
+const baseQueryWithAuth = async (
+  args: Parameters<typeof rawBaseQuery>[0],
+  api: Parameters<typeof rawBaseQuery>[1],
+  extraOptions: Parameters<typeof rawBaseQuery>[2],
+) => {
   const request = typeof args === 'string' ? { url: args } : args;
   try {
-    const response = await http.request({ url: request.url, method: request.method ?? 'GET',
-      data: request.body, params: request.params, signal: api.signal,
-      headers: request.headers as Record<string, string> | undefined });
+    const response = await http.request({
+      url: request.url,
+      method: request.method ?? 'GET',
+      data: request.body,
+      params: request.params,
+      signal: api.signal,
+      headers: request.headers as Record<string, string> | undefined,
+    });
     return { data: response.data };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -127,16 +133,19 @@ const baseQueryWithAuth = async (args: Parameters<typeof rawBaseQuery>[0], api: 
       const data = (error.response?.data ?? {}) as Record<string, unknown>;
       return {
         error: {
-          status: timedOut ? ('TIMEOUT_ERROR' as const) : error.response?.status ?? ('FETCH_ERROR' as const),
+          status: timedOut
+            ? ('TIMEOUT_ERROR' as const)
+            : (error.response?.status ?? ('FETCH_ERROR' as const)),
           data: {
             ...data,
-            message: typeof data.message === 'string'
-              ? data.message
-              : timedOut
-                ? 'O servidor demorou muito a responder.'
-                : error.response
-                  ? 'Não foi possível concluir o pedido ao servidor.'
-                  : 'Sem conexão ao servidor.',
+            message:
+              typeof data.message === 'string'
+                ? data.message
+                : timedOut
+                  ? 'O servidor demorou muito a responder.'
+                  : error.response
+                    ? 'Não foi possível concluir o pedido ao servidor.'
+                    : 'Sem conexão ao servidor.',
             // Preserva o `code` do backend (ex.: PHONE_NOT_VERIFIED, EMAIL_TAKEN)
             // e só recorre ao código axios quando o corpo não trouxer um.
             code: typeof data.code === 'string' ? data.code : error.code,
@@ -144,8 +153,12 @@ const baseQueryWithAuth = async (args: Parameters<typeof rawBaseQuery>[0], api: 
         },
       };
     }
-    return { error: { status: 'CUSTOM_ERROR' as const,
-      data: { message: 'Não foi possível concluir o pedido ao servidor.' } } };
+    return {
+      error: {
+        status: 'CUSTOM_ERROR' as const,
+        data: { message: 'Não foi possível concluir o pedido ao servidor.' },
+      },
+    };
   }
 };
 
@@ -226,7 +239,17 @@ export const apiSlice = createApi({
     }),
 
     // ---------------------------------------------------------- Restaurants
-    getRestaurants: builder.query<RestaurantPage, { categoria?: string; lat?: number; lng?: number; promocao?: boolean; cursor?: string; limit?: number } | void>({
+    getRestaurants: builder.query<
+      RestaurantPage,
+      {
+        categoria?: string;
+        lat?: number;
+        lng?: number;
+        promocao?: boolean;
+        cursor?: string;
+        limit?: number;
+      } | void
+    >({
       query: (params) => ({
         url: '/restaurants',
         params: params || undefined,
@@ -257,7 +280,10 @@ export const apiSlice = createApi({
     }),
 
     // ---------------------------------------------------------------- Orders
-    getOrders: builder.query<OrderPage, { status?: string; cursor?: string; limit?: number } | void>({
+    getOrders: builder.query<
+      OrderPage,
+      { status?: string; cursor?: string; limit?: number } | void
+    >({
       query: (params) => ({
         url: '/orders',
         params: params || undefined,
@@ -289,14 +315,20 @@ export const apiSlice = createApi({
     }),
 
     // ----------------------------------------------------------------- Chat
-    getMessages: builder.query<ChatMessage[] | PaginatedResponse<ChatMessage>, { orderId: string; cursor?: string; limit?: number }>({
+    getMessages: builder.query<
+      ChatMessage[] | PaginatedResponse<ChatMessage>,
+      { orderId: string; cursor?: string; limit?: number }
+    >({
       query: ({ orderId, ...params }) => ({
         url: `/orders/${orderId}/messages`,
         params,
       }),
       providesTags: (_result, _error, { orderId }) => [{ type: 'Chat', id: orderId }],
     }),
-    sendMessage: builder.mutation<ChatMessage, { orderId: string; texto: string; tipo?: 'texto' | 'imagem' | 'sistema' }>({
+    sendMessage: builder.mutation<
+      ChatMessage,
+      { orderId: string; texto: string; tipo?: 'texto' | 'imagem' | 'sistema' }
+    >({
       query: ({ orderId, ...body }) => ({
         url: `/orders/${orderId}/messages`,
         method: 'POST',
@@ -318,14 +350,20 @@ export const apiSlice = createApi({
     }),
 
     // ----------------------------------------------------------- Promotions
-    getPromotions: builder.query<PromotionSummary[] | PaginatedResponse<PromotionSummary>, { cursor?: string; limit?: number } | void>({
+    getPromotions: builder.query<
+      PromotionSummary[] | PaginatedResponse<PromotionSummary>,
+      { cursor?: string; limit?: number } | void
+    >({
       query: (params) => ({
         url: '/promotions',
         params: params || undefined,
       }),
       providesTags: [{ type: 'Promotion', id: 'LIST' }],
     }),
-    validateCoupon: builder.mutation<CouponValidationResponse, { codigo: string; subtotal: number }>({
+    validateCoupon: builder.mutation<
+      CouponValidationResponse,
+      { codigo: string; subtotal: number }
+    >({
       query: (body) => ({
         url: '/checkout/validate-coupon',
         method: 'POST',
@@ -334,7 +372,14 @@ export const apiSlice = createApi({
     }),
 
     // -------------------------------------------------------------- Payments
-    initiatePayment: builder.mutation<{ payment: PaymentResponse }, { orderId: string; body: { methodType: string; phoneNumber?: string }; idempotencyKey?: string }>({
+    initiatePayment: builder.mutation<
+      { payment: PaymentResponse },
+      {
+        orderId: string;
+        body: { methodType: string; phoneNumber?: string };
+        idempotencyKey?: string;
+      }
+    >({
       query: ({ orderId, body, idempotencyKey }) => ({
         url: `/orders/${orderId}/payments`,
         method: 'POST',
@@ -343,10 +388,12 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: (_result, _error, { orderId }) => [{ type: 'Order', id: orderId }],
     }),
-    getPayment: builder.query<{ payment: PaymentResponse }, { orderId: string; paymentId: string }>({
-      query: ({ orderId, paymentId }) => `/orders/${orderId}/payments/${paymentId}`,
-      providesTags: (_result, _error, { paymentId }) => [{ type: 'Payment', id: paymentId }],
-    }),
+    getPayment: builder.query<{ payment: PaymentResponse }, { orderId: string; paymentId: string }>(
+      {
+        query: ({ orderId, paymentId }) => `/orders/${orderId}/payments/${paymentId}`,
+        providesTags: (_result, _error, { paymentId }) => [{ type: 'Payment', id: paymentId }],
+      },
+    ),
 
     // ------------------------------------------------------------- Addresses
     getAddresses: builder.query<AddressPage, { cursor?: string; limit?: number } | void>({
@@ -359,7 +406,10 @@ export const apiSlice = createApi({
           ? (result as unknown as Address[])
           : (result as AddressPage | undefined)?.data;
         return Array.isArray(list) && list.length
-          ? [...list.map(({ id }) => ({ type: 'Address' as const, id })), { type: 'Address' as const, id: 'LIST' }]
+          ? [
+              ...list.map(({ id }) => ({ type: 'Address' as const, id })),
+              { type: 'Address' as const, id: 'LIST' },
+            ]
           : [{ type: 'Address' as const, id: 'LIST' }];
       },
     }),
@@ -393,15 +443,22 @@ export const apiSlice = createApi({
       // se falhar, cai para /orders/:id. Normaliza `{ order }` -> `Order`.
       async queryFn(orderId, _api, _extraOptions, baseQuery) {
         const primary = await baseQuery({ url: `/deliveries/${orderId}` });
-        const fallback = 'error' in primary && primary.error
-          ? await baseQuery({ url: `/orders/${orderId}` })
-          : primary;
+        const fallback =
+          'error' in primary && primary.error
+            ? await baseQuery({ url: `/orders/${orderId}` })
+            : primary;
         if ('error' in fallback && fallback.error) return { error: fallback.error };
         const data = fallback.data as Order | { order?: Order };
-        const order = data && typeof data === 'object' && 'order' in data && data.order ? data.order : (data as Order);
+        const order =
+          data && typeof data === 'object' && 'order' in data && data.order
+            ? data.order
+            : (data as Order);
         return { data: order };
       },
-      providesTags: (_result, _error, orderId) => [{ type: 'Delivery', id: orderId }, { type: 'Order', id: orderId }],
+      providesTags: (_result, _error, orderId) => [
+        { type: 'Delivery', id: orderId },
+        { type: 'Order', id: orderId },
+      ],
     }),
     updateDeliveryStatus: builder.mutation<Order, { orderId: string; status: string }>({
       query: ({ orderId, status }) => ({
@@ -438,7 +495,10 @@ export const apiSlice = createApi({
     }),
 
     // ------------------------------------------------------ Restaurant (gestão)
-    getRestaurantOrders: builder.query<OrderPage | Order[], { status?: string; cursor?: string; limit?: number } | void>({
+    getRestaurantOrders: builder.query<
+      OrderPage | Order[],
+      { status?: string; cursor?: string; limit?: number } | void
+    >({
       query: (params) => ({
         url: '/restaurant/orders',
         params: params || undefined,
@@ -450,7 +510,10 @@ export const apiSlice = createApi({
             ? (result as Order[])
             : [];
         return list.length
-          ? [...list.map(({ id }) => ({ type: 'RestaurantOrder' as const, id })), { type: 'RestaurantOrder' as const, id: 'LIST' }]
+          ? [
+              ...list.map(({ id }) => ({ type: 'RestaurantOrder' as const, id })),
+              { type: 'RestaurantOrder' as const, id: 'LIST' },
+            ]
           : [{ type: 'RestaurantOrder' as const, id: 'LIST' }];
       },
     }),
@@ -473,7 +536,10 @@ export const apiSlice = createApi({
       }),
       providesTags: [{ type: 'RestaurantOrder', id: 'STATS' }],
     }),
-    getManageProducts: builder.query<ProductPage | Product[], { cursor?: string; limit?: number } | void>({
+    getManageProducts: builder.query<
+      ProductPage | Product[],
+      { cursor?: string; limit?: number } | void
+    >({
       query: (params) => ({
         url: '/restaurant/products',
         params: params || undefined,
@@ -485,7 +551,10 @@ export const apiSlice = createApi({
             ? (result as Product[])
             : [];
         return list.length
-          ? [...list.map(({ id }) => ({ type: 'Menu' as const, id })), { type: 'Menu' as const, id: 'LIST' }]
+          ? [
+              ...list.map(({ id }) => ({ type: 'Menu' as const, id })),
+              { type: 'Menu' as const, id: 'LIST' },
+            ]
           : [{ type: 'Menu' as const, id: 'LIST' }];
       },
     }),
@@ -495,7 +564,10 @@ export const apiSlice = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Menu', id: 'LIST' }, { type: 'RestaurantOrder', id: 'STATS' }],
+      invalidatesTags: [
+        { type: 'Menu', id: 'LIST' },
+        { type: 'RestaurantOrder', id: 'STATS' },
+      ],
     }),
     updateProduct: builder.mutation<Product, { productId: string; payload: UpdateProductPayload }>({
       query: ({ productId, payload }) => ({

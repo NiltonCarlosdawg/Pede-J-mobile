@@ -73,17 +73,9 @@ export function Badge({ label, variant = 'primary', size = 'medium', icon }: Bad
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: getBackgroundColor() },
-        getPadding(),
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }, getPadding()]}>
       {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={[styles.text, { color: getTextColor(), fontSize: getFontSize() }]}>
-        {label}
-      </Text>
+      <Text style={[styles.text, { color: getTextColor(), fontSize: getFontSize() }]}>{label}</Text>
     </View>
   );
 }

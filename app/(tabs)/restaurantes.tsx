@@ -1,44 +1,38 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Header } from "../../src/components/ui/Header";
-import { RestaurantCard } from "../../src/components/ui/RestaurantCard";
-import {
-    loadFavoriteRestaurantIds,
-    toggleFavoriteRestaurant,
-} from "../../src/services/favorites";
-import { useGetRestaurantsQuery } from "../../src/hooks/useApi";
-import { borderRadius, formatPrice, spacing } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
-import { Restaurant } from "../../src/types";
+import { Header } from '../../src/components/ui/Header';
+import { RestaurantCard } from '../../src/components/ui/RestaurantCard';
+import { loadFavoriteRestaurantIds, toggleFavoriteRestaurant } from '../../src/services/favorites';
+import { useGetRestaurantsQuery } from '../../src/hooks/useApi';
+import { borderRadius, formatPrice, spacing } from '../../src/theme';
+import { useTheme } from '../../src/hooks/useTheme';
+import { Restaurant } from '../../src/types';
 
 const FEATURED = {
-  title: "Hoje no mapa",
-  subtitle: "Restaurantes com entrega rápida, promoções e menu mais pedido.",
-  chips: ["Entrega grátis", "Top avaliados", "Aberto agora"],
+  title: 'Hoje no mapa',
+  subtitle: 'Restaurantes com entrega rápida, promoções e menu mais pedido.',
+  chips: ['Entrega grátis', 'Top avaliados', 'Aberto agora'],
 };
 
 export default function RestaurantesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [query, setQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("Todos");
+  const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('Todos');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const {
-    data: restaurantsData,
-    error: restaurantsError,
-  } = useGetRestaurantsQuery(undefined);
+  const { data: restaurantsData, error: restaurantsError } = useGetRestaurantsQuery(undefined);
 
   const restaurants = useMemo<Restaurant[]>(() => {
     if (!restaurantsData) return [];
@@ -48,7 +42,7 @@ export default function RestaurantesScreen() {
 
   useEffect(() => {
     if (restaurantsError) {
-      console.error("Failed to fetch restaurants:", restaurantsError);
+      console.error('Failed to fetch restaurants:', restaurantsError);
     }
   }, [restaurantsError]);
 
@@ -77,167 +71,175 @@ export default function RestaurantesScreen() {
     for (const r of restaurants) {
       if (r.cuisine) cuisineSet.add(r.cuisine);
     }
-    return ["Todos", "Perto de mim", "Grátis", ...Array.from(cuisineSet)];
+    return ['Todos', 'Perto de mim', 'Grátis', ...Array.from(cuisineSet)];
   }, [restaurants]);
 
   const filteredRestaurants = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return restaurants.filter((restaurant) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        restaurant.name.toLowerCase().includes(normalizedQuery) ||
-        restaurant.cuisine.toLowerCase().includes(normalizedQuery);
+    return restaurants
+      .filter((restaurant) => {
+        const matchesQuery =
+          !normalizedQuery ||
+          restaurant.name.toLowerCase().includes(normalizedQuery) ||
+          restaurant.cuisine.toLowerCase().includes(normalizedQuery);
 
-      const matchesFilter =
-        activeFilter === "Todos" ||
-        restaurant.cuisine === activeFilter ||
-        (activeFilter === "Perto de mim" && restaurant.distance != null && restaurant.distance <= 2) ||
-        (activeFilter === "Grátis" && restaurant.deliveryFee === 0);
+        const matchesFilter =
+          activeFilter === 'Todos' ||
+          restaurant.cuisine === activeFilter ||
+          (activeFilter === 'Perto de mim' &&
+            restaurant.distance != null &&
+            restaurant.distance <= 2) ||
+          (activeFilter === 'Grátis' && restaurant.deliveryFee === 0);
 
-      return matchesQuery && matchesFilter;
-    }).map((restaurant) => ({
-      ...restaurant,
-      favorite: favoriteIds.includes(restaurant.id),
-    }));
+        return matchesQuery && matchesFilter;
+      })
+      .map((restaurant) => ({
+        ...restaurant,
+        favorite: favoriteIds.includes(restaurant.id),
+      }));
   }, [activeFilter, favoriteIds, query, restaurants]);
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingBottom: 16,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: spacing.gutter,
-      paddingTop: spacing.md,
-    },
-    featuredCard: {
-      backgroundColor: colors.primary[100],
-      borderRadius: 28,
-      padding: spacing.lg,
-      borderWidth: 1,
-      borderColor: colors.secondary[100],
-      marginBottom: spacing.md,
-    },
-    featuredKicker: {
-      fontSize: 12,
-      fontWeight: "700",
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
-      color: colors.primary[600],
-    },
-    featuredTitle: {
-      marginTop: spacing.xs,
-      fontSize: 26,
-      fontWeight: "800",
-      color: colors.onSurface,
-    },
-    featuredSubtitle: {
-      marginTop: spacing.xs,
-      fontSize: 14,
-      lineHeight: 20,
-      color: colors.neutral[700],
-    },
-    featuredChips: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
-    featuredChip: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 999,
-      backgroundColor: colors.surfaceContainerLowest,
-    },
-    featuredChipText: {
-      fontSize: 12,
-      fontWeight: "700",
-      color: colors.onSurface,
-    },
-    searchContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surfaceContainerHighet,
-      borderRadius: 18,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    searchInput: {
-      flex: 1,
-      marginLeft: spacing.sm,
-      fontSize: 16,
-      color: colors.neutral[900],
-    },
-    filtersScroll: {
-      paddingBottom: spacing.sm,
-      gap: spacing.sm,
-    },
-    filterChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 999,
-      backgroundColor: colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-      marginRight: spacing.sm,
-    },
-    filterChipActive: {
-      backgroundColor: colors.primary[500],
-      borderColor: colors.primary[500],
-    },
-    filterText: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.onSurface,
-    },
-    filterTextActive: {
-      color: colors.white,
-    },
-    resultsHeader: {
-      marginTop: spacing.xs,
-      marginBottom: spacing.md,
-    },
-    resultsCount: {
-      fontSize: 18,
-      fontWeight: "800",
-      color: colors.onSurface,
-    },
-    resultsHint: {
-      marginTop: 4,
-      fontSize: 13,
-      color: colors.neutral[500],
-    },
-    emptyState: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: spacing.xl,
-      paddingHorizontal: spacing.lg,
-      borderRadius: borderRadius.xl,
-      backgroundColor: colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    emptyTitle: {
-      marginTop: spacing.sm,
-      fontSize: 16,
-      fontWeight: "700",
-      color: colors.onSurface,
-    },
-    emptyText: {
-      marginTop: 4,
-      fontSize: 13,
-      lineHeight: 18,
-      textAlign: "center",
-      color: colors.neutral[700],
-    },
-  }), [colors]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+          paddingBottom: 16,
+        },
+        content: {
+          flex: 1,
+          paddingHorizontal: spacing.gutter,
+          paddingTop: spacing.md,
+        },
+        featuredCard: {
+          backgroundColor: colors.primary[100],
+          borderRadius: 28,
+          padding: spacing.lg,
+          borderWidth: 1,
+          borderColor: colors.secondary[100],
+          marginBottom: spacing.md,
+        },
+        featuredKicker: {
+          fontSize: 12,
+          fontWeight: '700',
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+          color: colors.primary[600],
+        },
+        featuredTitle: {
+          marginTop: spacing.xs,
+          fontSize: 26,
+          fontWeight: '800',
+          color: colors.onSurface,
+        },
+        featuredSubtitle: {
+          marginTop: spacing.xs,
+          fontSize: 14,
+          lineHeight: 20,
+          color: colors.neutral[700],
+        },
+        featuredChips: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginTop: spacing.md,
+        },
+        featuredChip: {
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 999,
+          backgroundColor: colors.surfaceContainerLowest,
+        },
+        featuredChipText: {
+          fontSize: 12,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+        searchContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.surfaceContainerHighet,
+          borderRadius: 18,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        searchInput: {
+          flex: 1,
+          marginLeft: spacing.sm,
+          fontSize: 16,
+          color: colors.neutral[900],
+        },
+        filtersScroll: {
+          paddingBottom: spacing.sm,
+          gap: spacing.sm,
+        },
+        filterChip: {
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          borderRadius: 999,
+          backgroundColor: colors.surfaceContainerLowest,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+          marginRight: spacing.sm,
+        },
+        filterChipActive: {
+          backgroundColor: colors.primary[500],
+          borderColor: colors.primary[500],
+        },
+        filterText: {
+          fontSize: 13,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+        filterTextActive: {
+          color: colors.white,
+        },
+        resultsHeader: {
+          marginTop: spacing.xs,
+          marginBottom: spacing.md,
+        },
+        resultsCount: {
+          fontSize: 18,
+          fontWeight: '800',
+          color: colors.onSurface,
+        },
+        resultsHint: {
+          marginTop: 4,
+          fontSize: 13,
+          color: colors.neutral[500],
+        },
+        emptyState: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: spacing.xl,
+          paddingHorizontal: spacing.lg,
+          borderRadius: borderRadius.xl,
+          backgroundColor: colors.surfaceContainerLowest,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+        },
+        emptyTitle: {
+          marginTop: spacing.sm,
+          fontSize: 16,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+        emptyText: {
+          marginTop: 4,
+          fontSize: 13,
+          lineHeight: 18,
+          textAlign: 'center',
+          color: colors.neutral[700],
+        },
+      }),
+    [colors],
+  );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Restaurantes" />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
@@ -256,11 +258,7 @@ export default function RestaurantesScreen() {
         </View>
 
         <View style={styles.searchContainer}>
-          <MaterialCommunityIcons
-            name="magnify"
-            size={24}
-            color={colors.neutral[500]}
-          />
+          <MaterialCommunityIcons name="magnify" size={24} color={colors.neutral[500]} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar restaurantes ou pratos..."
@@ -284,11 +282,7 @@ export default function RestaurantesScreen() {
                 style={[styles.filterChip, active && styles.filterChipActive]}
                 onPress={() => setActiveFilter(filter)}
               >
-                <Text
-                  style={[styles.filterText, active && styles.filterTextActive]}
-                >
-                  {filter}
-                </Text>
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter}</Text>
               </TouchableOpacity>
             );
           })}
@@ -311,10 +305,10 @@ export default function RestaurantesScreen() {
               rating={item.rating}
               distance={item.distance != null ? `${item.distance} km` : undefined}
               deliveryTime={item.deliveryTime}
-              deliveryFee={item.deliveryFee === 0 ? "Grátis" : formatPrice(item.deliveryFee)}
+              deliveryFee={item.deliveryFee === 0 ? 'Grátis' : formatPrice(item.deliveryFee)}
               favorite={item.favorite}
               onFavoritePress={() => handleToggleFavorite(item.id)}
-              onPress={() => router.push({ pathname: "/restaurante", params: { id: item.id } })}
+              onPress={() => router.push({ pathname: '/restaurante', params: { id: item.id } })}
             />
           )}
           scrollEnabled={false}
@@ -325,9 +319,7 @@ export default function RestaurantesScreen() {
                 size={32}
                 color={colors.neutral[500]}
               />
-              <Text style={styles.emptyTitle}>
-                Nenhum restaurante encontrado
-              </Text>
+              <Text style={styles.emptyTitle}>Nenhum restaurante encontrado</Text>
               <Text style={styles.emptyText}>
                 Tenta outra palavra ou limpa os filtros para ver mais opções.
               </Text>

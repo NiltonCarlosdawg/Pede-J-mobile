@@ -1,53 +1,53 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Header } from "../../src/components/ui/Header";
-import { TrackingMap } from "../../src/components/ui/TrackingMap";
-import { useTheme } from "../../src/hooks/useTheme";
-import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../src/store";
-import { selectOrders, Order, OrderStatus } from "../../src/store/ordersSlice";
-import { spacing, formatPrice } from "../../src/theme";
-import { shadowStyle } from "../../src/utils/shadow";
-import { useGetOrderRouteQuery } from "../../src/hooks/useApi";
-import { subscribeOrderLocation } from "../../src/services/realtime";
-import { startVoipCall } from "../../src/services/voip";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Header } from '../../src/components/ui/Header';
+import { TrackingMap } from '../../src/components/ui/TrackingMap';
+import { useTheme } from '../../src/hooks/useTheme';
+import { useEffect, useMemo, useState } from 'react';
+import { useAppSelector } from '../../src/store';
+import { selectOrders, Order, OrderStatus } from '../../src/store/ordersSlice';
+import { spacing, formatPrice } from '../../src/theme';
+import { shadowStyle } from '../../src/utils/shadow';
+import { useGetOrderRouteQuery } from '../../src/hooks/useApi';
+import { subscribeOrderLocation } from '../../src/services/realtime';
+import { startVoipCall } from '../../src/services/voip';
 import {
   calculateDistance,
   estimateDeliveryTime,
   type Coordinates,
-} from "../../src/services/location";
-import type { OrderRoute } from "../../src/types";
+} from '../../src/services/location';
+import type { OrderRoute } from '../../src/types';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: string; color: string }> = {
-  preparing: { label: "Preparando", icon: "chef-hat", color: "#fbac1d" },
-  ready: { label: "Pronto", icon: "package-variant", color: "#4CAF50" },
-  delivering: { label: "Em entrega", icon: "truck-delivery", color: "#2196F3" },
-  delivered: { label: "Entregue", icon: "check-circle", color: "#4CAF50" },
-  cancelled: { label: "Cancelado", icon: "close-circle", color: "#BA1A1A" },
+  preparing: { label: 'Preparando', icon: 'chef-hat', color: '#fbac1d' },
+  ready: { label: 'Pronto', icon: 'package-variant', color: '#4CAF50' },
+  delivering: { label: 'Em entrega', icon: 'truck-delivery', color: '#2196F3' },
+  delivered: { label: 'Entregue', icon: 'check-circle', color: '#4CAF50' },
+  cancelled: { label: 'Cancelado', icon: 'close-circle', color: '#BA1A1A' },
 };
 
 const TRACKING_STEPS = [
-  { id: "1", title: "Pedido Confirmado", time: "19:45", completed: true },
-  { id: "2", title: "Em preparo", time: "19:50", completed: true },
-  { id: "3", title: "Em entrega", time: null, active: true, driver: "Carlos está a caminho" },
-  { id: "4", title: "Entregue", time: null, completed: false },
+  { id: '1', title: 'Pedido Confirmado', time: '19:45', completed: true },
+  { id: '2', title: 'Em preparo', time: '19:50', completed: true },
+  { id: '3', title: 'Em entrega', time: null, active: true, driver: 'Carlos está a caminho' },
+  { id: '4', title: 'Entregue', time: null, completed: false },
 ];
 
 const RESTAURANT_IMAGES: Record<string, string> = {
-  "order-001": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200",
-  "order-002": "https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=200",
-  "order-003": "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200",
-  "order-004": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=200",
-  "order-005": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200",
+  'order-001': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
+  'order-002': 'https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=200',
+  'order-003': 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200',
+  'order-004': 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=200',
+  'order-005': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
 };
 
 const RESTAURANT_NAMES: Record<string, string> = {
-  "order-001": "Burger Joint Master",
-  "order-002": "Sabor da Praça",
-  "order-003": "Sushi Master",
-  "order-004": "Chicken Station",
-  "order-005": "Burger Joint Master",
+  'order-001': 'Burger Joint Master',
+  'order-002': 'Sabor da Praça',
+  'order-003': 'Sushi Master',
+  'order-004': 'Chicken Station',
+  'order-005': 'Burger Joint Master',
 };
 
 function getStatusIndex(status: OrderStatus) {
@@ -67,12 +67,11 @@ export default function TrackingScreen() {
   const orders = useAppSelector(selectOrders);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const activeOrders = orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
-  const pastOrders = orders.filter((o) => o.status === "delivered" || o.status === "cancelled");
+  const activeOrders = orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled');
+  const pastOrders = orders.filter((o) => o.status === 'delivered' || o.status === 'cancelled');
 
-  const selectedOrder = activeOrders.find((o) => o.id === selectedOrderId)
-    ?? activeOrders[0]
-    ?? null;
+  const selectedOrder =
+    activeOrders.find((o) => o.id === selectedOrderId) ?? activeOrders[0] ?? null;
 
   const [routeInfo, setRouteInfo] = useState<OrderRoute | null>(null);
   const [driverLocation, setDriverLocation] = useState<Coordinates | null>(null);
@@ -85,11 +84,11 @@ export default function TrackingScreen() {
   // REST fallback: última posição persistida do entregador.
   // Fetch via RTK Query com o mesmo intervalo do antigo setInterval (8s).
   const routeOrderId =
-    selectedOrder && !selectedOrder.id.startsWith("local-") ? selectedOrder.id : "";
-  const { data: routeData, isError: routeError } = useGetOrderRouteQuery(
-    routeOrderId,
-    { pollingInterval: 8000, skip: !routeOrderId }
-  );
+    selectedOrder && !selectedOrder.id.startsWith('local-') ? selectedOrder.id : '';
+  const { data: routeData, isError: routeError } = useGetOrderRouteQuery(routeOrderId, {
+    pollingInterval: 8000,
+    skip: !routeOrderId,
+  });
 
   useEffect(() => {
     if (!routeOrderId) {
@@ -110,13 +109,13 @@ export default function TrackingScreen() {
 
   useEffect(() => {
     if (routeError) {
-      console.warn("Failed to fetch order route:", routeError);
+      console.warn('Failed to fetch order route:', routeError);
     }
   }, [routeError]);
 
   // Live updates via WebSocket quando disponíveis
   useEffect(() => {
-    if (!selectedOrder || selectedOrder.id.startsWith("local-")) return;
+    if (!selectedOrder || selectedOrder.id.startsWith('local-')) return;
 
     let unsubscribe: (() => void) | undefined;
     subscribeOrderLocation(selectedOrder.id, (payload) => {
@@ -136,304 +135,321 @@ export default function TrackingScreen() {
                 timestamp: payload.timestamp,
               },
             }
-          : prev
+          : prev,
       );
     })
       .then((fn) => {
         unsubscribe = fn;
       })
-      .catch((err) => console.warn("WS location subscribe failed:", err));
+      .catch((err) => console.warn('WS location subscribe failed:', err));
 
     return () => unsubscribe?.();
   }, [selectedOrder?.id]);
 
-  const isLocalOrder = Boolean(selectedOrder?.id.startsWith("local-"));
+  const isLocalOrder = Boolean(selectedOrder?.id.startsWith('local-'));
   const hasRealLocation =
     routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
   const lastKnownAgeMs = hasRealLocation
     ? Date.now() - new Date(routeInfo!.lastKnown.timestamp).getTime()
     : null;
 
-  const distance = driverLocation && customerLocation ? calculateDistance(driverLocation, customerLocation) : null;
+  const distance =
+    driverLocation && customerLocation ? calculateDistance(driverLocation, customerLocation) : null;
   const estimatedMinutes = distance != null ? estimateDeliveryTime(distance) : null;
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    mapContainer: {
-      height: 300,
-      position: "relative",
-    },
-    content: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      paddingHorizontal: 20,
-      paddingBottom: 48,
-      marginTop: -24,
-      ...shadowStyle({ offsetY: -8, blur: 30, opacity: 0.1 }),
-    },
-    handle: {
-      width: 48,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.neutral[300],
-      alignSelf: "center",
-      marginVertical: 16,
-    },
-    orderSelector: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginBottom: spacing.md,
-      flexWrap: "wrap",
-    },
-    orderChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xs,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: 12,
-      backgroundColor: colors.surfaceContainer,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    orderChipActive: {
-      backgroundColor: colors.primary[500],
-      borderColor: colors.primary[500],
-    },
-    orderChipText: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.onSurface,
-    },
-    orderChipTextActive: {
-      color: colors.white,
-    },
-    statusSection: {
-      alignItems: "center",
-      marginBottom: 24,
-    },
-    arrivalTime: {
-      fontSize: 24,
-      fontWeight: "700",
-      color: colors.onSurface,
-    },
-    arrivalRange: {
-      fontSize: 14,
-      color: colors.neutral[500],
-      marginTop: 4,
-    },
-    restaurantCard: {
-      backgroundColor: colors.white,
-      borderRadius: 12,
-      padding: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      marginBottom: 24,
-      borderWidth: 1,
-      borderColor: colors.surfaceContainer,
-    },
-    restaurantImage: {
-      width: 56,
-      height: 56,
-      borderRadius: 8,
-    },
-    restaurantInfo: {
-      flex: 1,
-    },
-    restaurantName: {
-      fontSize: 16,
-      fontWeight: "bold",
-      color: colors.onSurface,
-    },
-    orderNumber: {
-      fontSize: 14,
-      color: colors.neutral[500],
-    },
-    actionButtonsContainer: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    actionButton: {
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 4,
-    },
-    actionButtonCircle: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.primary[500],
-      alignItems: "center",
-      justifyContent: "center",
-      ...shadowStyle({ color: colors.primary[500], offsetY: 2, blur: 4, opacity: 0.3, elevation: 4 }),
-    },
-    actionButtonText: {
-      fontSize: 11,
-      fontWeight: "700",
-      color: colors.primary[500],
-    },
-    timeline: {
-      position: "relative",
-      paddingLeft: 24,
-      marginBottom: 32,
-    },
-    timelineLine: {
-      position: "absolute",
-      left: 11,
-      top: 24,
-      bottom: 24,
-      width: 2,
-      backgroundColor: colors.surfaceVariant,
-    },
-    stepItem: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 16,
-      marginBottom: 24,
-    },
-    pendingStep: {
-      opacity: 0.5,
-    },
-    stepIcon: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      backgroundColor: colors.surfaceVariant,
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 2,
-      borderColor: colors.white,
-      zIndex: 1,
-    },
-    completedIcon: {
-      backgroundColor: colors.secondary[500],
-    },
-    activeIcon: {
-      backgroundColor: colors.primary[500],
-      ...shadowStyle({ color: colors.primary[500], offsetY: 0, blur: 8, opacity: 0.2, elevation: 4 }),
-    },
-    pendingDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: colors.white,
-    },
-    stepContent: {
-      flex: 1,
-    },
-    stepTitle: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.onSurface,
-    },
-    activeStepTitle: {
-      fontWeight: "700",
-    },
-    stepTime: {
-      fontSize: 14,
-      color: colors.neutral[500],
-    },
-    driverText: {
-      fontSize: 14,
-      color: colors.primary[500],
-      fontWeight: "500",
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: "800",
-      color: colors.onSurface,
-      marginBottom: spacing.md,
-      marginTop: spacing.sm,
-    },
-    historyCard: {
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 20,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    historyHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: spacing.sm,
-    },
-    historyId: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.neutral[500],
-    },
-    statusBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    statusText: {
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    historyItems: {
-      marginBottom: spacing.sm,
-    },
-    itemText: {
-      fontSize: 14,
-      color: colors.onSurface,
-      marginBottom: 2,
-    },
-    historyFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginTop: spacing.sm,
-      paddingTop: spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: colors.surfaceVariant,
-    },
-    historyDate: {
-      fontSize: 12,
-      color: colors.neutral[500],
-    },
-    historyTotal: {
-      fontSize: 16,
-      fontWeight: "800",
-      color: colors.primary[500],
-    },
-    emptyHistory: {
-      alignItems: "center",
-      paddingVertical: spacing.xl,
-    },
-    emptyText: {
-      fontSize: 14,
-      color: colors.neutral[500],
-      textAlign: "center",
-    },
-    viewAllButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: spacing.md,
-      marginTop: spacing.sm,
-    },
-    viewAllText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.primary[500],
-    },
-  }), [colors]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.background },
+        mapContainer: {
+          height: 300,
+          position: 'relative',
+        },
+        content: {
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          paddingHorizontal: 20,
+          paddingBottom: 48,
+          marginTop: -24,
+          ...shadowStyle({ offsetY: -8, blur: 30, opacity: 0.1 }),
+        },
+        handle: {
+          width: 48,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: colors.neutral[300],
+          alignSelf: 'center',
+          marginVertical: 16,
+        },
+        orderSelector: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+          flexWrap: 'wrap',
+        },
+        orderChip: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          borderRadius: 12,
+          backgroundColor: colors.surfaceContainer,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+        },
+        orderChipActive: {
+          backgroundColor: colors.primary[500],
+          borderColor: colors.primary[500],
+        },
+        orderChipText: {
+          fontSize: 13,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+        orderChipTextActive: {
+          color: colors.white,
+        },
+        statusSection: {
+          alignItems: 'center',
+          marginBottom: 24,
+        },
+        arrivalTime: {
+          fontSize: 24,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+        arrivalRange: {
+          fontSize: 14,
+          color: colors.neutral[500],
+          marginTop: 4,
+        },
+        restaurantCard: {
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          padding: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 24,
+          borderWidth: 1,
+          borderColor: colors.surfaceContainer,
+        },
+        restaurantImage: {
+          width: 56,
+          height: 56,
+          borderRadius: 8,
+        },
+        restaurantInfo: {
+          flex: 1,
+        },
+        restaurantName: {
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: colors.onSurface,
+        },
+        orderNumber: {
+          fontSize: 14,
+          color: colors.neutral[500],
+        },
+        actionButtonsContainer: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+        },
+        actionButton: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+        },
+        actionButtonCircle: {
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: colors.primary[500],
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...shadowStyle({
+            color: colors.primary[500],
+            offsetY: 2,
+            blur: 4,
+            opacity: 0.3,
+            elevation: 4,
+          }),
+        },
+        actionButtonText: {
+          fontSize: 11,
+          fontWeight: '700',
+          color: colors.primary[500],
+        },
+        timeline: {
+          position: 'relative',
+          paddingLeft: 24,
+          marginBottom: 32,
+        },
+        timelineLine: {
+          position: 'absolute',
+          left: 11,
+          top: 24,
+          bottom: 24,
+          width: 2,
+          backgroundColor: colors.surfaceVariant,
+        },
+        stepItem: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 16,
+          marginBottom: 24,
+        },
+        pendingStep: {
+          opacity: 0.5,
+        },
+        stepIcon: {
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          backgroundColor: colors.surfaceVariant,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 2,
+          borderColor: colors.white,
+          zIndex: 1,
+        },
+        completedIcon: {
+          backgroundColor: colors.secondary[500],
+        },
+        activeIcon: {
+          backgroundColor: colors.primary[500],
+          ...shadowStyle({
+            color: colors.primary[500],
+            offsetY: 0,
+            blur: 8,
+            opacity: 0.2,
+            elevation: 4,
+          }),
+        },
+        pendingDot: {
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: colors.white,
+        },
+        stepContent: {
+          flex: 1,
+        },
+        stepTitle: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: colors.onSurface,
+        },
+        activeStepTitle: {
+          fontWeight: '700',
+        },
+        stepTime: {
+          fontSize: 14,
+          color: colors.neutral[500],
+        },
+        driverText: {
+          fontSize: 14,
+          color: colors.primary[500],
+          fontWeight: '500',
+        },
+        sectionTitle: {
+          fontSize: 18,
+          fontWeight: '800',
+          color: colors.onSurface,
+          marginBottom: spacing.md,
+          marginTop: spacing.sm,
+        },
+        historyCard: {
+          backgroundColor: colors.surfaceContainerLowest,
+          borderRadius: 20,
+          padding: spacing.md,
+          marginBottom: spacing.sm,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+        },
+        historyHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: spacing.sm,
+        },
+        historyId: {
+          fontSize: 14,
+          fontWeight: '700',
+          color: colors.neutral[500],
+        },
+        statusBadge: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 4,
+          borderRadius: 8,
+        },
+        statusText: {
+          fontSize: 12,
+          fontWeight: '700',
+        },
+        historyItems: {
+          marginBottom: spacing.sm,
+        },
+        itemText: {
+          fontSize: 14,
+          color: colors.onSurface,
+          marginBottom: 2,
+        },
+        historyFooter: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: spacing.sm,
+          paddingTop: spacing.sm,
+          borderTopWidth: 1,
+          borderTopColor: colors.surfaceVariant,
+        },
+        historyDate: {
+          fontSize: 12,
+          color: colors.neutral[500],
+        },
+        historyTotal: {
+          fontSize: 16,
+          fontWeight: '800',
+          color: colors.primary[500],
+        },
+        emptyHistory: {
+          alignItems: 'center',
+          paddingVertical: spacing.xl,
+        },
+        emptyText: {
+          fontSize: 14,
+          color: colors.neutral[500],
+          textAlign: 'center',
+        },
+        viewAllButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: spacing.md,
+          marginTop: spacing.sm,
+        },
+        viewAllText: {
+          fontSize: 14,
+          fontWeight: '700',
+          color: colors.primary[500],
+        },
+      }),
+    [colors],
+  );
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
@@ -443,7 +459,7 @@ export default function TrackingScreen() {
       <View key={order.id} style={styles.historyCard}>
         <View style={styles.historyHeader}>
           <Text style={styles.historyId}>Pedido #{order.id.slice(-4)}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: status.color + "20" }]}>
+          <View style={[styles.statusBadge, { backgroundColor: status.color + '20' }]}>
             <MaterialCommunityIcons name={status.icon as any} size={14} color={status.color} />
             <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
@@ -501,9 +517,7 @@ export default function TrackingScreen() {
                   {step.title}
                 </Text>
                 {step.time && <Text style={styles.stepTime}>{step.time}</Text>}
-                {isActive && step.driver && (
-                  <Text style={styles.driverText}>{step.driver}</Text>
-                )}
+                {isActive && step.driver && <Text style={styles.driverText}>{step.driver}</Text>}
               </View>
             </View>
           );
@@ -532,10 +546,21 @@ export default function TrackingScreen() {
               driverLocation={restaurantLocation!}
             />
           ) : (
-            <View style={{ flex: 1, backgroundColor: colors.surfaceContainer, alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: colors.surfaceContainer,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
               <MaterialCommunityIcons name="map-marker-off" size={32} color={colors.neutral[400]} />
-              <Text style={{ color: colors.neutral[500], textAlign: "center", paddingHorizontal: 24 }}>
-                Rota indisponível — aguardando dados reais do restaurante e cliente no banco (origem/destino).
+              <Text
+                style={{ color: colors.neutral[500], textAlign: 'center', paddingHorizontal: 24 }}
+              >
+                Rota indisponível — aguardando dados reais do restaurante e cliente no banco
+                (origem/destino).
               </Text>
             </View>
           )}
@@ -574,39 +599,51 @@ export default function TrackingScreen() {
             <>
               <View style={styles.statusSection}>
                 <Text style={styles.arrivalTime}>
-                  {selectedOrder.status === "delivering" && hasRealLocation && estimatedMinutes != null
+                  {selectedOrder.status === 'delivering' &&
+                  hasRealLocation &&
+                  estimatedMinutes != null
                     ? `Chegando em ${estimatedMinutes} min`
-                    : selectedOrder.status === "delivering"
-                    ? "Entregador a caminho"
-                    : selectedOrder.status === "ready"
-                    ? "Pronto para entrega"
-                    : "Preparando seu pedido"}
+                    : selectedOrder.status === 'delivering'
+                      ? 'Entregador a caminho'
+                      : selectedOrder.status === 'ready'
+                        ? 'Pronto para entrega'
+                        : 'Preparando seu pedido'}
                 </Text>
                 <Text style={styles.arrivalRange}>
-                  {selectedOrder.status === "delivering" ? (
+                  {selectedOrder.status === 'delivering' ? (
                     hasRealLocation && distance != null ? (
                       <Text>
-                        {distance.toFixed(1)} km restantes · Pedido #{selectedOrder.id.slice(-4)} ·{" "}
+                        {distance.toFixed(1)} km restantes · Pedido #{selectedOrder.id.slice(-4)} ·{' '}
                         {STATUS_CONFIG[selectedOrder.status].label}
                         {lastKnownAgeMs != null && lastKnownAgeMs > 30000
                           ? ` · actualizado há ${Math.round(lastKnownAgeMs / 1000)}s`
-                          : ""}
+                          : ''}
                       </Text>
                     ) : (
                       <Text>
-                        Pedido #{selectedOrder.id.slice(-4)} · {STATUS_CONFIG[selectedOrder.status].label} · Aguardando localização
-                        {isLocalOrder ? " (demonstração)" : ""}
+                        Pedido #{selectedOrder.id.slice(-4)} ·{' '}
+                        {STATUS_CONFIG[selectedOrder.status].label} · Aguardando localização
+                        {isLocalOrder ? ' (demonstração)' : ''}
                       </Text>
                     )
                   ) : (
                     <Text>
-                      Pedido #{selectedOrder.id.slice(-4)} · {STATUS_CONFIG[selectedOrder.status].label}
+                      Pedido #{selectedOrder.id.slice(-4)} ·{' '}
+                      {STATUS_CONFIG[selectedOrder.status].label}
                     </Text>
                   )}
                 </Text>
-                {selectedOrder.status === "delivering" && !hasRealLocation && !isLocalOrder ? (
-                  <Text style={{ fontSize: 12, color: colors.neutral[500], marginTop: 8, textAlign: "center" }}>
-                    A localização em tempo real aparecerá quando o entregador iniciar a partilha e o servidor confirmar.
+                {selectedOrder.status === 'delivering' && !hasRealLocation && !isLocalOrder ? (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.neutral[500],
+                      marginTop: 8,
+                      textAlign: 'center',
+                    }}
+                  >
+                    A localização em tempo real aparecerá quando o entregador iniciar a partilha e o
+                    servidor confirmar.
                   </Text>
                 ) : null}
               </View>
@@ -614,23 +651,24 @@ export default function TrackingScreen() {
               <View style={styles.restaurantCard}>
                 <Image
                   source={{
-                    uri: RESTAURANT_IMAGES[selectedOrder.id] ??
-                      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200",
+                    uri:
+                      RESTAURANT_IMAGES[selectedOrder.id] ??
+                      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
                   }}
                   style={styles.restaurantImage}
                 />
                 <View style={styles.restaurantInfo}>
                   <Text style={styles.restaurantName}>
-                    {RESTAURANT_NAMES[selectedOrder.id] ?? "Restaurante"}
+                    {RESTAURANT_NAMES[selectedOrder.id] ?? 'Restaurante'}
                   </Text>
-                  <Text style={styles.orderNumber}>
-                    Pedido #{selectedOrder.id.slice(-4)}
-                  </Text>
+                  <Text style={styles.orderNumber}>Pedido #{selectedOrder.id.slice(-4)}</Text>
                 </View>
                 <View style={styles.actionButtonsContainer}>
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => router.push({ pathname: "/chat", params: { orderId: selectedOrder.id } })}
+                    onPress={() =>
+                      router.push({ pathname: '/chat', params: { orderId: selectedOrder.id } })
+                    }
                   >
                     <View style={styles.actionButtonCircle}>
                       <MaterialCommunityIcons name="chat" size={22} color={colors.white} />
@@ -650,19 +688,43 @@ export default function TrackingScreen() {
               </View>
 
               {selectedOrder.driver && (
-                <View style={[styles.restaurantCard, { marginTop: -12, backgroundColor: colors.surfaceContainerLowest }]}>
-                  <View style={[styles.actionButtonCircle, { backgroundColor: colors.primary[100], width: 44, height: 44, borderRadius: 14 }]}>
+                <View
+                  style={[
+                    styles.restaurantCard,
+                    { marginTop: -12, backgroundColor: colors.surfaceContainerLowest },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.actionButtonCircle,
+                      {
+                        backgroundColor: colors.primary[100],
+                        width: 44,
+                        height: 44,
+                        borderRadius: 14,
+                      },
+                    ]}
+                  >
                     <MaterialCommunityIcons name="account" size={22} color={colors.primary[500]} />
                   </View>
                   <View style={styles.restaurantInfo}>
                     <Text style={styles.restaurantName}>{selectedOrder.driver.name}</Text>
-                    <Text style={styles.orderNumber}>{selectedOrder.driver.vehicle ?? "Entregador"}</Text>
+                    <Text style={styles.orderNumber}>
+                      {selectedOrder.driver.vehicle ?? 'Entregador'}
+                    </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => router.push({ pathname: "/chat", params: { orderId: selectedOrder.id } })}
+                    onPress={() =>
+                      router.push({ pathname: '/chat', params: { orderId: selectedOrder.id } })
+                    }
                   >
-                    <View style={[styles.actionButtonCircle, { width: 40, height: 40, borderRadius: 20 }]}>
+                    <View
+                      style={[
+                        styles.actionButtonCircle,
+                        { width: 40, height: 40, borderRadius: 20 },
+                      ]}
+                    >
                       <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
                     </View>
                     <Text style={styles.actionButtonText}>Chat</Text>
@@ -674,11 +736,15 @@ export default function TrackingScreen() {
             </>
           ) : (
             <View style={[styles.emptyHistory, { marginVertical: spacing.lg }]}>
-              <MaterialCommunityIcons name="truck-delivery-outline" size={48} color={colors.neutral[300]} />
+              <MaterialCommunityIcons
+                name="truck-delivery-outline"
+                size={48}
+                color={colors.neutral[300]}
+              />
               <Text style={styles.emptyText}>Nenhum pedido em andamento</Text>
               <TouchableOpacity
                 style={[styles.viewAllButton, { marginTop: spacing.md }]}
-                onPress={() => router.push("/(tabs)")}
+                onPress={() => router.push('/(tabs)')}
               >
                 <Text style={styles.viewAllText}>Fazer um pedido</Text>
                 <MaterialCommunityIcons name="arrow-right" size={20} color={colors.primary[500]} />
@@ -694,16 +760,24 @@ export default function TrackingScreen() {
               {pastOrders.length > 3 && (
                 <TouchableOpacity
                   style={styles.viewAllButton}
-                  onPress={() => router.push("/(tabs)/pedidos")}
+                  onPress={() => router.push('/(tabs)/pedidos')}
                 >
                   <Text style={styles.viewAllText}>Ver todos os pedidos</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary[500]} />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.primary[500]}
+                  />
                 </TouchableOpacity>
               )}
             </>
           ) : (
             <View style={styles.emptyHistory}>
-              <MaterialCommunityIcons name="receipt-text-outline" size={48} color={colors.neutral[300]} />
+              <MaterialCommunityIcons
+                name="receipt-text-outline"
+                size={48}
+                color={colors.neutral[300]}
+              />
               <Text style={styles.emptyText}>Nenhum pedido anterior</Text>
             </View>
           )}

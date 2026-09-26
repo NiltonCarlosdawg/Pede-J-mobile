@@ -1,7 +1,7 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Animated,
   Image,
@@ -13,33 +13,40 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from "../../src/components/ui/Button";
+import { Button } from '../../src/components/ui/Button';
 import {
   useRegisterMutation,
   useRequestOtpMutation,
   useVerifyOtpMutation,
   useLazyGetOtpDevCodeQuery,
-} from "../../src/hooks/useApi";
-import { useTheme } from "../../src/hooks/useTheme";
-import { saveDemoSession, roleFromUser } from "../../src/services/demoAuth";
-import { useAppDispatch } from "../../src/store";
-import { setSession } from "../../src/store/authSlice";
-import { spacing } from "../../src/theme";
+} from '../../src/hooks/useApi';
+import { useTheme } from '../../src/hooks/useTheme';
+import { saveDemoSession, roleFromUser } from '../../src/services/demoAuth';
+import { useAppDispatch } from '../../src/store';
+import { setSession } from '../../src/store/authSlice';
+import { spacing } from '../../src/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: string }>();
-  const initialRole = params.role === "entregador" ? "entregador" : params.role === "restaurante" ? "restaurante" : "cliente";
+  const initialRole =
+    params.role === 'entregador'
+      ? 'entregador'
+      : params.role === 'restaurante'
+        ? 'restaurante'
+        : 'cliente';
   const { colors } = useTheme();
-  const [selectedRole, setSelectedRole] = useState<"cliente" | "entregador" | "restaurante">(initialRole as any);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<'cliente' | 'entregador' | 'restaurante'>(
+    initialRole as any,
+  );
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,14 +70,14 @@ export default function RegisterScreen() {
         },
         scrollContent: {
           flexGrow: 1,
-          justifyContent: "flex-start",
+          justifyContent: 'flex-start',
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.xs,
           paddingBottom: spacing.lg,
           gap: spacing.sm,
         },
         logoSection: {
-          alignItems: "center",
+          alignItems: 'center',
           marginTop: -spacing.sm,
           marginBottom: spacing.sm,
         },
@@ -81,9 +88,9 @@ export default function RegisterScreen() {
         },
         tagline: {
           fontSize: 15,
-          fontWeight: "600",
+          fontWeight: '600',
           color: colors.neutral[700],
-          textAlign: "center",
+          textAlign: 'center',
         },
         formCard: {
           backgroundColor: colors.surfaceContainerLowest,
@@ -94,8 +101,8 @@ export default function RegisterScreen() {
           gap: spacing.md,
         },
         inputWrapper: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           backgroundColor: colors.neutral[50],
           borderWidth: 1,
           borderColor: colors.neutral[200],
@@ -115,21 +122,21 @@ export default function RegisterScreen() {
           paddingRight: 40,
         },
         eyeButton: {
-          position: "absolute",
+          position: 'absolute',
           right: spacing.md,
-          height: "100%",
-          justifyContent: "center",
+          height: '100%',
+          justifyContent: 'center',
         },
         errorText: {
           color: colors.error,
           fontSize: 13,
-          fontWeight: "600",
-          textAlign: "center",
+          fontWeight: '600',
+          textAlign: 'center',
         },
         footer: {
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
           marginTop: spacing.xs,
         },
         footerText: {
@@ -138,24 +145,24 @@ export default function RegisterScreen() {
         },
         footerLink: {
           fontSize: 14,
-          fontWeight: "700",
+          fontWeight: '700',
           color: colors.primary[500],
         },
         termsSection: {
-          alignItems: "center",
+          alignItems: 'center',
         },
         termsText: {
           fontSize: 12,
           lineHeight: 18,
           color: colors.neutral[500],
-          textAlign: "center",
+          textAlign: 'center',
         },
         termsLink: {
-          fontWeight: "600",
+          fontWeight: '600',
           color: colors.primary[500],
         },
       }),
-    [colors]
+    [colors],
   );
 
   function triggerShake() {
@@ -169,43 +176,43 @@ export default function RegisterScreen() {
 
   const validateForm = () => {
     if (!name.trim()) {
-      setError("Por favor preencha o nome completo.");
+      setError('Por favor preencha o nome completo.');
       triggerShake();
       return false;
     }
 
     if (!email.trim()) {
-      setError("Por favor preencha o e-mail.");
+      setError('Por favor preencha o e-mail.');
       triggerShake();
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Por favor insira um e-mail válido.");
+      setError('Por favor insira um e-mail válido.');
       triggerShake();
       return false;
     }
 
     if (!phone.trim()) {
-      setError("Por favor preencha o telefone.");
+      setError('Por favor preencha o telefone.');
       triggerShake();
       return false;
     }
 
     if (!password) {
-      setError("Por favor preencha a senha.");
+      setError('Por favor preencha a senha.');
       triggerShake();
       return false;
     }
 
     if (password.length < 6) {
-      setError("A palavra-passe deve ter pelo menos 6 caracteres.");
+      setError('A palavra-passe deve ter pelo menos 6 caracteres.');
       triggerShake();
       return false;
     }
 
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
+      setError('As senhas não coincidem.');
       triggerShake();
       return false;
     }
@@ -214,8 +221,8 @@ export default function RegisterScreen() {
   };
 
   const [otpStep, setOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [pendingPhone, setPendingPhone] = useState("");
+  const [otpCode, setOtpCode] = useState('');
+  const [pendingPhone, setPendingPhone] = useState('');
 
   async function handleRegister() {
     setError(null);
@@ -241,7 +248,7 @@ export default function RegisterScreen() {
         const role = roleFromUser(user);
         await saveDemoSession({ token, refreshToken, user, role });
         dispatch(setSession({ token, user, role }));
-        router.replace("/(tabs)");
+        router.replace('/(tabs)');
         return;
       }
 
@@ -252,7 +259,9 @@ export default function RegisterScreen() {
       // Em dev, tenta obter o código automaticamente via /auth/otp/dev-code
       try {
         // Preserva a tentativa de auto-verify com código de teste (resultado não é usado)
-        await verifyOtpMutation({ telefone, codigo: "000000" }).unwrap().catch(() => null);
+        await verifyOtpMutation({ telefone, codigo: '000000' })
+          .unwrap()
+          .catch(() => null);
         // Se chegou aqui, não há auto-verify — tenta buscar dev-code
         if (__DEV__) {
           const devCodigo = await fetchOtpDevCode({ telefone })
@@ -265,18 +274,23 @@ export default function RegisterScreen() {
             const role = roleFromUser(user);
             await saveDemoSession({ token, refreshToken, user, role });
             dispatch(setSession({ token, user, role }));
-            router.replace("/(tabs)");
+            router.replace('/(tabs)');
             return;
           }
         }
       } catch {}
       setOtpStep(true);
-      setError("Enviámos um código por SMS. Em desenvolvimento, verifica o console do backend ou usa o código de teste.");
+      setError(
+        'Enviámos um código por SMS. Em desenvolvimento, verifica o console do backend ou usa o código de teste.',
+      );
     } catch (err: any) {
       // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
       const data = err?.data;
-      const message = data?.message || (Array.isArray(data?.message) ? data.message.join(", ") : null) || "Não foi possível criar a conta. Tente novamente.";
-      if (data?.code === "EMAIL_TAKEN" || data?.code === "PHONE_TAKEN") {
+      const message =
+        data?.message ||
+        (Array.isArray(data?.message) ? data.message.join(', ') : null) ||
+        'Não foi possível criar a conta. Tente novamente.';
+      if (data?.code === 'EMAIL_TAKEN' || data?.code === 'PHONE_TAKEN') {
         setError(message);
       } else {
         setError(message);
@@ -289,21 +303,24 @@ export default function RegisterScreen() {
 
   async function handleVerifyOtp() {
     if (!otpCode.trim() || otpCode.trim().length < 6) {
-      setError("Insira o código de 6 dígitos enviado por SMS.");
+      setError('Insira o código de 6 dígitos enviado por SMS.');
       triggerShake();
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const res = await verifyOtpMutation({ telefone: pendingPhone, codigo: otpCode.trim() }).unwrap();
+      const res = await verifyOtpMutation({
+        telefone: pendingPhone,
+        codigo: otpCode.trim(),
+      }).unwrap();
       const { token, refreshToken, user } = res;
       const role = roleFromUser(user);
       await saveDemoSession({ token, refreshToken, user, role });
       dispatch(setSession({ token, user, role }));
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     } catch (err: any) {
-      const msg = err?.data?.message || "Código inválido ou expirado. Peça um novo.";
+      const msg = err?.data?.message || 'Código inválido ou expirado. Peça um novo.';
       setError(msg);
       triggerShake();
     } finally {
@@ -320,21 +337,23 @@ export default function RegisterScreen() {
       // Tenta auto-preencher em dev
       if (__DEV__) {
         try {
-          const devCodigo = await fetchOtpDevCode({ telefone: pendingPhone }).unwrap().then((d) => d?.codigo);
+          const devCodigo = await fetchOtpDevCode({ telefone: pendingPhone })
+            .unwrap()
+            .then((d) => d?.codigo);
           if (devCodigo) setOtpCode(devCodigo);
         } catch {}
       }
     } catch (err: any) {
-      setError(err?.data?.message || "Não foi possível reenviar o código.");
+      setError(err?.data?.message || 'Não foi possível reenviar o código.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.container}
       >
         <ScrollView
@@ -344,7 +363,7 @@ export default function RegisterScreen() {
         >
           <View style={styles.logoSection}>
             <Image
-              source={require("../../assets/images/P.png")}
+              source={require('../../assets/images/P.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -352,31 +371,54 @@ export default function RegisterScreen() {
           </View>
 
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.neutral[700], textAlign: "center" }}>Tipo de conta</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: colors.neutral[700],
+                textAlign: 'center',
+              }}
+            >
+              Tipo de conta
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               {[
-                { id: "cliente", label: "Cliente", icon: "person" },
-                { id: "entregador", label: "Entregador", icon: "bicycle" },
-                { id: "restaurante", label: "Restaurante", icon: "storefront" },
+                { id: 'cliente', label: 'Cliente', icon: 'person' },
+                { id: 'entregador', label: 'Entregador', icon: 'bicycle' },
+                { id: 'restaurante', label: 'Restaurante', icon: 'storefront' },
               ].map((opt) => (
                 <TouchableOpacity
                   key={opt.id}
                   onPress={() => setSelectedRole(opt.id as any)}
                   style={{
                     flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     gap: 6,
                     paddingVertical: 10,
                     borderRadius: 12,
                     borderWidth: 1,
-                    borderColor: selectedRole === opt.id ? colors.primary[500] : colors.neutral[200],
-                    backgroundColor: selectedRole === opt.id ? colors.primary[500] : colors.surfaceContainer,
+                    borderColor:
+                      selectedRole === opt.id ? colors.primary[500] : colors.neutral[200],
+                    backgroundColor:
+                      selectedRole === opt.id ? colors.primary[500] : colors.surfaceContainer,
                   }}
                 >
-                  <MaterialCommunityIcons name={opt.icon as any} size={16} color={selectedRole === opt.id ? colors.white : colors.neutral[500]} />
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: selectedRole === opt.id ? colors.white : colors.neutral[500] }}>{opt.label}</Text>
+                  <MaterialCommunityIcons
+                    name={opt.icon as any}
+                    size={16}
+                    color={selectedRole === opt.id ? colors.white : colors.neutral[500]}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '700',
+                      color: selectedRole === opt.id ? colors.white : colors.neutral[500],
+                    }}
+                  >
+                    {opt.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -452,12 +494,9 @@ export default function RegisterScreen() {
                 autoCorrect={false}
                 editable={!loading}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword((s) => !s)}
-                style={styles.eyeButton}
-              >
+              <TouchableOpacity onPress={() => setShowPassword((s) => !s)} style={styles.eyeButton}>
                 <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color={colors.neutral[500]}
                 />
@@ -486,7 +525,7 @@ export default function RegisterScreen() {
                 style={styles.eyeButton}
               >
                 <Ionicons
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color={colors.neutral[500]}
                 />
@@ -497,7 +536,7 @@ export default function RegisterScreen() {
 
             {!otpStep ? (
               <Button
-                title={loading ? "Criando conta..." : "Criar conta"}
+                title={loading ? 'Criando conta...' : 'Criar conta'}
                 onPress={handleRegister}
                 loading={loading}
                 disabled={loading}
@@ -505,7 +544,12 @@ export default function RegisterScreen() {
             ) : (
               <>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="keypad-outline" size={20} color={colors.neutral[500]} style={styles.inputIcon} />
+                  <Ionicons
+                    name="keypad-outline"
+                    size={20}
+                    color={colors.neutral[500]}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="Código de 6 dígitos"
@@ -518,21 +562,28 @@ export default function RegisterScreen() {
                   />
                 </View>
                 <Button
-                  title={loading ? "Verificando..." : "Verificar código"}
+                  title={loading ? 'Verificando...' : 'Verificar código'}
                   onPress={handleVerifyOtp}
                   loading={loading}
                   disabled={loading}
                 />
-                <TouchableOpacity onPress={handleResendOtp} disabled={loading} style={{ alignItems: "center", paddingVertical: 8 }}>
+                <TouchableOpacity
+                  onPress={handleResendOtp}
+                  disabled={loading}
+                  style={{ alignItems: 'center', paddingVertical: 8 }}
+                >
                   <Text style={styles.footerLink}>Reenviar código</Text>
                 </TouchableOpacity>
-                <Text style={[styles.termsText, { textAlign: "center" }]}>Enviado para {pendingPhone}. Em dev, o código aparece no terminal do backend (SMS_PROVIDER=console).</Text>
+                <Text style={[styles.termsText, { textAlign: 'center' }]}>
+                  Enviado para {pendingPhone}. Em dev, o código aparece no terminal do backend
+                  (SMS_PROVIDER=console).
+                </Text>
               </>
             )}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Já tem conta? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
                 <Text style={styles.footerLink}>Entre aqui</Text>
               </TouchableOpacity>
             </View>
@@ -540,8 +591,8 @@ export default function RegisterScreen() {
 
           <View style={styles.termsSection}>
             <Text style={styles.termsText}>
-              Ao criar uma conta, você concorda com nossos{" "}
-              <Text style={styles.termsLink}>Termos de Serviço</Text> e{" "}
+              Ao criar uma conta, você concorda com nossos{' '}
+              <Text style={styles.termsLink}>Termos de Serviço</Text> e{' '}
               <Text style={styles.termsLink}>Política de Privacidade</Text>.
             </Text>
           </View>

@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,19 +11,16 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
-import { ProductCard } from "../src/components/ui";
-import { spacing, formatPrice, typography } from "../src/theme";
-import { shadowStyle } from "../src/utils/shadow";
-import { useAppDispatch, useAppSelector } from "../src/store";
-import { selectCartCount, selectCartSubtotal } from "../src/store/cartSelectors";
-import { addItem } from "../src/store/cartSlice";
-import { useTheme } from "../src/hooks/useTheme";
-import {
-  useGetRestaurantByIdQuery,
-  useGetRestaurantProductsQuery,
-} from "../src/hooks/useApi";
+import { ProductCard } from '../src/components/ui';
+import { spacing, formatPrice, typography } from '../src/theme';
+import { shadowStyle } from '../src/utils/shadow';
+import { useAppDispatch, useAppSelector } from '../src/store';
+import { selectCartCount, selectCartSubtotal } from '../src/store/cartSelectors';
+import { addItem } from '../src/store/cartSlice';
+import { useTheme } from '../src/hooks/useTheme';
+import { useGetRestaurantByIdQuery, useGetRestaurantProductsQuery } from '../src/hooks/useApi';
 
 type MenuItem = {
   id: string;
@@ -44,20 +41,20 @@ type Section = {
 };
 
 function parsePrice(value: number | string): number {
-  if (typeof value === "number") return value;
-  const numeric = String(value).replace(/[^\d]/g, "");
+  if (typeof value === 'number') return value;
+  const numeric = String(value).replace(/[^\d]/g, '');
   return numeric ? Number(numeric) : 0;
 }
 
 function formatDeliveryFee(fee: number): string {
-  return fee === 0 ? "Grátis" : `Kz ${fee.toLocaleString("pt-BR")}`;
+  return fee === 0 ? 'Grátis' : `Kz ${fee.toLocaleString('pt-BR')}`;
 }
 
 export default function RestaurantScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const flatListRef = useRef<FlatList>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const dispatch = useAppDispatch();
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
@@ -68,27 +65,27 @@ export default function RestaurantScreen() {
     isLoading: restaurantLoading,
     isError: restaurantFailed,
     error: restaurantError,
-  } = useGetRestaurantByIdQuery(id ?? "", { skip: !id });
+  } = useGetRestaurantByIdQuery(id ?? '', { skip: !id });
 
   const {
     data: productsPage,
     isLoading: productsLoading,
     isError: productsFailed,
     error: productsError,
-  } = useGetRestaurantProductsQuery(id ?? "", { skip: !id });
+  } = useGetRestaurantProductsQuery(id ?? '', { skip: !id });
 
   const products = useMemo(() => productsPage?.data ?? [], [productsPage]);
 
   const loadFailed = restaurantFailed || productsFailed;
-  const error = loadFailed ? "Não foi possível carregar os dados do restaurante." : null;
+  const error = loadFailed ? 'Não foi possível carregar os dados do restaurante.' : null;
   const loading = !id || (!loadFailed && (restaurantLoading || productsLoading));
 
   useEffect(() => {
     if (restaurantError) {
-      console.error("Failed to fetch restaurant:", restaurantError);
+      console.error('Failed to fetch restaurant:', restaurantError);
     }
     if (productsError) {
-      console.error("Failed to fetch restaurant:", productsError);
+      console.error('Failed to fetch restaurant:', productsError);
     }
   }, [restaurantError, productsError]);
 
@@ -101,10 +98,10 @@ export default function RestaurantScreen() {
     }
     const sections: Section[] = [];
     if (products.some((p) => p.isFeatured)) {
-      sections.push({ id: "featured", title: "Destaques", subtitle: "Os itens mais pedidos" });
+      sections.push({ id: 'featured', title: 'Destaques', subtitle: 'Os itens mais pedidos' });
     }
     for (const [cat] of categoryMap) {
-      sections.push({ id: cat, title: cat, subtitle: "" });
+      sections.push({ id: cat, title: cat, subtitle: '' });
     }
     return sections;
   }, [products]);
@@ -124,11 +121,11 @@ export default function RestaurantScreen() {
         id: p.id,
         title: p.name,
         description: p.description,
-        price: typeof p.price === "number" ? formatPrice(p.price) : String(p.price),
+        price: typeof p.price === 'number' ? formatPrice(p.price) : String(p.price),
         image: p.image,
         isFeatured: p.isFeatured,
         isAvailable: p.isAvailable,
-        section: p.isFeatured ? "featured" : p.category,
+        section: p.isFeatured ? 'featured' : p.category,
       }));
   }, [products, searchQuery]);
 
@@ -143,20 +140,20 @@ export default function RestaurantScreen() {
         title: product.title,
         price: parsePrice(product.price),
         image: product.image,
-      })
+      }),
     );
   }
 
   function handleProductPress(product: MenuItem) {
     router.push({
-      pathname: "/produto-modal",
+      pathname: '/produto-modal',
       params: {
         id: product.id,
         name: product.title,
         price: parsePrice(product.price).toString(),
         image: product.image,
-        restaurant: restaurant?.name ?? "",
-        rating: restaurant ? restaurant.rating.toFixed(1) : "0.0",
+        restaurant: restaurant?.name ?? '',
+        rating: restaurant ? restaurant.rating.toFixed(1) : '0.0',
         description: product.description,
       },
     });
@@ -172,80 +169,80 @@ export default function RestaurantScreen() {
         },
         loadingContainer: {
           flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: 'center',
+          justifyContent: 'center',
           backgroundColor: colors.background,
         },
         errorContainer: {
           flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: 'center',
+          justifyContent: 'center',
           backgroundColor: colors.background,
           padding: 32,
         },
         errorText: {
           ...typography.bodyMd,
           color: colors.onSurfaceVariant,
-          textAlign: "center",
+          textAlign: 'center',
           marginTop: 12,
         },
         heroContainer: {
           height: 300,
-          position: "relative",
+          position: 'relative',
         },
         heroImage: {
-          width: "100%",
-          height: "100%",
+          width: '100%',
+          height: '100%',
         },
         topActions: {
-          position: "absolute",
+          position: 'absolute',
           top: 50,
           left: 16,
           right: 16,
-          flexDirection: "row",
-          justifyContent: "space-between",
+          flexDirection: 'row',
+          justifyContent: 'space-between',
         },
         actionButton: {
           width: 40,
           height: 40,
           borderRadius: 20,
-          backgroundColor: "rgba(255,255,255,0.92)",
-          alignItems: "center",
-          justifyContent: "center",
+          backgroundColor: 'rgba(255,255,255,0.92)',
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         rightActions: {
-          flexDirection: "row",
+          flexDirection: 'row',
           gap: 8,
         },
         badgeRow: {
-          position: "absolute",
+          position: 'absolute',
           left: 16,
           right: 16,
           bottom: 16,
-          flexDirection: "row",
+          flexDirection: 'row',
           gap: 8,
         },
         openBadge: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 6,
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderRadius: 999,
-          backgroundColor: "rgba(255,255,255,0.92)",
+          backgroundColor: 'rgba(255,255,255,0.92)',
         },
         openBadgeText: {
           ...typography.labelCaps,
           color: colors.onSurface,
         },
         deliveryChip: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 6,
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderRadius: 999,
-          backgroundColor: "rgba(255,255,255,0.92)",
+          backgroundColor: 'rgba(255,255,255,0.92)',
         },
         deliveryChipText: {
           ...typography.labelCaps,
@@ -271,17 +268,17 @@ export default function RestaurantScreen() {
           marginTop: 4,
         },
         infoRow: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 12,
           marginTop: 16,
-          flexWrap: "wrap",
+          flexWrap: 'wrap',
         },
         ratingBadge: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 4,
-          backgroundColor: "rgba(251,172,29,0.1)",
+          backgroundColor: 'rgba(251,172,29,0.1)',
           paddingHorizontal: 8,
           paddingVertical: 4,
           borderRadius: 12,
@@ -291,8 +288,8 @@ export default function RestaurantScreen() {
           color: colors.secondary[500],
         },
         infoItem: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 4,
           flexShrink: 1,
         },
@@ -301,8 +298,8 @@ export default function RestaurantScreen() {
           color: colors.onSurfaceVariant,
         },
         searchBar: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: 8,
           marginTop: 16,
           paddingHorizontal: 14,
@@ -317,7 +314,7 @@ export default function RestaurantScreen() {
           paddingVertical: 0,
         },
         tabs: {
-          flexDirection: "row",
+          flexDirection: 'row',
           backgroundColor: colors.surface,
           borderBottomWidth: 1,
           borderBottomColor: colors.surfaceVariant,
@@ -335,7 +332,7 @@ export default function RestaurantScreen() {
         inactiveTab: {
           paddingVertical: 16,
           borderBottomWidth: 3,
-          borderBottomColor: "transparent",
+          borderBottomColor: 'transparent',
         },
         inactiveTabText: {
           ...typography.labelLg,
@@ -363,7 +360,7 @@ export default function RestaurantScreen() {
           marginBottom: 12,
         },
         emptyState: {
-          alignItems: "center",
+          alignItems: 'center',
           paddingVertical: 32,
           paddingHorizontal: 16,
           borderRadius: 24,
@@ -380,11 +377,11 @@ export default function RestaurantScreen() {
           marginTop: 4,
           ...typography.bodySm,
           lineHeight: 18,
-          textAlign: "center",
+          textAlign: 'center',
           color: colors.neutral[700],
         },
         cartBar: {
-          position: "absolute",
+          position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
@@ -395,9 +392,9 @@ export default function RestaurantScreen() {
           paddingVertical: 12,
         },
         cartButton: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           backgroundColor: colors.primary[500],
           paddingVertical: 12,
           paddingHorizontal: 16,
@@ -407,9 +404,9 @@ export default function RestaurantScreen() {
           width: 24,
           height: 24,
           borderRadius: 6,
-          backgroundColor: "rgba(255,255,255,0.2)",
-          alignItems: "center",
-          justifyContent: "center",
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         cartCountText: {
           ...typography.labelLg,
@@ -426,7 +423,7 @@ export default function RestaurantScreen() {
           color: colors.secondary[500],
         },
         ratingSummary: {
-          alignItems: "center",
+          alignItems: 'center',
           marginBottom: spacing.md,
           paddingVertical: spacing.md,
         },
@@ -435,7 +432,7 @@ export default function RestaurantScreen() {
           color: colors.onSurface,
         },
         ratingStars: {
-          flexDirection: "row",
+          flexDirection: 'row',
           gap: 4,
           marginVertical: spacing.xs,
         },
@@ -444,7 +441,7 @@ export default function RestaurantScreen() {
           color: colors.neutral[500],
         },
       }),
-    [colors]
+    [colors],
   );
 
   const reviewsComponent = useMemo(() => {
@@ -459,7 +456,7 @@ export default function RestaurantScreen() {
             {[1, 2, 3, 4, 5].map((star) => (
               <MaterialCommunityIcons
                 key={star}
-                name={star <= Math.round(restaurant.rating) ? "star" : "star-outline"}
+                name={star <= Math.round(restaurant.rating) ? 'star' : 'star-outline'}
                 size={20}
                 color={colors.secondary[500]}
               />
@@ -507,12 +504,12 @@ export default function RestaurantScreen() {
           <View style={styles.badgeRow}>
             <View style={styles.openBadge}>
               <MaterialCommunityIcons
-                name={restaurant.isOpen ? "checkbox-marked-circle" : "clock-outline"}
+                name={restaurant.isOpen ? 'checkbox-marked-circle' : 'clock-outline'}
                 size={14}
                 color={restaurant.isOpen ? colors.primary[500] : colors.neutral[500]}
               />
               <Text style={styles.openBadgeText}>
-                {restaurant.isOpen ? "Aberto agora" : "Fechado"}
+                {restaurant.isOpen ? 'Aberto agora' : 'Fechado'}
               </Text>
             </View>
             <View style={styles.deliveryChip}>
@@ -536,12 +533,20 @@ export default function RestaurantScreen() {
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="clock-outline" size={18} color={colors.onSurfaceVariant} />
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={18}
+                color={colors.onSurfaceVariant}
+              />
               <Text style={styles.infoText}>{restaurant.deliveryTime}</Text>
             </View>
             {restaurant.distance != null && (
               <View style={styles.infoItem}>
-                <MaterialCommunityIcons name="map-marker" size={18} color={colors.onSurfaceVariant} />
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={18}
+                  color={colors.onSurfaceVariant}
+                />
                 <Text style={styles.infoText}>{restaurant.distance} km</Text>
               </View>
             )}
@@ -576,21 +581,19 @@ export default function RestaurantScreen() {
 
   const flatMenuData = useMemo(() => {
     type FlatItem =
-      | { type: "section-header"; title: string; subtitle: string }
-      | { type: "product"; product: MenuItem };
+      | { type: 'section-header'; title: string; subtitle: string }
+      | { type: 'product'; product: MenuItem };
 
     const items: FlatItem[] = [];
 
     for (const section of menuSections) {
-      const sectionProducts = menuItems.filter(
-        (product) => product.section === section.id
-      );
+      const sectionProducts = menuItems.filter((product) => product.section === section.id);
 
       if (!sectionProducts.length) continue;
 
-      items.push({ type: "section-header", title: section.title, subtitle: section.subtitle });
+      items.push({ type: 'section-header', title: section.title, subtitle: section.subtitle });
       for (const product of sectionProducts) {
-        items.push({ type: "product", product });
+        items.push({ type: 'product', product });
       }
     }
 
@@ -598,14 +601,16 @@ export default function RestaurantScreen() {
   }, [menuItems, menuSections]);
 
   const renderFlatItem = useCallback(
-    ({ item }: { item: { type: string; title?: string; subtitle?: string; product?: MenuItem } }) => {
-      if (item.type === "section-header") {
+    ({
+      item,
+    }: {
+      item: { type: string; title?: string; subtitle?: string; product?: MenuItem };
+    }) => {
+      if (item.type === 'section-header') {
         return (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{item.title}</Text>
-            {item.subtitle ? (
-              <Text style={styles.sectionSubtitle}>{item.subtitle}</Text>
-            ) : null}
+            {item.subtitle ? <Text style={styles.sectionSubtitle}>{item.subtitle}</Text> : null}
           </View>
         );
       }
@@ -627,13 +632,13 @@ export default function RestaurantScreen() {
         </View>
       );
     },
-    [styles, handleAddToCart, handleProductPress]
+    [styles, handleAddToCart, handleProductPress],
   );
 
   const flatKeyExtractor = useCallback(
     (item: { type: string; title?: string; product?: MenuItem }, index: number) =>
-      item.type === "section-header" ? `section-${item.title}` : item.product!.id,
-    []
+      item.type === 'section-header' ? `section-${item.title}` : item.product!.id,
+    [],
   );
 
   if (loading) {
@@ -648,7 +653,7 @@ export default function RestaurantScreen() {
     return (
       <View style={styles.errorContainer}>
         <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.neutral[500]} />
-        <Text style={styles.errorText}>{error || "Restaurante não encontrado."}</Text>
+        <Text style={styles.errorText}>{error || 'Restaurante não encontrado.'}</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={{ ...typography.labelLg, color: colors.primary[500] }}>Voltar</Text>
         </TouchableOpacity>
@@ -690,7 +695,7 @@ export default function RestaurantScreen() {
       />
 
       <View style={styles.cartBar}>
-        <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>
+        <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/checkout')}>
           <View style={styles.cartCount}>
             <Text style={styles.cartCountText}>{cartCount}</Text>
           </View>

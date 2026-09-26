@@ -46,14 +46,14 @@ declare module 'react-native-callkeep' {
       localizedCallerName?: string,
       handleType?: string,
       hasVideo?: boolean,
-      options?: object | null
+      options?: object | null,
     ) => void;
     startCall: (
       uuid: string,
       handle: string,
       contactIdentifier?: string,
       handleType?: string,
-      hasVideo?: boolean
+      hasVideo?: boolean,
     ) => void;
     endCall: (uuid: string) => void;
     endAllCalls: () => void;
@@ -73,10 +73,7 @@ declare module 'react-native-callkeep' {
 }
 
 declare module 'react-native-voip-push-notification' {
-  type VoipEvent =
-    | 'register'
-    | 'notification'
-    | 'didLoadWithEvents';
+  type VoipEvent = 'register' | 'notification' | 'didLoadWithEvents';
 
   const VoipPushNotification: {
     addEventListener: (type: VoipEvent, handler: (data: any) => void) => void;

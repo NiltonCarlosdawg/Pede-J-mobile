@@ -13,17 +13,17 @@ interface PaymentMethodCardProps {
 }
 
 const METHOD_ICONS: Record<PaymentMethodType, string> = {
-  paypay: "wallet",
-  multicaixa_express: "bank-transfer",
-  unitel_money: "cellphone",
-  facipay: "credit-card-wireless",
+  paypay: 'wallet',
+  multicaixa_express: 'bank-transfer',
+  unitel_money: 'cellphone',
+  facipay: 'credit-card-wireless',
 };
 
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
-  paypay: "PayPay",
-  multicaixa_express: "Multicaixa Express",
-  unitel_money: "Unitel Money",
-  facipay: "FaciPay",
+  paypay: 'PayPay',
+  multicaixa_express: 'Multicaixa Express',
+  unitel_money: 'Unitel Money',
+  facipay: 'FaciPay',
 };
 
 export function PaymentMethodCard({
@@ -34,79 +34,83 @@ export function PaymentMethodCard({
 }: PaymentMethodCardProps) {
   const { colors } = useTheme();
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flexDirection: 'row',
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: borderRadius.md,
-      padding: spacing.md,
-      marginBottom: spacing.md,
-      borderWidth: 2,
-      borderColor: colors.neutral[200],
-      alignItems: 'center',
-    },
-    containerSelected: {
-      borderColor: colors.primary[500],
-      backgroundColor: colors.primary[50],
-    },
-    content: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-    iconContainer: {
-      width: 50,
-      height: 50,
-      borderRadius: borderRadius.md,
-      backgroundColor: colors.primary[100],
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    iconContainerSelected: {
-      backgroundColor: colors.primary[500],
-    },
-    details: {
-      flex: 1,
-    },
-    methodType: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.neutral[900],
-      marginBottom: spacing.xs / 2,
-    },
-    methodSubtitle: {
-      fontSize: 13,
-      color: colors.neutral[600],
-      marginBottom: spacing.xs / 2,
-    },
-    defaultBadge: {
-      backgroundColor: colors.primary[100],
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs / 2,
-      borderRadius: borderRadius.full,
-      marginLeft: spacing.sm,
-    },
-    defaultText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.primary[700],
-      textTransform: 'uppercase',
-    },
-    checkmark: {
-      marginLeft: spacing.sm,
-    },
-    actions: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-      marginLeft: spacing.md,
-    },
-    actionButton: {
-      padding: spacing.sm,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  }), [colors]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flexDirection: 'row',
+          backgroundColor: colors.surfaceContainerLowest,
+          borderRadius: borderRadius.md,
+          padding: spacing.md,
+          marginBottom: spacing.md,
+          borderWidth: 2,
+          borderColor: colors.neutral[200],
+          alignItems: 'center',
+        },
+        containerSelected: {
+          borderColor: colors.primary[500],
+          backgroundColor: colors.primary[50],
+        },
+        content: {
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+        },
+        iconContainer: {
+          width: 50,
+          height: 50,
+          borderRadius: borderRadius.md,
+          backgroundColor: colors.primary[100],
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        iconContainerSelected: {
+          backgroundColor: colors.primary[500],
+        },
+        details: {
+          flex: 1,
+        },
+        methodType: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: colors.neutral[900],
+          marginBottom: spacing.xs / 2,
+        },
+        methodSubtitle: {
+          fontSize: 13,
+          color: colors.neutral[600],
+          marginBottom: spacing.xs / 2,
+        },
+        defaultBadge: {
+          backgroundColor: colors.primary[100],
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs / 2,
+          borderRadius: borderRadius.full,
+          marginLeft: spacing.sm,
+        },
+        defaultText: {
+          fontSize: 11,
+          fontWeight: '700',
+          color: colors.primary[700],
+          textTransform: 'uppercase',
+        },
+        checkmark: {
+          marginLeft: spacing.sm,
+        },
+        actions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          marginLeft: spacing.md,
+        },
+        actionButton: {
+          padding: spacing.sm,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+      }),
+    [colors],
+  );
 
   const icon = METHOD_ICONS[method.type] as any;
   const label = METHOD_LABELS[method.type] || method.label;
@@ -114,10 +118,7 @@ export function PaymentMethodCard({
   return (
     <TouchableOpacity
       onPress={onSelect}
-      style={[
-        styles.container,
-        isSelected && styles.containerSelected,
-      ]}
+      style={[styles.container, isSelected && styles.containerSelected]}
       activeOpacity={0.7}
     >
       <View style={styles.content}>
@@ -143,11 +144,7 @@ export function PaymentMethodCard({
 
       {isSelected && (
         <View style={styles.checkmark}>
-          <MaterialCommunityIcons
-            name="check-circle"
-            size={24}
-            color={colors.primary[500]}
-          />
+          <MaterialCommunityIcons name="check-circle" size={24} color={colors.primary[500]} />
         </View>
       )}
 
@@ -159,11 +156,7 @@ export function PaymentMethodCard({
               style={styles.actionButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <MaterialCommunityIcons
-                name="trash-can"
-                size={18}
-                color={colors.error}
-              />
+              <MaterialCommunityIcons name="trash-can" size={18} color={colors.error} />
             </TouchableOpacity>
           )}
         </View>

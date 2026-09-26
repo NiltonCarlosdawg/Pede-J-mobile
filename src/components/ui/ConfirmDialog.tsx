@@ -1,15 +1,9 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
-import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from "./Button";
-import { colors, spacing } from "../../theme";
+import { Button } from './Button';
+import { colors, spacing } from '../../theme';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -27,9 +21,9 @@ export function ConfirmDialog({
   visible,
   title,
   message,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  icon = "alert-circle-outline",
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  icon = 'alert-circle-outline',
   iconColor = colors.error,
   onConfirm,
   onCancel,
@@ -45,28 +39,16 @@ export function ConfirmDialog({
       <Pressable style={styles.overlay} onPress={onCancel}>
         <View style={styles.container}>
           <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name={icon as any}
-              size={32}
-              color={iconColor}
-            />
+            <MaterialCommunityIcons name={icon as any} size={32} color={iconColor} />
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           <View style={styles.buttons}>
             <View style={styles.cancelButton}>
-              <Button
-                title={cancelText}
-                onPress={onCancel}
-                variant="ghost"
-              />
+              <Button title={cancelText} onPress={onCancel} variant="ghost" />
             </View>
             <View style={styles.confirmButton}>
-              <Button
-                title={confirmText}
-                onPress={onConfirm}
-                variant="primary"
-              />
+              <Button title={confirmText} onPress={onConfirm} variant="primary" />
             </View>
           </View>
         </View>
@@ -78,18 +60,18 @@ export function ConfirmDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: spacing.lg,
   },
   container: {
     backgroundColor: colors.surfaceContainerLowest,
     borderRadius: 24,
     padding: spacing.lg,
-    width: "100%",
+    width: '100%',
     maxWidth: 400,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.surfaceVariant,
   },
@@ -97,29 +79,29 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 20,
-    backgroundColor: colors.error + "15",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: colors.error + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
   },
   title: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.onSurface,
     marginBottom: spacing.sm,
-    textAlign: "center",
+    textAlign: 'center',
   },
   message: {
     fontSize: 15,
     color: colors.neutral[500],
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.lg,
   },
   buttons: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    width: "100%",
+    width: '100%',
   },
   cancelButton: {
     flex: 1,

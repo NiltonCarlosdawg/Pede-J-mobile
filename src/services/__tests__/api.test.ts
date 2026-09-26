@@ -79,8 +79,7 @@ jest.mock('../api', () => {
       getCategories: () => mockApiGet('/restaurant/categories'),
       createCategory: (data: { name: string }) => mockApiPost('/restaurant/categories', data),
       deleteCategory: (id: string) => mockApiDelete(`/restaurant/categories/${id}`),
-      getStats: (params?: { periodo?: string }) =>
-        mockApiGet('/restaurant/stats', { params }),
+      getStats: (params?: { periodo?: string }) => mockApiGet('/restaurant/stats', { params }),
       updateProfile: (data: any) => mockApiPatch('/restaurant/profile', data),
       updateOpeningHours: (hours: any[]) => mockApiPatch('/restaurant/opening-hours', { hours }),
       toggleOpen: (isOpen: boolean) => mockApiPatch('/restaurant/toggle-open', { isOpen }),

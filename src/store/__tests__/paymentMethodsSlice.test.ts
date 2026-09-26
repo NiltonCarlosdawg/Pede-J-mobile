@@ -42,7 +42,7 @@ describe('paymentMethodsSlice reducers', () => {
   it('setDefaultPaymentMethod marca apenas o método escolhido', () => {
     const start = paymentMethodsReducer(
       initialState,
-      replacePaymentMethods([method('a', true), method('b'), method('c')])
+      replacePaymentMethods([method('a', true), method('b'), method('c')]),
     );
     const state = paymentMethodsReducer(start, setDefaultPaymentMethod('c'));
     expect(state.methods.find((m) => m.isDefault)?.id).toBe('c');
@@ -52,7 +52,7 @@ describe('paymentMethodsSlice reducers', () => {
   it('replacePaymentMethods substitui a lista inteira', () => {
     const state = paymentMethodsReducer(
       initialState,
-      replacePaymentMethods([method('a'), method('b')])
+      replacePaymentMethods([method('a'), method('b')]),
     );
     expect(state.methods).toHaveLength(2);
   });
@@ -65,7 +65,7 @@ describe('paymentMethodsSlice reducers', () => {
         methodType: 'paypay',
         amount: 2500,
         status: 'pending',
-      })
+      }),
     );
     expect(state.transactions).toHaveLength(1);
     expect(state.transactions[0].id).toMatch(/^tx-/);
@@ -81,7 +81,7 @@ describe('paymentMethodsSlice reducers', () => {
         methodType: 'paypay',
         amount: 2500,
         status: 'pending',
-      })
+      }),
     );
     expect(state.transactions[0].id).toBe('tx-custom');
   });
@@ -95,7 +95,7 @@ describe('paymentMethodsSlice reducers', () => {
         methodType: 'paypay',
         amount: 2500,
         status: 'pending',
-      })
+      }),
     );
     const state = paymentMethodsReducer(
       start,
@@ -103,7 +103,7 @@ describe('paymentMethodsSlice reducers', () => {
         transactionId: 'tx-1',
         status: 'completed',
         completedAt: '2026-09-25T10:00:00.000Z',
-      })
+      }),
     );
     expect(state.transactions[0].status).toBe('completed');
     expect(state.transactions[0].completedAt).toBe('2026-09-25T10:00:00.000Z');
@@ -112,7 +112,7 @@ describe('paymentMethodsSlice reducers', () => {
   it('updateTransactionStatus ignora transactionId inexistente', () => {
     const state = paymentMethodsReducer(
       initialState,
-      updateTransactionStatus({ transactionId: 'nope', status: 'completed' })
+      updateTransactionStatus({ transactionId: 'nope', status: 'completed' }),
     );
     expect(state.transactions).toHaveLength(0);
   });
@@ -126,7 +126,7 @@ describe('paymentMethodsSlice reducers', () => {
         methodType: 'multicaixa_express',
         amount: 2500,
         status: 'pending',
-      })
+      }),
     );
     const reference = {
       entity: '00471',
@@ -137,7 +137,7 @@ describe('paymentMethodsSlice reducers', () => {
     };
     const state = paymentMethodsReducer(
       start,
-      addMulticaixaReference({ transactionId: 'tx-1', reference })
+      addMulticaixaReference({ transactionId: 'tx-1', reference }),
     );
     expect(state.transactions[0].reference).toEqual(reference);
   });
@@ -151,7 +151,7 @@ describe('paymentMethodsSlice reducers', () => {
         methodType: 'paypay',
         amount: 100,
         status: 'pending',
-      })
+      }),
     );
     const state = paymentMethodsReducer(start, clearTransactions());
     expect(state.transactions).toHaveLength(0);
@@ -159,8 +159,7 @@ describe('paymentMethodsSlice reducers', () => {
 });
 
 describe('paymentMethodsSlice hidratação', () => {
-  const makeStore = () =>
-    configureStore({ reducer: { paymentMethods: paymentMethodsReducer } });
+  const makeStore = () => configureStore({ reducer: { paymentMethods: paymentMethodsReducer } });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -182,7 +181,7 @@ describe('paymentMethodsSlice hidratação', () => {
         { id: 'a', type: 'paypay', label: 'A', isDefault: true },
         { id: 'b', type: 'tipo-invalido', label: 'B', isDefault: false },
         null,
-      ])
+      ]),
     );
     const store = makeStore();
     await store.dispatch(hydratePaymentMethods());
@@ -202,7 +201,7 @@ describe('paymentMethodsSlice hidratação', () => {
 
   it('mantém os padrões quando a lista restaurada é vazia', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-      JSON.stringify([{ id: 'x', type: 'inexistente', label: 'X', isDefault: false }])
+      JSON.stringify([{ id: 'x', type: 'inexistente', label: 'X', isDefault: false }]),
     );
     const store = makeStore();
     await store.dispatch(hydratePaymentMethods());
@@ -219,7 +218,7 @@ describe('persistPaymentMethods', () => {
     await persistPaymentMethods(methods);
     expect(AsyncStorage.setItem).toHaveBeenCalledWith(
       PAYMENT_METHODS_STORAGE_KEY,
-      JSON.stringify(methods)
+      JSON.stringify(methods),
     );
   });
 });

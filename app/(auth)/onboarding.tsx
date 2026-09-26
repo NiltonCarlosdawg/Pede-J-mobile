@@ -1,24 +1,24 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    ViewToken,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+  Animated,
+  Dimensions,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from "../../src/components/ui/Button";
-import { spacing } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
+import { Button } from '../../src/components/ui/Button';
+import { spacing } from '../../src/theme';
+import { useTheme } from '../../src/hooks/useTheme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
@@ -28,7 +28,7 @@ interface OnboardingSlide {
   description: string;
 }
 
-const ONBOARDING_KEY = "@pedeja_onboarding_seen";
+const ONBOARDING_KEY = '@pedeja_onboarding_seen';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -40,28 +40,28 @@ export default function OnboardingScreen() {
 
   const SLIDES: OnboardingSlide[] = [
     {
-      id: "1",
-      icon: "food-variant",
+      id: '1',
+      icon: 'food-variant',
       iconColor: colors.primary[500],
-      title: "Descubra Restaurantes",
+      title: 'Descubra Restaurantes',
       description:
-        "Explore uma variedade de restaurantes e pratos deliciosos perto de você. De fast food a gourmet, temos tudo!",
+        'Explore uma variedade de restaurantes e pratos deliciosos perto de você. De fast food a gourmet, temos tudo!',
     },
     {
-      id: "2",
-      icon: "truck-delivery",
+      id: '2',
+      icon: 'truck-delivery',
       iconColor: colors.secondary[500],
-      title: "Entrega Rápida",
+      title: 'Entrega Rápida',
       description:
-        "Receba sua comida em minutos com nossos entregadores parceiros. Acompanhe tudo em tempo real.",
+        'Receba sua comida em minutos com nossos entregadores parceiros. Acompanhe tudo em tempo real.',
     },
     {
-      id: "3",
-      icon: "account-group",
+      id: '3',
+      icon: 'account-group',
       iconColor: colors.primary[500],
-      title: "Seja um Parceiro",
+      title: 'Seja um Parceiro',
       description:
-        "Quer entregar ou vender? Junte-se a nós como entregador ou restaurante parceiro e comece a ganhar!",
+        'Quer entregar ou vender? Junte-se a nós como entregador ou restaurante parceiro e comece a ganhar!',
     },
   ];
 
@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
         setCurrentIndex(Number(viewableItems[0].index));
       }
     },
-    []
+    [],
   );
 
   function scrollToIndex(index: number) {
@@ -84,22 +84,18 @@ export default function OnboardingScreen() {
 
   async function handleComplete() {
     try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     } catch {
       // Silently fail
     }
-    router.replace("/(auth)/profile-select");
+    router.replace('/(auth)/profile-select');
   }
 
   function renderSlide({ item }: { item: OnboardingSlide }) {
     return (
       <View style={styles.slide}>
-        <View style={[styles.iconContainer, { backgroundColor: item.iconColor + "15" }]}>
-          <MaterialCommunityIcons
-            name={item.icon as any}
-            size={64}
-            color={item.iconColor}
-          />
+        <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '15' }]}>
+          <MaterialCommunityIcons name={item.icon as any} size={64} color={item.iconColor} />
         </View>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
@@ -120,26 +116,19 @@ export default function OnboardingScreen() {
           const dotWidth = scrollX.interpolate({
             inputRange,
             outputRange: [8, 24, 8],
-            extrapolate: "clamp",
+            extrapolate: 'clamp',
           });
 
           const dotColor = scrollX.interpolate({
             inputRange,
-            outputRange: [
-              colors.neutral[300],
-              colors.primary[500],
-              colors.neutral[300],
-            ],
-            extrapolate: "clamp",
+            outputRange: [colors.neutral[300], colors.primary[500], colors.neutral[300]],
+            extrapolate: 'clamp',
           });
 
           return (
             <Animated.View
               key={index}
-              style={[
-                styles.dot,
-                { width: dotWidth, backgroundColor: dotColor },
-              ]}
+              style={[styles.dot, { width: dotWidth, backgroundColor: dotColor }]}
             />
           );
         })}
@@ -148,7 +137,7 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Skip button */}
       <View style={styles.header}>
         <Pressable onPress={handleComplete} style={styles.skipButton}>
@@ -166,10 +155,9 @@ export default function OnboardingScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+          useNativeDriver: false,
+        })}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         scrollEventThrottle={32}
@@ -181,10 +169,7 @@ export default function OnboardingScreen() {
 
         <View style={styles.buttons}>
           {currentIndex < SLIDES.length - 1 ? (
-            <Button
-              title="Próximo"
-              onPress={() => scrollToIndex(currentIndex + 1)}
-            />
+            <Button title="Próximo" onPress={() => scrollToIndex(currentIndex + 1)} />
           ) : (
             <Button title="Começar" onPress={handleComplete} />
           )}
@@ -201,8 +186,8 @@ function createStyles(colors: any) {
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
     },
@@ -211,35 +196,35 @@ function createStyles(colors: any) {
     },
     skipText: {
       fontSize: 16,
-      fontWeight: "600",
+      fontWeight: '600',
       color: colors.neutral[500],
     },
     slide: {
       width: SCREEN_WIDTH,
       flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
+      justifyContent: 'center',
+      alignItems: 'center',
       paddingHorizontal: spacing.xl,
     },
     iconContainer: {
       width: 120,
       height: 120,
       borderRadius: 40,
-      alignItems: "center",
-      justifyContent: "center",
+      alignItems: 'center',
+      justifyContent: 'center',
       marginBottom: spacing.xl,
     },
     title: {
       fontSize: 28,
-      fontWeight: "700",
+      fontWeight: '700',
       color: colors.onSurface,
-      textAlign: "center",
+      textAlign: 'center',
       marginBottom: spacing.md,
     },
     description: {
       fontSize: 16,
       color: colors.neutral[500],
-      textAlign: "center",
+      textAlign: 'center',
       lineHeight: 24,
     },
     footer: {
@@ -248,9 +233,9 @@ function createStyles(colors: any) {
       gap: spacing.lg,
     },
     pagination: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
       gap: spacing.sm,
     },
     dot: {
@@ -258,7 +243,7 @@ function createStyles(colors: any) {
       borderRadius: 4,
     },
     buttons: {
-      width: "100%",
+      width: '100%',
     },
   });
 }

@@ -1,32 +1,32 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    Platform,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Platform,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Header } from "../../src/components/ui/Header";
-import { Button } from "../../src/components/ui/Button";
-import { ConfirmDialog } from "../../src/components/ui/ConfirmDialog";
-import { spacing } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
+import { Header } from '../../src/components/ui/Header';
+import { Button } from '../../src/components/ui/Button';
+import { ConfirmDialog } from '../../src/components/ui/ConfirmDialog';
+import { spacing } from '../../src/theme';
+import { useTheme } from '../../src/hooks/useTheme';
 import {
-    useCreateProductMutation,
-    useDeleteProductMutation,
-    useGetManageProductsQuery,
-    useUpdateProductMutation,
-} from "../../src/hooks/useApi";
-import type { Product } from "../../src/types";
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useGetManageProductsQuery,
+  useUpdateProductMutation,
+} from '../../src/hooks/useApi';
+import type { Product } from '../../src/types';
 
 export default function RestaurantMenuScreen() {
   const router = useRouter();
@@ -37,11 +37,11 @@ export default function RestaurantMenuScreen() {
   const [deleteConfirm, setDeleteConfirm] = useState<Product | null>(null);
 
   // Form state
-  const [formName, setFormName] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formPrice, setFormPrice] = useState("");
-  const [formCategory, setFormCategory] = useState("");
-  const [formImage, setFormImage] = useState("");
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formPrice, setFormPrice] = useState('');
+  const [formCategory, setFormCategory] = useState('');
+  const [formImage, setFormImage] = useState('');
   const [formAvailable, setFormAvailable] = useState(true);
   const [formFeatured, setFormFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,25 +59,25 @@ export default function RestaurantMenuScreen() {
   // Spinner em carga inicial e novo retry (sem dados e sem erro), igual ao antigo `loading`
   // local — sem piscar em refetches de invalidação pós-mutação.
   const loading = productsData === undefined && !isError;
-  const error = isError && productsData === undefined ? "Erro ao carregar cardápio." : null;
+  const error = isError && productsData === undefined ? 'Erro ao carregar cardápio.' : null;
 
   useEffect(() => {
     if (productsData) {
-      const rows = Array.isArray(productsData) ? productsData : productsData.data ?? [];
+      const rows = Array.isArray(productsData) ? productsData : (productsData.data ?? []);
       setProducts(rows);
     }
   }, [productsData]);
 
   useEffect(() => {
-    if (isError) console.error("[RestaurantMenu] fetchProducts error:", queryError);
+    if (isError) console.error('[RestaurantMenu] fetchProducts error:', queryError);
   }, [isError, queryError]);
 
   const resetForm = useCallback(() => {
-    setFormName("");
-    setFormDescription("");
-    setFormPrice("");
-    setFormCategory("");
-    setFormImage("");
+    setFormName('');
+    setFormDescription('');
+    setFormPrice('');
+    setFormCategory('');
+    setFormImage('');
     setFormAvailable(true);
     setFormFeatured(false);
     setEditingProduct(null);
@@ -93,7 +93,7 @@ export default function RestaurantMenuScreen() {
     setFormDescription(product.description);
     setFormPrice(String(product.price));
     setFormCategory(product.category);
-    setFormImage(product.image || "");
+    setFormImage(product.image || '');
     setFormAvailable(product.isAvailable);
     setFormFeatured(product.isFeatured);
     setEditingProduct(product);
@@ -109,7 +109,7 @@ export default function RestaurantMenuScreen() {
         name: formName.trim(),
         description: formDescription.trim(),
         price: parseFloat(formPrice) || 0,
-        category: formCategory.trim() || "Geral",
+        category: formCategory.trim() || 'Geral',
         image: formImage.trim() || undefined,
         isAvailable: formAvailable,
         isFeatured: formFeatured,
@@ -118,7 +118,9 @@ export default function RestaurantMenuScreen() {
       if (editingProduct) {
         await updateProduct({ productId: editingProduct.id, payload: data }).unwrap();
         setProducts((prev) =>
-          prev.map((p) => (p.id === editingProduct.id ? { ...p, ...data, image: data.image ?? p.image } : p))
+          prev.map((p) =>
+            p.id === editingProduct.id ? { ...p, ...data, image: data.image ?? p.image } : p,
+          ),
         );
       } else {
         const created = await createProduct(data).unwrap();
@@ -128,11 +130,23 @@ export default function RestaurantMenuScreen() {
       setShowAddModal(false);
       resetForm();
     } catch (err) {
-      console.error("[RestaurantMenu] handleSave error:", err);
+      console.error('[RestaurantMenu] handleSave error:', err);
     } finally {
       setSaving(false);
     }
-  }, [formName, formDescription, formPrice, formCategory, formImage, formAvailable, formFeatured, editingProduct, resetForm, createProduct, updateProduct]);
+  }, [
+    formName,
+    formDescription,
+    formPrice,
+    formCategory,
+    formImage,
+    formAvailable,
+    formFeatured,
+    editingProduct,
+    resetForm,
+    createProduct,
+    updateProduct,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteConfirm) return;
@@ -142,244 +156,257 @@ export default function RestaurantMenuScreen() {
       setProducts((prev) => prev.filter((p) => p.id !== deleteConfirm.id));
       setDeleteConfirm(null);
     } catch (err) {
-      console.error("[RestaurantMenu] handleDelete error:", err);
+      console.error('[RestaurantMenu] handleDelete error:', err);
     }
   }, [deleteConfirm, deleteProduct]);
 
-  const toggleAvailability = useCallback(async (product: Product) => {
-    try {
-      const newAvailability = !product.isAvailable;
-      await updateProduct({ productId: product.id, payload: { isAvailable: newAvailability } }).unwrap();
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, isAvailable: newAvailability } : p))
-      );
-    } catch (err) {
-      console.error("[RestaurantMenu] toggleAvailability error:", err);
-    }
-  }, [updateProduct]);
+  const toggleAvailability = useCallback(
+    async (product: Product) => {
+      try {
+        const newAvailability = !product.isAvailable;
+        await updateProduct({
+          productId: product.id,
+          payload: { isAvailable: newAvailability },
+        }).unwrap();
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, isAvailable: newAvailability } : p)),
+        );
+      } catch (err) {
+        console.error('[RestaurantMenu] toggleAvailability error:', err);
+      }
+    },
+    [updateProduct],
+  );
 
   const formatCurrency = useCallback((value: number | string) => {
-    const num = typeof value === "string" ? parseFloat(value) : value;
-    return `Kz ${(num || 0).toLocaleString("pt-AO")}`;
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return `Kz ${(num || 0).toLocaleString('pt-AO')}`;
   }, []);
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    content: { flex: 1, paddingHorizontal: spacing.lg },
-    listContent: { paddingBottom: spacing.xxl },
-    productCard: {
-      flexDirection: "row",
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 16,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-      alignItems: "center",
-      gap: spacing.md,
-    },
-    productImage: {
-      width: 64,
-      height: 64,
-      borderRadius: 12,
-      backgroundColor: colors.surfaceContainer,
-    },
-    productInfo: { flex: 1 },
-    productName: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: colors.onSurface,
-      marginBottom: 2,
-    },
-    productCategory: {
-      fontSize: 12,
-      color: colors.neutral[500],
-      marginBottom: 4,
-    },
-    productPrice: {
-      fontSize: 16,
-      fontWeight: "800",
-      color: colors.primary[500],
-    },
-    productActions: {
-      alignItems: "flex-end",
-      gap: spacing.sm,
-    },
-    actionRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-    },
-    iconButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.surfaceContainer,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    unavailableBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-      backgroundColor: colors.error + "15",
-    },
-    unavailableText: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: colors.error,
-    },
-    featuredBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 6,
-      backgroundColor: colors.secondary[100],
-    },
-    featuredText: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: colors.secondary[700],
-    },
-    emptyContainer: {
-      alignItems: "center",
-      paddingVertical: spacing.xxl,
-      gap: spacing.sm,
-    },
-    emptyText: {
-      fontSize: 14,
-      color: colors.neutral[500],
-      textAlign: "center",
-    },
-    addButton: {
-      position: "absolute",
-      bottom: spacing.lg,
-      right: spacing.lg,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.primary[500],
-      alignItems: "center",
-      justifyContent: "center",
-      ...Platform.select({
-        ios: {
-          shadowColor: colors.primary[500],
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.background },
+        content: { flex: 1, paddingHorizontal: spacing.lg },
+        listContent: { paddingBottom: spacing.xxl },
+        productCard: {
+          flexDirection: 'row',
+          backgroundColor: colors.surfaceContainerLowest,
+          borderRadius: 16,
+          padding: spacing.md,
+          marginBottom: spacing.sm,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+          alignItems: 'center',
+          gap: spacing.md,
         },
-        android: { elevation: 8 },
+        productImage: {
+          width: 64,
+          height: 64,
+          borderRadius: 12,
+          backgroundColor: colors.surfaceContainer,
+        },
+        productInfo: { flex: 1 },
+        productName: {
+          fontSize: 15,
+          fontWeight: '700',
+          color: colors.onSurface,
+          marginBottom: 2,
+        },
+        productCategory: {
+          fontSize: 12,
+          color: colors.neutral[500],
+          marginBottom: 4,
+        },
+        productPrice: {
+          fontSize: 16,
+          fontWeight: '800',
+          color: colors.primary[500],
+        },
+        productActions: {
+          alignItems: 'flex-end',
+          gap: spacing.sm,
+        },
+        actionRow: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+        },
+        iconButton: {
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          backgroundColor: colors.surfaceContainer,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        unavailableBadge: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 2,
+          borderRadius: 6,
+          backgroundColor: colors.error + '15',
+        },
+        unavailableText: {
+          fontSize: 10,
+          fontWeight: '700',
+          color: colors.error,
+        },
+        featuredBadge: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 2,
+          borderRadius: 6,
+          backgroundColor: colors.secondary[100],
+        },
+        featuredText: {
+          fontSize: 10,
+          fontWeight: '700',
+          color: colors.secondary[700],
+        },
+        emptyContainer: {
+          alignItems: 'center',
+          paddingVertical: spacing.xxl,
+          gap: spacing.sm,
+        },
+        emptyText: {
+          fontSize: 14,
+          color: colors.neutral[500],
+          textAlign: 'center',
+        },
+        addButton: {
+          position: 'absolute',
+          bottom: spacing.lg,
+          right: spacing.lg,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.primary[500],
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...Platform.select({
+            ios: {
+              shadowColor: colors.primary[500],
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+            },
+            android: { elevation: 8 },
+          }),
+        },
+        modalOverlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'flex-end',
+        },
+        modalContent: {
+          backgroundColor: colors.surfaceContainerLowest,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          padding: spacing.lg,
+          maxHeight: '80%',
+        },
+        modalTitle: {
+          fontSize: 20,
+          fontWeight: '700',
+          color: colors.onSurface,
+          marginBottom: spacing.lg,
+          textAlign: 'center',
+        },
+        formGroup: {
+          marginBottom: spacing.md,
+        },
+        formLabel: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: colors.neutral[700],
+          marginBottom: spacing.xs,
+        },
+        formInput: {
+          backgroundColor: colors.neutral[50],
+          borderWidth: 1,
+          borderColor: colors.neutral[200],
+          borderRadius: 12,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          fontSize: 16,
+          color: colors.onSurface,
+        },
+        formRow: {
+          flexDirection: 'row',
+          gap: spacing.md,
+        },
+        formSwitchRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingVertical: spacing.sm,
+        },
+        modalActions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          marginTop: spacing.lg,
+        },
+        modalCancelButton: {
+          flex: 1,
+        },
+        modalSaveButton: {
+          flex: 1,
+        },
       }),
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "flex-end",
-    },
-    modalContent: {
-      backgroundColor: colors.surfaceContainerLowest,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: spacing.lg,
-      maxHeight: "80%",
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: colors.onSurface,
-      marginBottom: spacing.lg,
-      textAlign: "center",
-    },
-    formGroup: {
-      marginBottom: spacing.md,
-    },
-    formLabel: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.neutral[700],
-      marginBottom: spacing.xs,
-    },
-    formInput: {
-      backgroundColor: colors.neutral[50],
-      borderWidth: 1,
-      borderColor: colors.neutral[200],
-      borderRadius: 12,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      fontSize: 16,
-      color: colors.onSurface,
-    },
-    formRow: {
-      flexDirection: "row",
-      gap: spacing.md,
-    },
-    formSwitchRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: spacing.sm,
-    },
-    modalActions: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginTop: spacing.lg,
-    },
-    modalCancelButton: {
-      flex: 1,
-    },
-    modalSaveButton: {
-      flex: 1,
-    },
-  }), [colors]);
+    [colors],
+  );
 
-  const renderProduct = useCallback(({ item }: { item: Product }) => (
-    <View style={styles.productCard}>
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-      ) : (
-        <View style={[styles.productImage, { alignItems: "center", justifyContent: "center" }]}>
-          <MaterialCommunityIcons name="food" size={24} color={colors.neutral[400]} />
-        </View>
-      )}
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productCategory}>{item.category}</Text>
-        <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
-      </View>
-      <View style={styles.productActions}>
-        {!item.isAvailable && (
-          <View style={styles.unavailableBadge}>
-            <Text style={styles.unavailableText}>Indisponível</Text>
+  const renderProduct = useCallback(
+    ({ item }: { item: Product }) => (
+      <View style={styles.productCard}>
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+        ) : (
+          <View style={[styles.productImage, { alignItems: 'center', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name="food" size={24} color={colors.neutral[400]} />
           </View>
         )}
-        {item.isFeatured && (
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredText}>Destaque</Text>
-          </View>
-        )}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => openEditModal(item)}>
-            <MaterialCommunityIcons name="pencil" size={16} color={colors.primary[500]} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setDeleteConfirm(item)}>
-            <MaterialCommunityIcons name="delete" size={16} color={colors.error} />
-          </TouchableOpacity>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{item.name}</Text>
+          <Text style={styles.productCategory}>{item.category}</Text>
+          <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
         </View>
-        <Switch
-          value={item.isAvailable}
-          onValueChange={() => toggleAvailability(item)}
-          trackColor={{ false: colors.neutral[300], true: colors.primary[100] }}
-          thumbColor={item.isAvailable ? colors.primary[500] : colors.neutral[400]}
-        />
+        <View style={styles.productActions}>
+          {!item.isAvailable && (
+            <View style={styles.unavailableBadge}>
+              <Text style={styles.unavailableText}>Indisponível</Text>
+            </View>
+          )}
+          {item.isFeatured && (
+            <View style={styles.featuredBadge}>
+              <Text style={styles.featuredText}>Destaque</Text>
+            </View>
+          )}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => openEditModal(item)}>
+              <MaterialCommunityIcons name="pencil" size={16} color={colors.primary[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setDeleteConfirm(item)}>
+              <MaterialCommunityIcons name="delete" size={16} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+          <Switch
+            value={item.isAvailable}
+            onValueChange={() => toggleAvailability(item)}
+            trackColor={{ false: colors.neutral[300], true: colors.primary[100] }}
+            thumbColor={item.isAvailable ? colors.primary[500] : colors.neutral[400]}
+          />
+        </View>
       </View>
-    </View>
-  ), [colors, formatCurrency, openEditModal, toggleAvailability, styles]);
+    ),
+    [colors, formatCurrency, openEditModal, toggleAvailability, styles],
+  );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Cardápio" showBack={false} showCart={false} />
 
       <View style={styles.content}>
         {loading ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary[500]} />
           </View>
         ) : error ? (
@@ -390,8 +417,14 @@ export default function RestaurantMenuScreen() {
           </View>
         ) : products.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="silverware-fork-knife" size={48} color={colors.neutral[300]} />
-            <Text style={styles.emptyText}>Nenhum item no cardápio{"\n"}Adicione seu primeiro produto</Text>
+            <MaterialCommunityIcons
+              name="silverware-fork-knife"
+              size={48}
+              color={colors.neutral[300]}
+            />
+            <Text style={styles.emptyText}>
+              Nenhum item no cardápio{'\n'}Adicione seu primeiro produto
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -417,7 +450,9 @@ export default function RestaurantMenuScreen() {
           onPress={() => setShowAddModal(false)}
         >
           <TouchableOpacity activeOpacity={1} style={styles.modalContent} onPress={() => {}}>
-            <Text style={styles.modalTitle}>{editingProduct ? "Editar Produto" : "Novo Produto"}</Text>
+            <Text style={styles.modalTitle}>
+              {editingProduct ? 'Editar Produto' : 'Novo Produto'}
+            </Text>
 
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Nome *</Text>
@@ -503,13 +538,16 @@ export default function RestaurantMenuScreen() {
               <View style={styles.modalCancelButton}>
                 <Button
                   title="Cancelar"
-                  onPress={() => { setShowAddModal(false); resetForm(); }}
+                  onPress={() => {
+                    setShowAddModal(false);
+                    resetForm();
+                  }}
                   variant="ghost"
                 />
               </View>
               <View style={styles.modalSaveButton}>
                 <Button
-                  title={saving ? "Salvando..." : "Salvar"}
+                  title={saving ? 'Salvando...' : 'Salvar'}
                   onPress={handleSave}
                   disabled={saving || !formName.trim() || !formPrice.trim()}
                   loading={saving}

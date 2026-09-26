@@ -1,8 +1,8 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import { safeGetItem, safeSetItem } from "../utils/storage";
+import { safeGetItem, safeSetItem } from '../utils/storage';
 
-export const CART_STORAGE_KEY = "pedeja_cart_v1";
+export const CART_STORAGE_KEY = 'pedeja_cart_v1';
 
 export type CartLineItem = {
   id: string;
@@ -40,33 +40,30 @@ type PersistedCart = {
 };
 
 function isValidLineItem(value: unknown): value is CartLineItem {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== 'object') return false;
   const item = value as Partial<CartLineItem>;
   return (
-    typeof item.id === "string" &&
+    typeof item.id === 'string' &&
     item.id.length > 0 &&
-    typeof item.title === "string" &&
-    typeof item.price === "number" &&
+    typeof item.title === 'string' &&
+    typeof item.price === 'number' &&
     Number.isFinite(item.price) &&
-    typeof item.quantity === "number" &&
+    typeof item.quantity === 'number' &&
     Number.isFinite(item.quantity) &&
     item.quantity > 0
   );
 }
 
 /** Restaura o carrinho salvo no storage no boot do app. */
-export const hydrateCart = createAsyncThunk("cart/hydrate", async () => {
+export const hydrateCart = createAsyncThunk('cart/hydrate', async () => {
   const empty: PersistedCart = { items: [], restaurantId: null };
   try {
     const raw = await safeGetItem(CART_STORAGE_KEY);
     if (!raw) return empty;
     const parsed = JSON.parse(raw) as Partial<PersistedCart> | null;
-    if (!parsed || typeof parsed !== "object") return empty;
-    const items = Array.isArray(parsed.items)
-      ? parsed.items.filter(isValidLineItem)
-      : [];
-    const restaurantId =
-      typeof parsed.restaurantId === "string" ? parsed.restaurantId : null;
+    if (!parsed || typeof parsed !== 'object') return empty;
+    const items = Array.isArray(parsed.items) ? parsed.items.filter(isValidLineItem) : [];
+    const restaurantId = typeof parsed.restaurantId === 'string' ? parsed.restaurantId : null;
     return { items, restaurantId: items.length > 0 ? restaurantId : null };
   } catch {
     return empty;
@@ -78,7 +75,7 @@ export async function persistCart(cart: PersistedCart): Promise<void> {
   try {
     await safeSetItem(
       CART_STORAGE_KEY,
-      JSON.stringify({ items: cart.items, restaurantId: cart.restaurantId })
+      JSON.stringify({ items: cart.items, restaurantId: cart.restaurantId }),
     );
   } catch {
     // Storage indisponível: o carrinho segue apenas em memória.
@@ -86,18 +83,13 @@ export async function persistCart(cart: PersistedCart): Promise<void> {
 }
 
 const cartSlice = createSlice({
-  name: "cart",
+  name: 'cart',
   initialState,
   reducers: {
     addItem(state, action: PayloadAction<AddCartItemPayload>) {
       const { restaurantId: rid, id, title, price, image } = action.payload;
 
-      if (
-        rid &&
-        state.restaurantId &&
-        state.restaurantId !== rid &&
-        state.items.length > 0
-      ) {
+      if (rid && state.restaurantId && state.restaurantId !== rid && state.items.length > 0) {
         state.items = [];
       }
 
@@ -135,9 +127,7 @@ const cartSlice = createSlice({
       }
 
       if (item.quantity <= 1) {
-        state.items = state.items.filter(
-          (entry) => entry.id !== action.payload
-        );
+        state.items = state.items.filter((entry) => entry.id !== action.payload);
         if (state.items.length === 0) {
           state.restaurantId = null;
         }
@@ -171,12 +161,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const {
-  addItem,
-  clearCart,
-  decrementItem,
-  incrementItem,
-  removeItem,
-} = cartSlice.actions;
+export const { addItem, clearCart, decrementItem, incrementItem, removeItem } = cartSlice.actions;
 export const cartReducer = cartSlice.reducer;
-

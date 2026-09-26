@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const memoryStorage: Record<string, string> = {};
 
@@ -45,4 +45,3 @@ export async function safeRemoveItem(key: string): Promise<void> {
   }
   delete memoryStorage[key];
 }
-

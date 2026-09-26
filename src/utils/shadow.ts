@@ -1,14 +1,14 @@
-import { Platform, type ViewStyle } from "react-native";
+import { Platform, type ViewStyle } from 'react-native';
 
 function withAlpha(color: string, opacity: number) {
-  if (color.startsWith("#")) {
+  if (color.startsWith('#')) {
     const hex = color.slice(1);
     const normalized =
       hex.length === 3
         ? hex
-            .split("")
+            .split('')
             .map((char) => char + char)
-            .join("")
+            .join('')
         : hex;
 
     if (normalized.length === 6) {
@@ -23,7 +23,7 @@ function withAlpha(color: string, opacity: number) {
 }
 
 export function shadowStyle({
-  color = "#000",
+  color = '#000',
   offsetX = 0,
   offsetY = 2,
   blur = 4,
@@ -37,7 +37,7 @@ export function shadowStyle({
   opacity?: number;
   elevation?: number;
 } = {}): ViewStyle {
-  if (Platform.OS === "web") {
+  if (Platform.OS === 'web') {
     return {
       boxShadow: `${offsetX}px ${offsetY}px ${blur}px ${withAlpha(color, opacity)}`,
     };

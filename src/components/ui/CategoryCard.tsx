@@ -14,15 +14,24 @@ interface CategoryCardProps {
 export function CategoryCard({ name, image, icon, onPress }: CategoryCardProps) {
   const getCategoryIcon = () => {
     switch (name.toLowerCase()) {
-      case 'pizza': return 'pizza';
-      case 'hambúrguer': return 'food';
-      case 'burger': return 'food';
-      case 'brasil': return 'food-variant';
-      case 'brazilian': return 'food-variant';
-      case 'japão': return 'sushi';
-      case 'japanese': return 'sushi';
-      case 'mais': return 'dots-horizontal';
-      default: return 'food';
+      case 'pizza':
+        return 'pizza';
+      case 'hambúrguer':
+        return 'food';
+      case 'burger':
+        return 'food';
+      case 'brasil':
+        return 'food-variant';
+      case 'brazilian':
+        return 'food-variant';
+      case 'japão':
+        return 'sushi';
+      case 'japanese':
+        return 'sushi';
+      case 'mais':
+        return 'dots-horizontal';
+      default:
+        return 'food';
     }
   };
 
@@ -33,10 +42,10 @@ export function CategoryCard({ name, image, icon, onPress }: CategoryCardProps) 
           <Image source={{ uri: image }} style={styles.image} />
         ) : (
           <View style={styles.iconPlaceholder}>
-            <MaterialCommunityIcons 
-              name={getCategoryIcon() as any} 
-              size={32} 
-              color={colors.neutral[500]} 
+            <MaterialCommunityIcons
+              name={getCategoryIcon() as any}
+              size={32}
+              color={colors.neutral[500]}
             />
           </View>
         )}
@@ -70,9 +79,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
   },
-  label: { 
-    fontSize: 10, 
-    fontWeight: '600', 
+  label: {
+    fontSize: 10,
+    fontWeight: '600',
     color: colors.white,
     textTransform: 'uppercase',
     letterSpacing: 0.05,

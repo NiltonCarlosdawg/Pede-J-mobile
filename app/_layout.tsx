@@ -1,47 +1,51 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider as NavigationThemeProvider,
- Stack, useRouter } from "expo-router";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { Platform, StatusBar, Text, View, Button } from "react-native";
-import "react-native-reanimated";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Provider } from "react-redux";
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+  Stack,
+  useRouter,
+} from 'expo-router';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
+import { Platform, StatusBar, Text, View, Button } from 'react-native';
+import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider } from 'react-redux';
 
-
-import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
-import { loadDemoSession, clearDemoSession, saveDemoSession, onSessionChange } from "../src/services/demoAuth";
-import { initializeNotifications, setupNotificationListener } from "../src/services/notifications";
-import { initializeVoip, maybeHandleVoipNotificationData } from "../src/services/voip";
-import "../src/services/sentry";
-import { store, useAppDispatch, useAppSelector } from "../src/store";
-import { apiSlice } from "../src/services/apiSlice";
-import { clearSession, hydrateSession } from "../src/store/authSlice";
-import { addNotification } from "../src/store/notificationsSlice";
-import { hydratePaymentMethods } from "../src/store/paymentMethodsSlice";
-import { hydrateCart } from "../src/store/cartSlice";
-import { ThemeProvider , useTheme } from "../src/hooks/useTheme";
+import { AnimatedSplashScreen } from '../src/components/ui/SplashScreen';
+import {
+  loadDemoSession,
+  clearDemoSession,
+  saveDemoSession,
+  onSessionChange,
+} from '../src/services/demoAuth';
+import { initializeNotifications, setupNotificationListener } from '../src/services/notifications';
+import { initializeVoip, maybeHandleVoipNotificationData } from '../src/services/voip';
+import '../src/services/sentry';
+import { store, useAppDispatch, useAppSelector } from '../src/store';
+import { apiSlice } from '../src/services/apiSlice';
+import { clearSession, hydrateSession } from '../src/store/authSlice';
+import { addNotification } from '../src/store/notificationsSlice';
+import { hydratePaymentMethods } from '../src/store/paymentMethodsSlice';
+import { hydrateCart } from '../src/store/cartSlice';
+import { ThemeProvider, useTheme } from '../src/hooks/useTheme';
 
 (Text as any).defaultProps = (Text as any).defaultProps || {};
-(Text as any).defaultProps.style = { fontFamily: "Arvo" };
+(Text as any).defaultProps.style = { fontFamily: 'Arvo' };
 
-export {
-    ErrorBoundary
-} from "expo-router";
+export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    "Arvo-Regular": require("../assets/fonts/Arvo-Regular.ttf"),
-    "Arvo-Bold": require("../assets/fonts/Arvo-Bold.ttf"),
-    "Arvo-Italic": require("../assets/fonts/Arvo-Italic.ttf"),
-    "Arvo-BoldItalic": require("../assets/fonts/Arvo-BoldItalic.ttf"),
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    'Arvo-Regular': require('../assets/fonts/Arvo-Regular.ttf'),
+    'Arvo-Bold': require('../assets/fonts/Arvo-Bold.ttf'),
+    'Arvo-Italic': require('../assets/fonts/Arvo-Italic.ttf'),
+    'Arvo-BoldItalic': require('../assets/fonts/Arvo-BoldItalic.ttf'),
     ...FontAwesome.font,
   });
 
@@ -56,9 +60,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-          <ThemeProvider>
-            <RootLayoutNav />
-          </ThemeProvider>
+        <ThemeProvider>
+          <RootLayoutNav />
+        </ThemeProvider>
       </Provider>
     </SafeAreaProvider>
   );
@@ -80,15 +84,24 @@ function RootLayoutNav() {
         setBootError(false);
         const session = await loadDemoSession();
         if (session) {
-          const data = await dispatch(apiSlice.endpoints.getProfile.initiate(undefined, { forceRefetch: true })).unwrap();
+          const data = await dispatch(
+            apiSlice.endpoints.getProfile.initiate(undefined, { forceRefetch: true }),
+          ).unwrap();
           if (!isMounted) return;
           const current = await loadDemoSession();
-          if (current) await saveDemoSession({ ...current, user: (data as { user?: typeof data }).user ?? data });
+          if (current)
+            await saveDemoSession({
+              ...current,
+              user: (data as { user?: typeof data }).user ?? data,
+            });
         } else if (isMounted) dispatch(clearSession());
         if (isMounted) setIsLoading(false);
       } catch (error) {
         if (!isMounted) return;
-        const status = typeof error === "object" && error !== null && "status" in error ? (error as { status: unknown }).status : undefined;
+        const status =
+          typeof error === 'object' && error !== null && 'status' in error
+            ? (error as { status: unknown }).status
+            : undefined;
         if (status === 401 || status === 403) {
           await clearDemoSession();
           setIsLoading(false);
@@ -104,13 +117,30 @@ function RootLayoutNav() {
     };
   }, [dispatch, attempt]);
 
-  useEffect(() => onSessionChange(() => { store.dispatch(apiSlice.util.resetApiState()); }), []);
+  useEffect(
+    () =>
+      onSessionChange(() => {
+        store.dispatch(apiSlice.util.resetApiState());
+      }),
+    [],
+  );
 
-  if (bootError) return <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
-    <Text>Não foi possível verificar a sessão. Verifique a ligação e tente novamente.</Text>
-    <Button title="Tentar novamente" onPress={() => setAttempt((value) => value + 1)} />
-    <Button title="Entrar com outra conta" onPress={() => { void clearDemoSession().then(() => { setBootError(false); setIsLoading(false); }); }} />
-  </View>;
+  if (bootError)
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
+        <Text>Não foi possível verificar a sessão. Verifique a ligação e tente novamente.</Text>
+        <Button title="Tentar novamente" onPress={() => setAttempt((value) => value + 1)} />
+        <Button
+          title="Entrar com outra conta"
+          onPress={() => {
+            void clearDemoSession().then(() => {
+              setBootError(false);
+              setIsLoading(false);
+            });
+          }}
+        />
+      </View>
+    );
 
   const isReady = !isLoading && initialized;
 
@@ -121,12 +151,7 @@ function RootLayoutNav() {
 
   return (
     <>
-      {showSplash && (
-        <AnimatedSplashScreen
-          isReady={isReady}
-          onComplete={handleSplashComplete}
-        />
-      )}
+      {showSplash && <AnimatedSplashScreen isReady={isReady} onComplete={handleSplashComplete} />}
       {!showSplash && <RootLayoutNavContent />}
     </>
   );
@@ -153,19 +178,19 @@ function RootLayoutNavContent() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.replace("/(auth)/login" as never);
+      router.replace('/(auth)/login' as never);
       return;
     }
     let target: string;
-    if (role === "delivery") target = "/(delivery)";
-    else if (role === "restaurant") target = "/(restaurant)";
-    else target = "/(tabs)";
+    if (role === 'delivery') target = '/(delivery)';
+    else if (role === 'restaurant') target = '/(restaurant)';
+    else target = '/(tabs)';
     router.replace(target as never);
   }, [isAuthenticated, role]);
 
   // Listen for notifications and add them to the store (native only)
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === 'web') return;
 
     const cleanup = setupNotificationListener((notification: any) => {
       const { title, body, data } = notification.request.content;
@@ -173,13 +198,13 @@ function RootLayoutNavContent() {
       dispatch(
         addNotification({
           id: notification.request.identifier,
-          type: (data?.type as any) || "system",
-          title: title || "Notificação",
-          body: body || "",
+          type: (data?.type as any) || 'system',
+          title: title || 'Notificação',
+          body: body || '',
           data: data || {},
           read: false,
           createdAt: new Date().toISOString(),
-        })
+        }),
       );
     });
 
@@ -189,7 +214,7 @@ function RootLayoutNavContent() {
   return (
     <NavigationThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
         translucent={false}
       />
@@ -197,37 +222,55 @@ function RootLayoutNavContent() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
-          animation: "slide_from_right",
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Protected guard={isAuthenticated && role === 'client'}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="checkout" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="endereco" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="search" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="payment-methods" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="chat" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="avaliacao-entregador" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="payment-flow" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: "card" }} />
-        <Stack.Screen name="produto-modal" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="restaurante" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="carrinho" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="checkout" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="endereco" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="search" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen
+            name="payment-methods"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen name="chat" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="avaliacao" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen
+            name="avaliacao-entregador"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="payment-flow"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen name="promocoes" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen
+            name="produto-modal"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={isAuthenticated && role === 'delivery'}>
-        <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
+          <Stack.Screen name="(delivery)" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={isAuthenticated && role === 'restaurant'}>
-        <Stack.Screen name="(restaurant)" options={{ headerShown: false }} />
+          <Stack.Screen name="(restaurant)" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={isAuthenticated}>
-        <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="call" options={{ headerShown: false, presentation: "fullScreenModal" }} />
-        <Stack.Screen name="modal" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="notifications"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="call"
+            options={{ headerShown: false, presentation: 'fullScreenModal' }}
+          />
+          <Stack.Screen name="modal" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>

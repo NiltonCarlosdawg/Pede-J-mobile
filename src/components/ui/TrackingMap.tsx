@@ -1,12 +1,12 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { StyleSheet, TouchableOpacity, View, Platform } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-import * as Location from "expo-location";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import * as Location from 'expo-location';
 
-import { useTheme } from "../../hooks/useTheme";
-import type { Coordinates } from "../../services/location";
-import { shadowStyle } from "../../utils/shadow";
+import { useTheme } from '../../hooks/useTheme';
+import type { Coordinates } from '../../services/location';
+import { shadowStyle } from '../../utils/shadow';
 
 interface TrackingMapProps {
   restaurantLocation: Coordinates;
@@ -34,15 +34,15 @@ export function TrackingMap({
 
   // Request location permission and get current location
   useEffect(() => {
-    if (!showUserLocation || Platform.OS === "web") return;
+    if (!showUserLocation || Platform.OS === 'web') return;
 
     let locationSubscription: Location.LocationSubscription;
 
     const setupLocation = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
+      if (status === 'granted') {
         setHasLocationPermission(true);
-        
+
         // Get initial location
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -64,7 +64,7 @@ export function TrackingMap({
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
             });
-          }
+          },
         );
       }
     };
@@ -95,8 +95,8 @@ export function TrackingMap({
     const newRegion = {
       latitude: (minLat + maxLat) / 2,
       longitude: (minLon + maxLon) / 2,
-      latitudeDelta: Math.max(0.02, (maxLat - minLat) + padding * 2),
-      longitudeDelta: Math.max(0.02, (maxLon - minLon) + padding * 2),
+      latitudeDelta: Math.max(0.02, maxLat - minLat + padding * 2),
+      longitudeDelta: Math.max(0.02, maxLon - minLon + padding * 2),
     };
 
     setRegion(newRegion);
@@ -108,12 +108,15 @@ export function TrackingMap({
 
   const centerOnUser = useCallback(() => {
     if (userLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 500);
+      mapRef.current.animateToRegion(
+        {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        500,
+      );
     }
   }, [userLocation]);
 
@@ -169,11 +172,7 @@ export function TrackingMap({
           onPress={centerOnUser}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons
-            name="crosshairs-gps"
-            size={24}
-            color={colors.primary[500]}
-          />
+          <MaterialCommunityIcons name="crosshairs-gps" size={24} color={colors.primary[500]} />
         </TouchableOpacity>
       )}
     </View>
@@ -183,29 +182,29 @@ export function TrackingMap({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   map: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   markerContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
-    borderColor: "white",
+    borderColor: 'white',
     ...shadowStyle({ offsetY: 2, blur: 3, opacity: 0.2, elevation: 4 }),
   },
   userMarker: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
   },
   userDot: {
@@ -217,21 +216,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     ...shadowStyle({ offsetY: 2, blur: 4, opacity: 0.25, elevation: 5 }),
   },
   myLocationButton: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 16,
     right: 16,
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadowStyle({ offsetY: 2, blur: 4, opacity: 0.2, elevation: 5 }),
   },
 });

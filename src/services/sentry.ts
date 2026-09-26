@@ -17,7 +17,8 @@ Sentry.init({
     delete event.request;
     // HTTP errors can contain credentials, messages and payment payloads.
     delete event.extra;
-    event.breadcrumbs = event.breadcrumbs?.filter((item) => item.category !== 'console')
+    event.breadcrumbs = event.breadcrumbs
+      ?.filter((item) => item.category !== 'console')
       .map((item) => ({ ...item, data: undefined }));
     return event;
   },
@@ -27,7 +28,7 @@ export function trackApiError(
   endpoint: string,
   status: number,
   message?: string,
-  extras?: Record<string, unknown>
+  extras?: Record<string, unknown>,
 ) {
   Sentry.addBreadcrumb({
     category: 'api',
@@ -48,7 +49,7 @@ export function trackScreenView(screenName: string) {
 export function trackPerformance(
   operation: string,
   durationMs: number,
-  extras?: Record<string, unknown>
+  extras?: Record<string, unknown>,
 ) {
   if (durationMs > 2000) {
     Sentry.captureMessage(`Slow operation: ${operation} (${durationMs}ms)`, {

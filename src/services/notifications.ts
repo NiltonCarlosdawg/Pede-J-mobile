@@ -1,9 +1,9 @@
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
-import Constants, { ExecutionEnvironment } from "expo-constants";
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 export interface NotificationData {
-  type: "order" | "delivery" | "promotion" | "system";
+  type: 'order' | 'delivery' | 'promotion' | 'system';
   orderId?: string;
   title: string;
   body: string;
@@ -11,7 +11,7 @@ export interface NotificationData {
   read: boolean;
 }
 
-const NOTIFICATION_CHANNEL_ID = "pedeja-notifications";
+const NOTIFICATION_CHANNEL_ID = 'pedeja-notifications';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -35,23 +35,23 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  if (existingStatus !== "granted") {
+  if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
-  return finalStatus === "granted";
+  return finalStatus === 'granted';
 }
 
 export async function setupAndroidNotificationChannel() {
   if (isExpoGo) return;
 
-  if (Platform.OS === "android") {
+  if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
-      name: "PedeJá Notificações",
+      name: 'PedeJá Notificações',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#f95a0d",
+      lightColor: '#f95a0d',
     });
   }
 }
@@ -60,7 +60,7 @@ export async function scheduleLocalNotification(
   title: string,
   body: string,
   data?: Record<string, any>,
-  delaySeconds: number = 0
+  delaySeconds: number = 0,
 ) {
   if (isExpoGo) return;
 
@@ -69,44 +69,41 @@ export async function scheduleLocalNotification(
       title,
       body,
       data,
-      sound: "default",
+      sound: 'default',
     },
-    trigger: delaySeconds > 0
-      ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delaySeconds }
-      : { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date() },
+    trigger:
+      delaySeconds > 0
+        ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delaySeconds }
+        : { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date() },
   });
 }
 
 export async function notifyOrderConfirmed(orderId: string, restaurantName: string) {
   await scheduleLocalNotification(
-    "Pedido Confirmado!",
+    'Pedido Confirmado!',
     `Seu pedido em ${restaurantName} foi confirmado e está sendo preparado.`,
-    { type: "order", orderId, status: "confirmed" }
+    { type: 'order', orderId, status: 'confirmed' },
   );
 }
 
 export async function notifyDriverOnTheWay(orderId: string, driverName: string) {
   await scheduleLocalNotification(
-    "Entregador a caminho!",
+    'Entregador a caminho!',
     `${driverName} está a caminho com seu pedido.`,
-    { type: "delivery", orderId, status: "delivering" }
+    { type: 'delivery', orderId, status: 'delivering' },
   );
 }
 
 export async function notifyOrderDelivered(orderId: string) {
-  await scheduleLocalNotification(
-    "Pedido Entregue!",
-    "Seu pedido foi entregue. Bom apetite!",
-    { type: "order", orderId, status: "delivered" }
-  );
+  await scheduleLocalNotification('Pedido Entregue!', 'Seu pedido foi entregue. Bom apetite!', {
+    type: 'order',
+    orderId,
+    status: 'delivered',
+  });
 }
 
 export async function notifyPromotion(title: string, body: string, code?: string) {
-  await scheduleLocalNotification(
-    title,
-    body,
-    { type: "promotion", code }
-  );
+  await scheduleLocalNotification(title, body, { type: 'promotion', code });
 }
 
 export async function cancelAllNotifications() {

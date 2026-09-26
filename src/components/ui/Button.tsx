@@ -13,10 +13,19 @@ interface ButtonProps {
   loading?: boolean;
 }
 
-export function Button({ title, onPress, variant = 'primary', size = 'medium', disabled = false, loading = false }: ButtonProps) {
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  size = 'medium',
+  disabled = false,
+  loading = false,
+}: ButtonProps) {
   const { colors } = useTheme();
-  const getBg = () => disabled ? colors.neutral[300] : variant === 'primary' ? colors.primary[500] : 'transparent';
-  const getText = () => disabled ? colors.neutral[500] : variant === 'primary' ? colors.white : colors.primary[500];
+  const getBg = () =>
+    disabled ? colors.neutral[300] : variant === 'primary' ? colors.primary[500] : 'transparent';
+  const getText = () =>
+    disabled ? colors.neutral[500] : variant === 'primary' ? colors.white : colors.primary[500];
   const pad = size === 'small' ? spacing.sm : size === 'large' ? spacing.lg : spacing.md;
 
   return (
@@ -25,11 +34,20 @@ export function Button({ title, onPress, variant = 'primary', size = 'medium', d
       disabled={disabled || loading}
       style={[
         styles.button,
-        { backgroundColor: getBg(), paddingVertical: pad, paddingHorizontal: pad * 1.5,
-          borderWidth: variant === 'secondary' ? 2 : 0, borderColor: colors.primary[500] },
+        {
+          backgroundColor: getBg(),
+          paddingVertical: pad,
+          paddingHorizontal: pad * 1.5,
+          borderWidth: variant === 'secondary' ? 2 : 0,
+          borderColor: colors.primary[500],
+        },
       ]}
     >
-      {loading ? <ActivityIndicator color={getText()} size="small" /> : <Text style={[styles.text, { color: getText() }]}>{title}</Text>}
+      {loading ? (
+        <ActivityIndicator color={getText()} size="small" />
+      ) : (
+        <Text style={[styles.text, { color: getText() }]}>{title}</Text>
+      )}
     </TouchableOpacity>
   );
 }

@@ -1,4 +1,4 @@
-import * as Location from "expo-location";
+import * as Location from 'expo-location';
 
 export interface Coordinates {
   latitude: number;
@@ -10,7 +10,7 @@ export interface Coordinates {
  */
 export async function requestLocationPermissions(): Promise<boolean> {
   const { status } = await Location.requestForegroundPermissionsAsync();
-  return status === "granted";
+  return status === 'granted';
 }
 
 /**
@@ -84,7 +84,7 @@ export const MOCK_COORDINATES: Record<string, Coordinates> = {
 export function simulateDriverMovement(
   from: Coordinates,
   to: Coordinates,
-  progress: number // 0 a 1
+  progress: number, // 0 a 1
 ): Coordinates {
   return {
     latitude: from.latitude + (to.latitude - from.latitude) * progress,

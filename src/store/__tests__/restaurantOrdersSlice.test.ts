@@ -98,7 +98,7 @@ describe('restaurantOrdersSlice', () => {
       const stateWithOrder = restaurantOrdersReducer(initialState, setOrders([mockOrder]));
       const state = restaurantOrdersReducer(
         stateWithOrder,
-        updateOrderStatus({ orderId: 'ord-001', status: 'confirmed' })
+        updateOrderStatus({ orderId: 'ord-001', status: 'confirmed' }),
       );
       expect(state.orders[0].status).toBe('confirmed');
     });
@@ -107,13 +107,16 @@ describe('restaurantOrdersSlice', () => {
       const stateWithOrder = restaurantOrdersReducer(initialState, setOrders([mockOrder]));
       const state = restaurantOrdersReducer(
         stateWithOrder,
-        updateOrderStatus({ orderId: 'ord-999', status: 'confirmed' })
+        updateOrderStatus({ orderId: 'ord-999', status: 'confirmed' }),
       );
       expect(state.orders[0].status).toBe('pending');
     });
 
     it('should handle removeOrder', () => {
-      const stateWithOrders = restaurantOrdersReducer(initialState, setOrders([mockOrder, mockOrder2]));
+      const stateWithOrders = restaurantOrdersReducer(
+        initialState,
+        setOrders([mockOrder, mockOrder2]),
+      );
       const state = restaurantOrdersReducer(stateWithOrders, removeOrder('ord-001'));
       expect(state.orders).toHaveLength(1);
       expect(state.orders[0].id).toBe('ord-002');

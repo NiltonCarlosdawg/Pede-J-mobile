@@ -32,10 +32,7 @@ describe('favorites service', () => {
   it('setFavoriteRestaurant(true) adiciona e persiste', async () => {
     const ids = await setFavoriteRestaurant('rest-1', true);
     expect(ids).toEqual(['rest-1']);
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-      FAVORITES_KEY,
-      JSON.stringify(['rest-1'])
-    );
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(FAVORITES_KEY, JSON.stringify(['rest-1']));
   });
 
   it('não duplica um favorito já existente', async () => {
@@ -64,9 +61,7 @@ describe('favorites service', () => {
   });
 
   it('lê uma lista já persistida no storage', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-      JSON.stringify(['rest-9', 'rest-8'])
-    );
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(['rest-9', 'rest-8']));
     expect(await loadFavoriteRestaurantIds()).toEqual(['rest-9', 'rest-8']);
     expect(await isFavoriteRestaurant('rest-9')).toBe(true);
   });
@@ -80,9 +75,7 @@ describe('favorites service', () => {
   });
 
   it('ignora payload que não é array', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-      JSON.stringify({ nope: true })
-    );
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ nope: true }));
     expect(await loadFavoriteRestaurantIds()).toEqual([]);
   });
 

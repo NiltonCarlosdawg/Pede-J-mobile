@@ -6,14 +6,17 @@ import { useTheme } from '../../src/hooks/useTheme';
 export default function TabLayout() {
   const { colors } = useTheme();
 
-  const tabBarStyle = useMemo(() => ({
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.primary[100],
-    height: 64,
-    paddingBottom: 8,
-    paddingTop: 8,
-  }), [colors]);
+  const tabBarStyle = useMemo(
+    () => ({
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.primary[100],
+      height: 64,
+      paddingBottom: 8,
+      paddingTop: 8,
+    }),
+    [colors],
+  );
 
   return (
     <Tabs
@@ -29,21 +32,27 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="restaurantes"
         options={{
           title: 'Restaurantes',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="store" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="store" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="rastreamento"
         options={{
           title: 'Acompanhar',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="moped" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="moped" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen

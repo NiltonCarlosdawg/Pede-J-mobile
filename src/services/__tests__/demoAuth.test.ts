@@ -21,13 +21,37 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockGetItemAsync = SecureStore.getItemAsync as jest.MockedFunction<typeof SecureStore.getItemAsync>;
-const mockSetItemAsync = SecureStore.setItemAsync as jest.MockedFunction<typeof SecureStore.setItemAsync>;
-const mockDeleteItemAsync = SecureStore.deleteItemAsync as jest.MockedFunction<typeof SecureStore.deleteItemAsync>;
+const mockGetItemAsync = SecureStore.getItemAsync as jest.MockedFunction<
+  typeof SecureStore.getItemAsync
+>;
+const mockSetItemAsync = SecureStore.setItemAsync as jest.MockedFunction<
+  typeof SecureStore.setItemAsync
+>;
+const mockDeleteItemAsync = SecureStore.deleteItemAsync as jest.MockedFunction<
+  typeof SecureStore.deleteItemAsync
+>;
 
-const CLIENT_USER = { id: 'demo-client', name: 'Cliente Demo', email: 'cliente@pedeja.com', role: 'cliente' as const, createdAt: new Date().toISOString() };
-const DELIVERY_USER = { id: 'demo-delivery', name: 'Entregador Demo', email: 'entregador@pedeja.com', role: 'entregador' as const, createdAt: new Date().toISOString() };
-const RESTAURANT_USER = { id: 'demo-restaurant', name: 'Sabor da Praça', email: 'restaurante@pedeja.com', role: 'restaurante' as const, createdAt: new Date().toISOString() };
+const CLIENT_USER = {
+  id: 'demo-client',
+  name: 'Cliente Demo',
+  email: 'cliente@pedeja.com',
+  role: 'cliente' as const,
+  createdAt: new Date().toISOString(),
+};
+const DELIVERY_USER = {
+  id: 'demo-delivery',
+  name: 'Entregador Demo',
+  email: 'entregador@pedeja.com',
+  role: 'entregador' as const,
+  createdAt: new Date().toISOString(),
+};
+const RESTAURANT_USER = {
+  id: 'demo-restaurant',
+  name: 'Sabor da Praça',
+  email: 'restaurante@pedeja.com',
+  role: 'restaurante' as const,
+  createdAt: new Date().toISOString(),
+};
 
 describe('demoAuth (sessão segura)', () => {
   beforeEach(async () => {
@@ -53,25 +77,46 @@ describe('demoAuth (sessão segura)', () => {
       expect(validateSession(session).role).toBe('client');
     });
     it('rejeita token vazio ou utilizador inválido', () => {
-      expect(() => validateSession({ token: '', user: CLIENT_USER, role: 'client' } as any)).toThrow();
-      expect(() => validateSession({ token: 't', user: { ...CLIENT_USER, id: '' }, role: 'client' } as any)).toThrow();
+      expect(() =>
+        validateSession({ token: '', user: CLIENT_USER, role: 'client' } as any),
+      ).toThrow();
+      expect(() =>
+        validateSession({ token: 't', user: { ...CLIENT_USER, id: '' }, role: 'client' } as any),
+      ).toThrow();
     });
     it('deriva role do utilizador e não confia no role enviado', () => {
-      const session = validateSession({ token: 't', user: RESTAURANT_USER, role: 'client' as DemoRole });
+      const session = validateSession({
+        token: 't',
+        user: RESTAURANT_USER,
+        role: 'client' as DemoRole,
+      });
       expect(session.role).toBe('restaurant');
     });
   });
 
   describe('persistência segura', () => {
     it('guarda sessão no SecureStore e não em AsyncStorage plaintext', async () => {
-      const session: DemoSession = { token: 'test-token', refreshToken: 'rt', user: RESTAURANT_USER, role: 'restaurant' };
+      const session: DemoSession = {
+        token: 'test-token',
+        refreshToken: 'rt',
+        user: RESTAURANT_USER,
+        role: 'restaurant',
+      };
       await saveDemoSession(session);
-      expect(mockSetItemAsync).toHaveBeenCalledWith(expect.stringContaining('pedeja.session'), expect.any(String), expect.any(Object));
+      expect(mockSetItemAsync).toHaveBeenCalledWith(
+        expect.stringContaining('pedeja.session'),
+        expect.any(String),
+        expect.any(Object),
+      );
       expect((await loadDemoSession())?.role).toBe('restaurant');
     });
 
     it('carrega sessão válida do SecureStore', async () => {
-      const session: DemoSession = { token: 'test-token', user: RESTAURANT_USER, role: 'restaurant' };
+      const session: DemoSession = {
+        token: 'test-token',
+        user: RESTAURANT_USER,
+        role: 'restaurant',
+      };
       await saveDemoSession(session);
       // Simula reinício da app: limpa apenas memória, mantém SecureStore mock
       // Forçamos novo load simulando que ainda não carregou, mas SecureStore contém dados
@@ -89,9 +134,13 @@ describe('demoAuth (sessão segura)', () => {
     });
 
     it('rejeita sessão com role inválida armazenada', async () => {
-      mockGetItemAsync.mockResolvedValueOnce(JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }));
+      mockGetItemAsync.mockResolvedValueOnce(
+        JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }),
+      );
       await clearDemoSession();
-      mockGetItemAsync.mockResolvedValueOnce(JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }));
+      mockGetItemAsync.mockResolvedValueOnce(
+        JSON.stringify({ token: 't', user: { ...CLIENT_USER, role: 'invalido' }, role: 'client' }),
+      );
       expect(await loadDemoSession()).toBeNull();
     });
   });

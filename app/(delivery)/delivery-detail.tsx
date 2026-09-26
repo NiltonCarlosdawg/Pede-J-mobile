@@ -1,28 +1,22 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from "../../src/components/ui/Button";
-import { Header } from "../../src/components/ui/Header";
-import { spacing, formatPrice } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
-import { useDriverLocationPublisher } from "../../src/hooks/useDriverLocationPublisher";
-import { startVoipCall } from "../../src/services/voip";
-import { useGetDeliveryQuery, useUpdateDeliveryStatusMutation } from "../../src/hooks/useApi";
-import type { Order } from "../../src/types";
+import { Button } from '../../src/components/ui/Button';
+import { Header } from '../../src/components/ui/Header';
+import { spacing, formatPrice } from '../../src/theme';
+import { useTheme } from '../../src/hooks/useTheme';
+import { useDriverLocationPublisher } from '../../src/hooks/useDriverLocationPublisher';
+import { startVoipCall } from '../../src/services/voip';
+import { useGetDeliveryQuery, useUpdateDeliveryStatusMutation } from '../../src/hooks/useApi';
+import type { Order } from '../../src/types';
 
 export default function DeliveryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ jobId?: string }>();
-  const orderId = params.jobId ?? "";
+  const orderId = params.jobId ?? '';
   useDriverLocationPublisher(orderId || null);
   const {
     data: fetchedOrder,
@@ -45,180 +39,184 @@ export default function DeliveryDetailScreen() {
   const order = localOrder ?? fetchedOrder ?? null;
   const loading = isFetching && !order;
   const error = isError
-    ? "Não foi possível carregar esta entrega. Verifique a ligação."
+    ? 'Não foi possível carregar esta entrega. Verifique a ligação.'
     : actionError;
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-    },
-    card: {
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: 24,
-      padding: spacing.lg,
-      marginBottom: spacing.md,
-      borderWidth: 1,
-      borderColor: colors.surfaceVariant,
-    },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: colors.onSurface,
-      marginBottom: spacing.md,
-    },
-    timeline: {
-      gap: 0,
-    },
-    timelineItem: {
-      flexDirection: "row",
-      gap: spacing.md,
-    },
-    timelineLeft: {
-      alignItems: "center",
-      width: 24,
-    },
-    timelineDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: colors.neutral[200],
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 2,
-      borderColor: colors.neutral[300],
-    },
-    timelineDotCompleted: {
-      backgroundColor: colors.primary[500],
-      borderColor: colors.primary[500],
-    },
-    timelineDotActive: {
-      backgroundColor: colors.white,
-      borderColor: colors.primary[500],
-      borderWidth: 3,
-    },
-    timelineLine: {
-      width: 2,
-      flex: 1,
-      backgroundColor: colors.neutral[200],
-      marginVertical: 4,
-    },
-    timelineLineCompleted: {
-      backgroundColor: colors.primary[500],
-    },
-    timelineContent: {
-      flex: 1,
-      paddingBottom: spacing.lg,
-    },
-    timelineLabel: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.neutral[500],
-    },
-    timelineLabelCompleted: {
-      color: colors.onSurface,
-    },
-    timelineTime: {
-      fontSize: 12,
-      color: colors.neutral[500],
-      marginTop: 2,
-    },
-    earningsCard: {
-      backgroundColor: colors.primary[100],
-      borderColor: colors.primary[100],
-    },
-    earningsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    earningsLabel: {
-      fontSize: 13,
-      color: colors.neutral[500],
-      marginBottom: 4,
-    },
-    earningsValue: {
-      fontSize: 24,
-      fontWeight: "800",
-      color: colors.primary[500],
-    },
-    distanceBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: colors.white,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 12,
-    },
-    distanceText: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.primary[500],
-    },
-    infoRow: {
-      flexDirection: "row",
-      gap: spacing.md,
-      marginBottom: spacing.md,
-    },
-    infoIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      backgroundColor: colors.primary[100],
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    infoContent: {
-      flex: 1,
-    },
-    infoTitle: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: colors.onSurface,
-      marginBottom: 2,
-    },
-    infoText: {
-      fontSize: 13,
-      color: colors.neutral[500],
-      lineHeight: 18,
-    },
-    notesBox: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      backgroundColor: colors.secondary[100],
-      padding: spacing.md,
-      borderRadius: 12,
-      marginBottom: spacing.md,
-      alignItems: "flex-start",
-    },
-    notesText: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.neutral[700],
-      lineHeight: 18,
-    },
-    contactButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-    },
-    contactText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.primary[500],
-    },
-    actionContainer: {
-      paddingVertical: spacing.md,
-      marginBottom: spacing.xl,
-    },
-  }), [colors]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        content: {
+          flex: 1,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+        },
+        card: {
+          backgroundColor: colors.surfaceContainerLowest,
+          borderRadius: 24,
+          padding: spacing.lg,
+          marginBottom: spacing.md,
+          borderWidth: 1,
+          borderColor: colors.surfaceVariant,
+        },
+        sectionTitle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: colors.onSurface,
+          marginBottom: spacing.md,
+        },
+        timeline: {
+          gap: 0,
+        },
+        timelineItem: {
+          flexDirection: 'row',
+          gap: spacing.md,
+        },
+        timelineLeft: {
+          alignItems: 'center',
+          width: 24,
+        },
+        timelineDot: {
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          backgroundColor: colors.neutral[200],
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 2,
+          borderColor: colors.neutral[300],
+        },
+        timelineDotCompleted: {
+          backgroundColor: colors.primary[500],
+          borderColor: colors.primary[500],
+        },
+        timelineDotActive: {
+          backgroundColor: colors.white,
+          borderColor: colors.primary[500],
+          borderWidth: 3,
+        },
+        timelineLine: {
+          width: 2,
+          flex: 1,
+          backgroundColor: colors.neutral[200],
+          marginVertical: 4,
+        },
+        timelineLineCompleted: {
+          backgroundColor: colors.primary[500],
+        },
+        timelineContent: {
+          flex: 1,
+          paddingBottom: spacing.lg,
+        },
+        timelineLabel: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: colors.neutral[500],
+        },
+        timelineLabelCompleted: {
+          color: colors.onSurface,
+        },
+        timelineTime: {
+          fontSize: 12,
+          color: colors.neutral[500],
+          marginTop: 2,
+        },
+        earningsCard: {
+          backgroundColor: colors.primary[100],
+          borderColor: colors.primary[100],
+        },
+        earningsRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        earningsLabel: {
+          fontSize: 13,
+          color: colors.neutral[500],
+          marginBottom: 4,
+        },
+        earningsValue: {
+          fontSize: 24,
+          fontWeight: '800',
+          color: colors.primary[500],
+        },
+        distanceBadge: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          backgroundColor: colors.white,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          borderRadius: 12,
+        },
+        distanceText: {
+          fontSize: 13,
+          fontWeight: '700',
+          color: colors.primary[500],
+        },
+        infoRow: {
+          flexDirection: 'row',
+          gap: spacing.md,
+          marginBottom: spacing.md,
+        },
+        infoIcon: {
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          backgroundColor: colors.primary[100],
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        infoContent: {
+          flex: 1,
+        },
+        infoTitle: {
+          fontSize: 15,
+          fontWeight: '700',
+          color: colors.onSurface,
+          marginBottom: 2,
+        },
+        infoText: {
+          fontSize: 13,
+          color: colors.neutral[500],
+          lineHeight: 18,
+        },
+        notesBox: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          backgroundColor: colors.secondary[100],
+          padding: spacing.md,
+          borderRadius: 12,
+          marginBottom: spacing.md,
+          alignItems: 'flex-start',
+        },
+        notesText: {
+          flex: 1,
+          fontSize: 13,
+          color: colors.neutral[700],
+          lineHeight: 18,
+        },
+        contactButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          paddingVertical: spacing.sm,
+        },
+        contactText: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: colors.primary[500],
+        },
+        actionContainer: {
+          paddingVertical: spacing.md,
+          marginBottom: spacing.xl,
+        },
+      }),
+    [colors],
+  );
 
   const statusOrder: Record<string, number> = {
     pending: 0,
@@ -231,33 +229,37 @@ export default function DeliveryDetailScreen() {
     in_transit: 3,
     delivered: 4,
   };
-  const deliveryStatus = (order?.status ?? "pending") as string;
+  const deliveryStatus = (order?.status ?? 'pending') as string;
   const timeline = [
-    { id: "accepted", label: "Pedido atribuído" },
-    { id: "picked_up", label: "Retirado do restaurante" },
-    { id: "in_transit", label: "A caminho do cliente" },
-    { id: "delivered", label: "Entregue" },
+    { id: 'accepted', label: 'Pedido atribuído' },
+    { id: 'picked_up', label: 'Retirado do restaurante' },
+    { id: 'in_transit', label: 'A caminho do cliente' },
+    { id: 'delivered', label: 'Entregue' },
   ];
 
   async function handleUpdateStatus() {
     if (!order || updating) return;
     const next =
-      deliveryStatus === "accepted" || deliveryStatus === "pending" || deliveryStatus === "confirmed" || deliveryStatus === "preparing" || deliveryStatus === "ready"
-        ? "picked_up"
-        : deliveryStatus === "picked_up"
-        ? "in_transit"
-        : deliveryStatus === "in_transit" || deliveryStatus === "delivering"
-        ? "delivered"
-        : null;
+      deliveryStatus === 'accepted' ||
+      deliveryStatus === 'pending' ||
+      deliveryStatus === 'confirmed' ||
+      deliveryStatus === 'preparing' ||
+      deliveryStatus === 'ready'
+        ? 'picked_up'
+        : deliveryStatus === 'picked_up'
+          ? 'in_transit'
+          : deliveryStatus === 'in_transit' || deliveryStatus === 'delivering'
+            ? 'delivered'
+            : null;
     if (!next) return;
     try {
       setUpdating(true);
       setActionError(null);
       await updateStatus({ orderId: order.id, status: next }).unwrap();
-      setLocalOrder({ ...order, status: next as Order["status"] });
+      setLocalOrder({ ...order, status: next as Order['status'] });
     } catch (err) {
-      console.error("[delivery-detail] status error", err);
-      setActionError("Não foi possível atualizar o estado. Tente novamente.");
+      console.error('[delivery-detail] status error', err);
+      setActionError('Não foi possível atualizar o estado. Tente novamente.');
     } finally {
       setUpdating(false);
     }
@@ -267,13 +269,15 @@ export default function DeliveryDetailScreen() {
     router.back();
   }
 
-  const isDelivered = deliveryStatus === "delivered";
+  const isDelivered = deliveryStatus === 'delivered';
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <Header title="Detalhe da Entrega" showBack showCart={false} />
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg }}>
+        <View
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg }}
+        >
           <Text style={{ color: colors.neutral[500] }}>A carregar entrega…</Text>
         </View>
       </SafeAreaView>
@@ -282,10 +286,18 @@ export default function DeliveryDetailScreen() {
 
   if (error && !order) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <Header title="Detalhe da Entrega" showBack showCart={false} />
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg, gap: spacing.md }}>
-          <Text style={{ color: colors.error, textAlign: "center" }}>{error}</Text>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <Text style={{ color: colors.error, textAlign: 'center' }}>{error}</Text>
           <Button title="Tentar novamente" onPress={() => refetch()} />
         </View>
       </SafeAreaView>
@@ -293,12 +305,19 @@ export default function DeliveryDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Detalhe da Entrega" showBack showCart={false} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {error ? (
-          <View style={{ backgroundColor: colors.secondary[100], padding: spacing.md, borderRadius: 12, marginBottom: spacing.md }}>
+          <View
+            style={{
+              backgroundColor: colors.secondary[100],
+              padding: spacing.md,
+              borderRadius: 12,
+              marginBottom: spacing.md,
+            }}
+          >
             <Text style={{ color: colors.neutral[700] }}>{error}</Text>
           </View>
         ) : null}
@@ -306,7 +325,7 @@ export default function DeliveryDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Status da Entrega</Text>
           <Text style={{ color: colors.neutral[500], marginBottom: spacing.md }}>
-            Pedido #{order?.id.slice(-4) ?? "----"} · {order?.status ?? "pendente"}
+            Pedido #{order?.id.slice(-4) ?? '----'} · {order?.status ?? 'pendente'}
           </Text>
           <View style={styles.timeline}>
             {timeline.map((status, index) => {
@@ -329,19 +348,13 @@ export default function DeliveryDetailScreen() {
                     </View>
                     {index < timeline.length - 1 && (
                       <View
-                        style={[
-                          styles.timelineLine,
-                          isCompleted && styles.timelineLineCompleted,
-                        ]}
+                        style={[styles.timelineLine, isCompleted && styles.timelineLineCompleted]}
                       />
                     )}
                   </View>
                   <View style={styles.timelineContent}>
                     <Text
-                      style={[
-                        styles.timelineLabel,
-                        isCompleted && styles.timelineLabelCompleted,
-                      ]}
+                      style={[styles.timelineLabel, isCompleted && styles.timelineLabelCompleted]}
                     >
                       {status.label}
                     </Text>
@@ -357,7 +370,7 @@ export default function DeliveryDetailScreen() {
           <View style={styles.earningsRow}>
             <View>
               <Text style={styles.earningsLabel}>Total do pedido</Text>
-              <Text style={styles.earningsValue}>{order ? formatPrice(order.total) : "—"}</Text>
+              <Text style={styles.earningsValue}>{order ? formatPrice(order.total) : '—'}</Text>
             </View>
             {order?.deliveryFee != null ? (
               <View style={styles.distanceBadge}>
@@ -376,11 +389,13 @@ export default function DeliveryDetailScreen() {
               <MaterialCommunityIcons name="store" size={20} color={colors.primary[500]} />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>{order?.restaurant.name ?? "Restaurante"}</Text>
-              <Text style={styles.infoText}>{order?.restaurant.description ?? order?.restaurant.cuisine ?? ""}</Text>
+              <Text style={styles.infoTitle}>{order?.restaurant.name ?? 'Restaurante'}</Text>
+              <Text style={styles.infoText}>
+                {order?.restaurant.description ?? order?.restaurant.cuisine ?? ''}
+              </Text>
             </View>
           </View>
-          <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
             <TouchableOpacity
               style={styles.contactButton}
               onPress={() => order && startVoipCall(order.id)}
@@ -390,7 +405,10 @@ export default function DeliveryDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => order && router.push({ pathname: "/(delivery)/chat", params: { orderId: order.id } })}
+              onPress={() =>
+                order &&
+                router.push({ pathname: '/(delivery)/chat', params: { orderId: order.id } })
+              }
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -406,13 +424,15 @@ export default function DeliveryDetailScreen() {
               <MaterialCommunityIcons name="account" size={20} color={colors.primary[500]} />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>{order?.address.label ?? "Cliente"}</Text>
+              <Text style={styles.infoTitle}>{order?.address.label ?? 'Cliente'}</Text>
               <Text style={styles.infoText}>
-                {[order?.address.address, order?.address.neighborhood, order?.address.city].filter(Boolean).join(" · ")}
+                {[order?.address.address, order?.address.neighborhood, order?.address.city]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
             <TouchableOpacity
               style={styles.contactButton}
               onPress={() => order && startVoipCall(order.id)}
@@ -422,7 +442,10 @@ export default function DeliveryDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.contactButton}
-              onPress={() => order && router.push({ pathname: "/(delivery)/chat", params: { orderId: order.id } })}
+              onPress={() =>
+                order &&
+                router.push({ pathname: '/(delivery)/chat', params: { orderId: order.id } })
+              }
             >
               <MaterialCommunityIcons name="chat" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Chat</Text>
@@ -435,11 +458,11 @@ export default function DeliveryDetailScreen() {
           {!isDelivered ? (
             <Button
               title={
-                deliveryStatus === "accepted" || deliveryStatus === "pending"
-                  ? "Confirmar recolha no restaurante"
-                  : deliveryStatus === "picked_up"
-                  ? "Iniciar entrega"
-                  : "Confirmar entrega ao cliente"
+                deliveryStatus === 'accepted' || deliveryStatus === 'pending'
+                  ? 'Confirmar recolha no restaurante'
+                  : deliveryStatus === 'picked_up'
+                    ? 'Iniciar entrega'
+                    : 'Confirmar entrega ao cliente'
               }
               onPress={handleUpdateStatus}
               loading={updating}
@@ -452,7 +475,14 @@ export default function DeliveryDetailScreen() {
               variant="secondary"
             />
           )}
-          <Text style={{ fontSize: 12, color: colors.neutral[500], marginTop: spacing.sm, textAlign: "center" }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.neutral[500],
+              marginTop: spacing.sm,
+              textAlign: 'center',
+            }}
+          >
             Cada transição é validada no servidor e refletida para cliente e restaurante.
           </Text>
         </View>

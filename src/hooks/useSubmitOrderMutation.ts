@@ -1,16 +1,16 @@
-import { useCallback } from "react";
-import { isAxiosError, AxiosError } from "axios";
+import { useCallback } from 'react';
+import { isAxiosError, AxiosError } from 'axios';
 
-import { apiSlice } from "../services/apiSlice";
-import type { Order } from "../types";
+import { apiSlice } from '../services/apiSlice';
+import type { Order } from '../types';
 
 export type OrderErrorType =
-  | "VALIDATION_ERROR"
-  | "SERVER_ERROR"
-  | "TIMEOUT_ERROR"
-  | "NETWORK_ERROR"
-  | "CONFLICT_ERROR"
-  | "UNKNOWN_ERROR";
+  | 'VALIDATION_ERROR'
+  | 'SERVER_ERROR'
+  | 'TIMEOUT_ERROR'
+  | 'NETWORK_ERROR'
+  | 'CONFLICT_ERROR'
+  | 'UNKNOWN_ERROR';
 
 export interface OrderMutationError {
   type: OrderErrorType;
@@ -25,16 +25,16 @@ type NormalizedErrorData = {
 };
 
 type NormalizedError = {
-  status: number | "FETCH_ERROR" | "TIMEOUT_ERROR" | "PARSING_ERROR" | "CUSTOM_ERROR";
+  status: number | 'FETCH_ERROR' | 'TIMEOUT_ERROR' | 'PARSING_ERROR' | 'CUSTOM_ERROR';
   data?: NormalizedErrorData;
 };
 
 function isNormalizedError(error: unknown): error is NormalizedError {
   return (
-    typeof error === "object" &&
+    typeof error === 'object' &&
     error !== null &&
-    "status" in error &&
-    "data" in error &&
+    'status' in error &&
+    'data' in error &&
     !isAxiosError(error)
   );
 }
@@ -42,72 +42,72 @@ function isNormalizedError(error: unknown): error is NormalizedError {
 export function classifyOrderError(error: unknown): OrderMutationError {
   // Erros normalizados pelo baseQuery do RTK Query (camada única de fetching).
   if (isNormalizedError(error)) {
-    if (error.status === "TIMEOUT_ERROR" || error.data?.code === "ECONNABORTED") {
+    if (error.status === 'TIMEOUT_ERROR' || error.data?.code === 'ECONNABORTED') {
       return {
-        type: "TIMEOUT_ERROR",
-        message: "O servidor demorou muito a responder. Tente novamente.",
+        type: 'TIMEOUT_ERROR',
+        message: 'O servidor demorou muito a responder. Tente novamente.',
       };
     }
 
-    if (error.status === "FETCH_ERROR") {
+    if (error.status === 'FETCH_ERROR') {
       return {
-        type: "NETWORK_ERROR",
-        message: "Sem conexão ao servidor. Verifique a sua internet e tente novamente.",
+        type: 'NETWORK_ERROR',
+        message: 'Sem conexão ao servidor. Verifique a sua internet e tente novamente.',
       };
     }
 
     if (error.status === 409) {
       return {
-        type: "CONFLICT_ERROR",
-        message: "Este pedido já foi registado (idempotência).",
+        type: 'CONFLICT_ERROR',
+        message: 'Este pedido já foi registado (idempotência).',
         status: 409,
       };
     }
 
-    if (typeof error.status === "number" && error.status >= 400 && error.status < 500) {
+    if (typeof error.status === 'number' && error.status >= 400 && error.status < 500) {
       return {
-        type: "VALIDATION_ERROR",
-        message: error.data?.message ?? "Dados inválidos. Verifique as informações do pedido.",
+        type: 'VALIDATION_ERROR',
+        message: error.data?.message ?? 'Dados inválidos. Verifique as informações do pedido.',
         status: error.status,
         details: error.data as Record<string, string[]> | undefined,
       };
     }
 
-    if (typeof error.status === "number" && error.status >= 500) {
+    if (typeof error.status === 'number' && error.status >= 500) {
       return {
-        type: "SERVER_ERROR",
-        message: "O servidor encontrou um erro. Tente novamente em instantes.",
+        type: 'SERVER_ERROR',
+        message: 'O servidor encontrou um erro. Tente novamente em instantes.',
         status: error.status,
       };
     }
 
     return {
-      type: "UNKNOWN_ERROR",
-      message: error.data?.message ?? "Ocorreu um erro inesperado. Tente novamente.",
+      type: 'UNKNOWN_ERROR',
+      message: error.data?.message ?? 'Ocorreu um erro inesperado. Tente novamente.',
     };
   }
 
   // Compatibilidade com erros axios "cruos" (casos fora do baseQuery).
   if (!isAxiosError(error)) {
     return {
-      type: "UNKNOWN_ERROR",
-      message: "Ocorreu um erro inesperado. Tente novamente.",
+      type: 'UNKNOWN_ERROR',
+      message: 'Ocorreu um erro inesperado. Tente novamente.',
     };
   }
 
   const axiosError = error as AxiosError<{ message?: string }>;
 
-  if (axiosError.code === "ECONNABORTED") {
+  if (axiosError.code === 'ECONNABORTED') {
     return {
-      type: "TIMEOUT_ERROR",
-      message: "O servidor demorou muito a responder. Tente novamente.",
+      type: 'TIMEOUT_ERROR',
+      message: 'O servidor demorou muito a responder. Tente novamente.',
     };
   }
 
   if (!axiosError.response) {
     return {
-      type: "NETWORK_ERROR",
-      message: "Sem conexão ao servidor. Verifique a sua internet e tente novamente.",
+      type: 'NETWORK_ERROR',
+      message: 'Sem conexão ao servidor. Verifique a sua internet e tente novamente.',
     };
   }
 
@@ -116,16 +116,16 @@ export function classifyOrderError(error: unknown): OrderMutationError {
 
   if (status === 409) {
     return {
-      type: "CONFLICT_ERROR",
-      message: "Este pedido já foi registado (idempotência).",
+      type: 'CONFLICT_ERROR',
+      message: 'Este pedido já foi registado (idempotência).',
       status,
     };
   }
 
   if (status >= 400 && status < 500) {
     return {
-      type: "VALIDATION_ERROR",
-      message: body?.message ?? "Dados inválidos. Verifique as informações do pedido.",
+      type: 'VALIDATION_ERROR',
+      message: body?.message ?? 'Dados inválidos. Verifique as informações do pedido.',
       status,
       details: body as Record<string, string[]> | undefined,
     };
@@ -133,15 +133,15 @@ export function classifyOrderError(error: unknown): OrderMutationError {
 
   if (status >= 500) {
     return {
-      type: "SERVER_ERROR",
-      message: "O servidor encontrou um erro. Tente novamente em instantes.",
+      type: 'SERVER_ERROR',
+      message: 'O servidor encontrou um erro. Tente novamente em instantes.',
       status,
     };
   }
 
   return {
-    type: "UNKNOWN_ERROR",
-    message: "Ocorreu um erro inesperado. Tente novamente.",
+    type: 'UNKNOWN_ERROR',
+    message: 'Ocorreu um erro inesperado. Tente novamente.',
   };
 }
 
@@ -165,7 +165,7 @@ export function useSubmitOrderMutation() {
       } as Parameters<typeof trigger>[0]).unwrap();
       return data as Order;
     },
-    [trigger]
+    [trigger],
   );
 
   return {

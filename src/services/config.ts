@@ -4,8 +4,13 @@ export function validateApiUrl(value: string | undefined, development: boolean):
     throw new Error('Configure EXPO_PUBLIC_API_URL para esta versão da aplicação.');
   }
   const url = new URL(value);
-  if (url.username || url.password || url.search || url.hash ||
-      (url.protocol !== 'https:' && !(development && url.protocol === 'http:'))) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.protocol !== 'https:' && !(development && url.protocol === 'http:'))
+  ) {
     throw new Error('A API deve usar HTTPS e não pode conter credenciais, query ou fragmento.');
   }
   return value.replace(/\/+$/, '');

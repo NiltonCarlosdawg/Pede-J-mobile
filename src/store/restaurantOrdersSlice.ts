@@ -1,6 +1,7 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type RestaurantOrderStatus = "pending" | "confirmed" | "preparing" | "ready" | "delivering" | "delivered" | "cancelled";
+export type RestaurantOrderStatus =
+  'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
 export interface RestaurantOrderItem {
   id: string;
@@ -50,7 +51,7 @@ const initialState: RestaurantOrdersState = {
 };
 
 const restaurantOrdersSlice = createSlice({
-  name: "restaurantOrders",
+  name: 'restaurantOrders',
   initialState,
   reducers: {
     setOrders(state, action: PayloadAction<RestaurantOrder[]>) {
@@ -61,7 +62,7 @@ const restaurantOrdersSlice = createSlice({
     },
     updateOrderStatus(
       state,
-      action: PayloadAction<{ orderId: string; status: RestaurantOrderStatus }>
+      action: PayloadAction<{ orderId: string; status: RestaurantOrderStatus }>,
     ) {
       const order = state.orders.find((o) => o.id === action.payload.orderId);
       if (order) {
@@ -114,15 +115,13 @@ export const selectRestaurantError = (state: { restaurantOrders: RestaurantOrder
   state.restaurantOrders.error;
 
 export const selectPendingOrders = (state: { restaurantOrders: RestaurantOrdersState }) =>
-  state.restaurantOrders.orders.filter((o) => o.status === "pending");
+  state.restaurantOrders.orders.filter((o) => o.status === 'pending');
 
 export const selectPreparingOrders = (state: { restaurantOrders: RestaurantOrdersState }) =>
-  state.restaurantOrders.orders.filter((o) => o.status === "confirmed" || o.status === "preparing");
+  state.restaurantOrders.orders.filter((o) => o.status === 'confirmed' || o.status === 'preparing');
 
 export const selectReadyOrders = (state: { restaurantOrders: RestaurantOrdersState }) =>
-  state.restaurantOrders.orders.filter((o) => o.status === "ready");
+  state.restaurantOrders.orders.filter((o) => o.status === 'ready');
 
 export const selectActiveOrders = (state: { restaurantOrders: RestaurantOrdersState }) =>
-  state.restaurantOrders.orders.filter(
-    (o) => o.status !== "delivered" && o.status !== "cancelled"
-  );
+  state.restaurantOrders.orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled');

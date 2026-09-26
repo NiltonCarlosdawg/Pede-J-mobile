@@ -1,4 +1,4 @@
-import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 let successSound: AudioPlayer | null = null;
 let notificationSound: AudioPlayer | null = null;
@@ -27,7 +27,9 @@ export async function playPaymentSuccess() {
   try {
     if (!successSound) {
       // Som de coleta de moeda estilo retro (8-bit)
-      successSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
+      successSound = await loadSound(
+        'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3',
+      );
     }
     if (successSound) {
       await successSound.seekTo(0);
@@ -42,7 +44,9 @@ export async function playNewOrder() {
   try {
     if (!notificationSound) {
       // Som de "plim" / notificação curta
-      notificationSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+      notificationSound = await loadSound(
+        'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+      );
     }
     if (notificationSound) {
       await notificationSound.seekTo(0);
@@ -57,7 +61,9 @@ export async function playStatusChange() {
   try {
     if (!statusSound) {
       // Beep curto e simples
-      statusSound = await loadSound("https://assets.mixkit.co/active_storage/sfx/2868/2868-preview.mp3");
+      statusSound = await loadSound(
+        'https://assets.mixkit.co/active_storage/sfx/2868/2868-preview.mp3',
+      );
     }
     if (statusSound) {
       await statusSound.seekTo(0);

@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -11,21 +11,21 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import * as Sentry from "@sentry/react-native";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Sentry from '@sentry/react-native';
 
-import { Header } from "../src/components/ui/Header";
-import { Button } from "../src/components/ui/Button";
-import { Input } from "../src/components/ui/Input";
+import { Header } from '../src/components/ui/Header';
+import { Button } from '../src/components/ui/Button';
+import { Input } from '../src/components/ui/Input';
 import {
   classifyOrderError,
   useSubmitOrderMutation,
   type OrderMutationError,
-} from "../src/hooks/useSubmitOrderMutation";
-import { useTheme } from "../src/hooks/useTheme";
-import { notifyOrderConfirmed } from "../src/services/notifications";
-import { useAppDispatch, useAppSelector } from "../src/store";
+} from '../src/hooks/useSubmitOrderMutation';
+import { useTheme } from '../src/hooks/useTheme';
+import { notifyOrderConfirmed } from '../src/services/notifications';
+import { useAppDispatch, useAppSelector } from '../src/store';
 import {
   addCoupon,
   applyCoupon,
@@ -33,22 +33,22 @@ import {
   selectAppliedCoupon,
   calculateDiscount,
   selectActiveCoupons,
-} from "../src/store/promotionsSlice";
+} from '../src/store/promotionsSlice';
 import {
   selectCartItems,
   selectCartRestaurantId,
   selectCartSubtotal,
-} from "../src/store/cartSelectors";
-import { clearCart } from "../src/store/cartSlice";
-import { addOrder, type Order as LocalOrder } from "../src/store/ordersSlice";
-import { selectPaymentMethods } from "../src/store/paymentMethodsSlice";
-import { useGetAddressesQuery, useValidateCouponMutation } from "../src/hooks/useApi";
-import { formatPrice, spacing, typography } from "../src/theme";
-import type { Address, PaymentMethod } from "../src/types";
-import * as Crypto from "expo-crypto";
+} from '../src/store/cartSelectors';
+import { clearCart } from '../src/store/cartSlice';
+import { addOrder, type Order as LocalOrder } from '../src/store/ordersSlice';
+import { selectPaymentMethods } from '../src/store/paymentMethodsSlice';
+import { useGetAddressesQuery, useValidateCouponMutation } from '../src/hooks/useApi';
+import { formatPrice, spacing, typography } from '../src/theme';
+import type { Address, PaymentMethod } from '../src/types';
+import * as Crypto from 'expo-crypto';
 
 const ROW_HIT_SLOP = { top: 14, bottom: 14, left: 10, right: 10 };
-const DEMO_RESTAURANT_ID = "5";
+const DEMO_RESTAURANT_ID = '5';
 
 function buildLocalOrder(params: {
   items: ReturnType<typeof selectCartItems>;
@@ -84,9 +84,9 @@ function buildLocalOrder(params: {
     deliveryFee: params.deliveryFee,
     discount: params.discount,
     total: params.total,
-    status: "preparing",
+    status: 'preparing',
     createdAt: new Date().toISOString(),
-    estimatedDelivery: "30-45 min",
+    estimatedDelivery: '30-45 min',
   };
 }
 
@@ -101,10 +101,12 @@ export default function CheckoutScreen() {
   const paymentMethods = useAppSelector(selectPaymentMethods);
   const { colors } = useTheme();
 
-  const { data: apiAddresses, isFetching: addressesLoading, error: addressesError, refetch: refetchAddresses } = useGetAddressesQuery(
-    undefined,
-    { refetchOnFocus: true, refetchOnReconnect: true }
-  );
+  const {
+    data: apiAddresses,
+    isFetching: addressesLoading,
+    error: addressesError,
+    refetch: refetchAddresses,
+  } = useGetAddressesQuery(undefined, { refetchOnFocus: true, refetchOnReconnect: true });
 
   const addresses: Address[] = useMemo(() => {
     if (Array.isArray(apiAddresses)) return apiAddresses as unknown as Address[];
@@ -112,10 +114,10 @@ export default function CheckoutScreen() {
     return [];
   }, [apiAddresses]);
 
-  const [selectedAddress, setSelectedAddress] = useState<string>("");
-  const [selectedPayment, setSelectedPayment] = useState<string>("");
-  const [couponCode, setCouponCode] = useState("");
-  const [couponError, setCouponError] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
   const [orderError, setOrderError] = useState<OrderMutationError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -128,8 +130,7 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     if (!addresses.length) return;
-    const preferred =
-      addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? "";
+    const preferred = addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? '';
     setSelectedAddress((prev) => {
       if (prev && addresses.some((a) => a.id === prev)) return prev;
       return preferred;
@@ -138,8 +139,7 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     if (!paymentMethods.length) return;
-    const preferred =
-      paymentMethods.find((p) => p.isDefault)?.id ?? paymentMethods[0]?.id ?? "";
+    const preferred = paymentMethods.find((p) => p.isDefault)?.id ?? paymentMethods[0]?.id ?? '';
     setSelectedPayment((prev) => {
       if (prev && paymentMethods.some((p) => p.id === prev)) return prev;
       return preferred;
@@ -190,9 +190,9 @@ export default function CheckoutScreen() {
           marginBottom: spacing.md,
         },
         sectionHeader: {
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: spacing.sm,
         },
         sectionTitle: {
@@ -202,13 +202,13 @@ export default function CheckoutScreen() {
         },
         sectionAction: {
           ...typography.bodySm,
-          fontWeight: "700",
+          fontWeight: '700',
           color: colors.primary[500],
         },
         addressOptions: { gap: spacing.md, marginBottom: spacing.md },
         addressItem: {
-          flexDirection: "row",
-          alignItems: "flex-start",
+          flexDirection: 'row',
+          alignItems: 'flex-start',
           padding: spacing.md,
           borderRadius: 12,
           borderWidth: 1,
@@ -232,8 +232,8 @@ export default function CheckoutScreen() {
         },
         itemsList: { gap: spacing.sm },
         itemRow: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: spacing.sm,
           paddingVertical: spacing.sm,
           borderBottomWidth: 1,
@@ -242,24 +242,24 @@ export default function CheckoutScreen() {
         itemQty: {
           ...typography.bodySm,
           color: colors.neutral[600],
-          fontWeight: "600",
+          fontWeight: '600',
         },
         itemContent: { flex: 1 },
         itemName: {
           ...typography.bodySm,
-          fontWeight: "700",
+          fontWeight: '700',
           color: colors.onSurface,
         },
         itemPrice: {
           ...typography.bodySm,
-          fontWeight: "800",
+          fontWeight: '800',
           color: colors.secondary[500],
           marginTop: 2,
         },
         paymentOptions: { gap: spacing.sm },
         paymentItem: {
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
           padding: spacing.md,
           borderRadius: 12,
           borderWidth: 1,
@@ -274,7 +274,7 @@ export default function CheckoutScreen() {
         },
         paymentLabel: {
           ...typography.bodySm,
-          fontWeight: "600",
+          fontWeight: '600',
           color: colors.neutral[900],
         },
         paymentSubtitle: {
@@ -283,7 +283,7 @@ export default function CheckoutScreen() {
           color: colors.neutral[600],
           marginTop: 4,
         },
-        couponRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
+        couponRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
         couponInputWrap: { flex: 1 },
         summaryCard: {
           backgroundColor: colors.surfaceContainerLowest,
@@ -294,8 +294,8 @@ export default function CheckoutScreen() {
           marginBottom: spacing.lg,
         },
         summaryRow: {
-          flexDirection: "row",
-          justifyContent: "space-between",
+          flexDirection: 'row',
+          justifyContent: 'space-between',
           paddingVertical: spacing.xs,
         },
         summaryLabel: {
@@ -304,7 +304,7 @@ export default function CheckoutScreen() {
         },
         summaryValue: {
           ...typography.bodySm,
-          fontWeight: "700",
+          fontWeight: '700',
           color: colors.onSurface,
         },
         freeDelivery: { color: colors.primary[500] },
@@ -313,10 +313,10 @@ export default function CheckoutScreen() {
           backgroundColor: colors.surfaceVariant,
           marginVertical: spacing.sm,
         },
-        totalRow: { flexDirection: "row", justifyContent: "space-between" },
+        totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
         totalLabel: {
           ...typography.h3,
-          fontWeight: "800",
+          fontWeight: '800',
           color: colors.onSurface,
         },
         totalValue: {
@@ -337,12 +337,12 @@ export default function CheckoutScreen() {
         },
         discountValue: {
           ...typography.bodySm,
-          fontWeight: "600",
+          fontWeight: '600',
         },
         emptyContainer: {
           flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: 'center',
+          justifyContent: 'center',
           gap: spacing.md,
           paddingVertical: spacing.xxl,
         },
@@ -352,7 +352,7 @@ export default function CheckoutScreen() {
         },
         emptyText: {
           ...typography.bodySm,
-          textAlign: "center",
+          textAlign: 'center',
           color: colors.neutral[700],
           paddingHorizontal: spacing.lg,
         },
@@ -362,7 +362,7 @@ export default function CheckoutScreen() {
           marginBottom: spacing.sm,
         },
       }),
-    [colors]
+    [colors],
   );
 
   const hasItems = items.length > 0;
@@ -374,10 +374,10 @@ export default function CheckoutScreen() {
 
   function paymentSubtitle(method: PaymentMethod) {
     const descriptions: Record<string, string> = {
-      paypay: "Carteira digital BFA - Confirmação com PIN",
-      multicaixa_express: "Referência para pagamento em ATM",
-      unitel_money: "Carteira digital Unitel",
-      facipay: "Pagamento direto via app FaciPay",
+      paypay: 'Carteira digital BFA - Confirmação com PIN',
+      multicaixa_express: 'Referência para pagamento em ATM',
+      unitel_money: 'Carteira digital Unitel',
+      facipay: 'Pagamento direto via app FaciPay',
     };
     return descriptions[method.type] || method.label;
   }
@@ -390,25 +390,27 @@ export default function CheckoutScreen() {
     try {
       const data = await validateCouponMutation({ codigo: code, subtotal }).unwrap();
       if (!data.valido) {
-        setCouponError(data.mensagem ?? "Cupão inválido ou expirado");
+        setCouponError(data.mensagem ?? 'Cupão inválido ou expirado');
         return;
       }
-      dispatch(addCoupon({
-        id: code,
-        code,
-        description: data.mensagem,
-        discountType: data.tipo === "percentual" ? "percentage" : "fixed",
-        discountValue:
-          data.tipo === "percentual" && subtotal > 0
-            ? Math.round((data.desconto / subtotal) * 100)
-            : data.desconto,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        isActive: true,
-        usageCount: 0,
-      }));
+      dispatch(
+        addCoupon({
+          id: code,
+          code,
+          description: data.mensagem,
+          discountType: data.tipo === 'percentual' ? 'percentage' : 'fixed',
+          discountValue:
+            data.tipo === 'percentual' && subtotal > 0
+              ? Math.round((data.desconto / subtotal) * 100)
+              : data.desconto,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          isActive: true,
+          usageCount: 0,
+        }),
+      );
       dispatch(applyCoupon(code));
-      setCouponError("");
-      setCouponCode("");
+      setCouponError('');
+      setCouponCode('');
       return;
     } catch {
       // Mantém fallback local quando a API estiver indisponível.
@@ -417,7 +419,7 @@ export default function CheckoutScreen() {
     const coupon = activeCoupons.find((c) => c.code.toUpperCase() === code);
 
     if (!coupon) {
-      setCouponError("Cupão inválido ou expirado");
+      setCouponError('Cupão inválido ou expirado');
       return;
     }
 
@@ -427,13 +429,13 @@ export default function CheckoutScreen() {
     }
 
     dispatch(applyCoupon(code));
-    setCouponError("");
-    setCouponCode("");
+    setCouponError('');
+    setCouponCode('');
   };
 
   const handleRemoveCoupon = () => {
     dispatch(removeCoupon());
-    setCouponError("");
+    setCouponError('');
   };
 
   type SubmitResult = {
@@ -446,8 +448,8 @@ export default function CheckoutScreen() {
     async (retrying = false): Promise<SubmitResult> => {
       if (!currentAddress?.id || !currentPayment) {
         const validation: OrderMutationError = {
-          type: "VALIDATION_ERROR",
-          message: "Selecione endereço e método de pagamento.",
+          type: 'VALIDATION_ERROR',
+          message: 'Selecione endereço e método de pagamento.',
         };
         setOrderError(validation);
         return { error: validation, fatal: true };
@@ -477,26 +479,27 @@ export default function CheckoutScreen() {
           idempotencyKey,
         });
         const remoteOrder =
-          data && typeof data === "object" && "order" in data
+          data && typeof data === 'object' && 'order' in data
             ? (data as { order?: { id?: unknown } }).order
             : data;
         const remoteId =
-          remoteOrder && typeof remoteOrder === "object" && "id" in remoteOrder
+          remoteOrder && typeof remoteOrder === 'object' && 'id' in remoteOrder
             ? String((remoteOrder as { id: unknown }).id)
             : undefined;
-        if (!remoteId) throw new Error("Resposta do servidor sem identificador do pedido.");
+        if (!remoteId) throw new Error('Resposta do servidor sem identificador do pedido.');
         return { remoteId };
       } catch (error) {
         const classified = classifyOrderError(error);
-        if (classified.type !== "VALIDATION_ERROR" && classified.type !== "CONFLICT_ERROR") {
+        if (classified.type !== 'VALIDATION_ERROR' && classified.type !== 'CONFLICT_ERROR') {
           Sentry.captureException(error);
         }
         setOrderError(classified);
-        const fatal = classified.type === "VALIDATION_ERROR" || classified.type === "CONFLICT_ERROR";
+        const fatal =
+          classified.type === 'VALIDATION_ERROR' || classified.type === 'CONFLICT_ERROR';
         return { error: classified, fatal };
       }
     },
-    [currentAddress, currentPayment, cartRestaurantId, items, submitMutation, appliedCoupon]
+    [currentAddress, currentPayment, cartRestaurantId, items, submitMutation, appliedCoupon],
   );
 
   const handleConfirmOrder = async () => {
@@ -517,15 +520,16 @@ export default function CheckoutScreen() {
     });
     dispatch(addOrder(order));
     dispatch(clearCart());
-    await notifyOrderConfirmed(order.id, "Restaurante");
+    await notifyOrderConfirmed(order.id, 'Restaurante');
     router.push({
-      pathname: "/payment-flow",
+      pathname: '/payment-flow',
       params: { orderId: order.id, methodId: currentPayment.id },
     });
   };
 
   const handleRetry = async () => {
-    if (!retryPayloadRef.current || !currentAddress || !currentPayment || submitMutation.isPending) return;
+    if (!retryPayloadRef.current || !currentAddress || !currentPayment || submitMutation.isPending)
+      return;
     setRetryCount((prev) => prev + 1);
     const result = await doSubmitOrder(true);
     if (result.error || !result.remoteId) return;
@@ -541,9 +545,9 @@ export default function CheckoutScreen() {
     });
     dispatch(addOrder(order));
     dispatch(clearCart());
-    await notifyOrderConfirmed(order.id, "Restaurante");
+    await notifyOrderConfirmed(order.id, 'Restaurante');
     router.push({
-      pathname: "/payment-flow",
+      pathname: '/payment-flow',
       params: { orderId: order.id, methodId: currentPayment.id },
     });
   };
@@ -551,13 +555,13 @@ export default function CheckoutScreen() {
   const confirming = submitMutation.isPending;
 
   return (
-    <SafeAreaView style={styles.root} edges={["top"]}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <Header title="Checkout" showBack onBackPress={() => router.back()} />
 
       <KeyboardAvoidingView
         style={styles.kb}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -567,11 +571,7 @@ export default function CheckoutScreen() {
         >
           {!hasItems ? (
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons
-                name="cart-outline"
-                size={48}
-                color={colors.neutral[300]}
-              />
+              <MaterialCommunityIcons name="cart-outline" size={48} color={colors.neutral[300]} />
               <Text style={styles.emptyTitle}>Carrinho vazio</Text>
               <Text style={styles.emptyText}>
                 Adicione itens no restaurante para fazer checkout.
@@ -596,7 +596,7 @@ export default function CheckoutScreen() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Endereço de Entrega</Text>
                   <TouchableOpacity
-                    onPress={() => router.push("/endereco")}
+                    onPress={() => router.push('/endereco')}
                     hitSlop={ROW_HIT_SLOP}
                     disabled={confirming}
                   >
@@ -608,9 +608,14 @@ export default function CheckoutScreen() {
                 ) : addresses.length === 0 ? (
                   <View style={{ gap: spacing.sm }}>
                     <Text style={{ ...typography.bodySm, color: colors.neutral[600] }}>
-                      Nenhum endereço cadastrado. Adicione um endereço real para prosseguir (dados do banco, sem fallback).
+                      Nenhum endereço cadastrado. Adicione um endereço real para prosseguir (dados
+                      do banco, sem fallback).
                     </Text>
-                    <Button title="Adicionar endereço" onPress={() => router.push("/endereco")} variant="secondary" />
+                    <Button
+                      title="Adicionar endereço"
+                      onPress={() => router.push('/endereco')}
+                      variant="secondary"
+                    />
                   </View>
                 ) : (
                   <View style={styles.addressOptions}>
@@ -627,7 +632,7 @@ export default function CheckoutScreen() {
                       >
                         <MaterialCommunityIcons
                           name={
-                            selectedAddress === address.id ? "radiobox-marked" : "radiobox-blank"
+                            selectedAddress === address.id ? 'radiobox-marked' : 'radiobox-blank'
                           }
                           size={22}
                           color={
@@ -647,9 +652,22 @@ export default function CheckoutScreen() {
                   </View>
                 )}
                 {addressesError ? (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.sm }}>
-                    <Text style={{ ...typography.bodySm, color: colors.error, flex: 1 }}>Falha ao carregar endereços da API.</Text>
-                    <TouchableOpacity onPress={() => refetchAddresses()}><Text style={{ color: colors.primary[500], fontWeight: "700" }}>Tentar novamente</Text></TouchableOpacity>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      marginTop: spacing.sm,
+                    }}
+                  >
+                    <Text style={{ ...typography.bodySm, color: colors.error, flex: 1 }}>
+                      Falha ao carregar endereços da API.
+                    </Text>
+                    <TouchableOpacity onPress={() => refetchAddresses()}>
+                      <Text style={{ color: colors.primary[500], fontWeight: '700' }}>
+                        Tentar novamente
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 ) : null}
               </View>
@@ -675,7 +693,7 @@ export default function CheckoutScreen() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Método de Pagamento</Text>
                   <TouchableOpacity
-                    onPress={() => router.push("/payment-methods")}
+                    onPress={() => router.push('/payment-methods')}
                     hitSlop={ROW_HIT_SLOP}
                     disabled={confirming}
                   >
@@ -685,7 +703,7 @@ export default function CheckoutScreen() {
                 {paymentMethods.length === 0 ? (
                   <Button
                     title="Adicionar método de pagamento"
-                    onPress={() => router.push("/payment-methods")}
+                    onPress={() => router.push('/payment-methods')}
                     disabled={confirming}
                   />
                 ) : (
@@ -703,7 +721,7 @@ export default function CheckoutScreen() {
                       >
                         <MaterialCommunityIcons
                           name={
-                            selectedPayment === method.id ? "radiobox-marked" : "radiobox-blank"
+                            selectedPayment === method.id ? 'radiobox-marked' : 'radiobox-blank'
                           }
                           size={22}
                           color={
@@ -755,8 +773,8 @@ export default function CheckoutScreen() {
                 {appliedCoupon ? (
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
+                      flexDirection: 'row',
+                      alignItems: 'center',
                       gap: spacing.sm,
                       marginTop: spacing.xs,
                     }}
@@ -782,13 +800,8 @@ export default function CheckoutScreen() {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Entrega</Text>
-                  <Text
-                    style={[
-                      styles.summaryValue,
-                      deliveryFee === 0 && styles.freeDelivery,
-                    ]}
-                  >
-                    {deliveryFee === 0 ? "Grátis" : formatPrice(deliveryFee)}
+                  <Text style={[styles.summaryValue, deliveryFee === 0 && styles.freeDelivery]}>
+                    {deliveryFee === 0 ? 'Grátis' : formatPrice(deliveryFee)}
                   </Text>
                 </View>
                 {discount > 0 ? (
@@ -809,97 +822,96 @@ export default function CheckoutScreen() {
           )}
         </ScrollView>
 
-          {hasItems && paymentMethods.length > 0 ? (
-            <SafeAreaView edges={["bottom"]} style={styles.footerBar}>
-              {orderError ? (
-                <View style={{ gap: spacing.sm }}>
-                  <View
+        {hasItems && paymentMethods.length > 0 ? (
+          <SafeAreaView edges={['bottom']} style={styles.footerBar}>
+            {orderError ? (
+              <View style={{ gap: spacing.sm }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    backgroundColor:
+                      orderError.type === 'VALIDATION_ERROR'
+                        ? colors.neutral[100]
+                        : colors.secondary[100],
+                    borderRadius: 12,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name={orderError.type === 'VALIDATION_ERROR' ? 'alert-circle' : 'alert'}
+                    size={20}
+                    color={orderError.type === 'VALIDATION_ERROR' ? colors.error : colors.warning}
+                  />
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.sm,
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      backgroundColor:
-                        orderError.type === "VALIDATION_ERROR"
-                          ? colors.neutral[100]
-                          : colors.secondary[100],
-                      borderRadius: 12,
+                      flex: 1,
+                      ...typography.bodySm,
+                      color:
+                        orderError.type === 'VALIDATION_ERROR' ? colors.error : colors.neutral[700],
                     }}
                   >
-                    <MaterialCommunityIcons
-                      name={
-                        orderError.type === "VALIDATION_ERROR"
-                          ? "alert-circle"
-                          : "alert"
-                      }
-                      size={20}
-                      color={
-                        orderError.type === "VALIDATION_ERROR"
-                          ? colors.error
-                          : colors.warning
-                      }
-                    />
-                    <Text
-                      style={{
-                        flex: 1,
-                        ...typography.bodySm,
-                        color:
-                          orderError.type === "VALIDATION_ERROR"
-                            ? colors.error
-                            : colors.neutral[700],
-                      }}
-                    >
-                      {orderError.message}
-                    </Text>
-                  </View>
-
-                  {orderError.type !== "VALIDATION_ERROR" &&
-                    orderError.type !== "CONFLICT_ERROR" && (
-                      <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                        <View style={{ flex: 1 }}>
-                          <Button
-                            title={`Tentar novamente${retryCount ? ` (${retryCount})` : ""}`}
-                            onPress={handleRetry}
-                            loading={submitMutation.isPending}
-                            variant="secondary"
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Button
-                            title="Alterar dados"
-                            onPress={() => setOrderError(null)}
-                            disabled={submitMutation.isPending}
-                            variant="ghost"
-                          />
-                        </View>
-                      </View>
-                    )}
-
-                  {(orderError.type === "VALIDATION_ERROR" ||
-                    orderError.type === "CONFLICT_ERROR") && (
-                    <Button
-                      title="Corrigir dados"
-                      onPress={() => setOrderError(null)}
-                      variant="ghost"
-                    />
-                  )}
+                    {orderError.message}
+                  </Text>
                 </View>
-              ) : (
-                <Button
-                  title={confirming ? "A processar…" : "Confirmar pedido"}
-                  onPress={handleConfirmOrder}
-                  disabled={confirming || !currentAddress || !currentPayment}
-                  loading={confirming}
-                />
-              )}
-              {orderError && orderError.type !== "VALIDATION_ERROR" && orderError.type !== "CONFLICT_ERROR" ? (
-                <Text style={{ ...typography.bodySm, color: colors.neutral[500], marginTop: spacing.sm, textAlign: "center" }}>
-                  O carrinho foi preservado. Use a mesma tentativa para evitar duplicação (idempotência).
-                </Text>
-              ) : null}
-            </SafeAreaView>
-          ) : null}
+
+                {orderError.type !== 'VALIDATION_ERROR' && orderError.type !== 'CONFLICT_ERROR' && (
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title={`Tentar novamente${retryCount ? ` (${retryCount})` : ''}`}
+                        onPress={handleRetry}
+                        loading={submitMutation.isPending}
+                        variant="secondary"
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Alterar dados"
+                        onPress={() => setOrderError(null)}
+                        disabled={submitMutation.isPending}
+                        variant="ghost"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {(orderError.type === 'VALIDATION_ERROR' ||
+                  orderError.type === 'CONFLICT_ERROR') && (
+                  <Button
+                    title="Corrigir dados"
+                    onPress={() => setOrderError(null)}
+                    variant="ghost"
+                  />
+                )}
+              </View>
+            ) : (
+              <Button
+                title={confirming ? 'A processar…' : 'Confirmar pedido'}
+                onPress={handleConfirmOrder}
+                disabled={confirming || !currentAddress || !currentPayment}
+                loading={confirming}
+              />
+            )}
+            {orderError &&
+            orderError.type !== 'VALIDATION_ERROR' &&
+            orderError.type !== 'CONFLICT_ERROR' ? (
+              <Text
+                style={{
+                  ...typography.bodySm,
+                  color: colors.neutral[500],
+                  marginTop: spacing.sm,
+                  textAlign: 'center',
+                }}
+              >
+                O carrinho foi preservado. Use a mesma tentativa para evitar duplicação
+                (idempotência).
+              </Text>
+            ) : null}
+          </SafeAreaView>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

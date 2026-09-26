@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type NotificationType = "order" | "delivery" | "promotion" | "system";
+export type NotificationType = 'order' | 'delivery' | 'promotion' | 'system';
 
 export interface AppNotification {
   id: string;
@@ -25,7 +25,7 @@ const initialState: NotificationsState = {
 };
 
 const notificationsSlice = createSlice({
-  name: "notifications",
+  name: 'notifications',
   initialState,
   reducers: {
     addNotification(state, action: PayloadAction<AppNotification>) {

@@ -1,35 +1,35 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Header } from "../../src/components/ui/Header";
+import { Header } from '../../src/components/ui/Header';
 import {
   useGetMessagesQuery,
   useMarkMessagesReadMutation,
   useSendMessageMutation,
-} from "../../src/hooks/useApi";
-import { spacing } from "../../src/theme";
-import { useTheme } from "../../src/hooks/useTheme";
-import type { ChatMessage } from "../../src/types";
+} from '../../src/hooks/useApi';
+import { spacing } from '../../src/theme';
+import { useTheme } from '../../src/hooks/useTheme';
+import type { ChatMessage } from '../../src/types';
 
 const QUICK_MESSAGES = [
-  "Estou chegando!",
-  "Pode aguardar 5 min?",
-  "Estou na portaria",
-  "Obrigado!",
-  "Estou a caminho",
+  'Estou chegando!',
+  'Pode aguardar 5 min?',
+  'Estou na portaria',
+  'Obrigado!',
+  'Estou a caminho',
 ];
 
 function formatChatTime(dateString: string) {
@@ -39,25 +39,25 @@ function formatChatTime(dateString: string) {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
 
-  if (diffMins < 1) return "Agora";
+  if (diffMins < 1) return 'Agora';
   if (diffMins < 60) return `${diffMins}min`;
   if (diffHours < 24) return `${diffHours}h`;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
 export default function DeliveryChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string }>();
-  const orderId = params.orderId ?? "";
+  const orderId = params.orderId ?? '';
   const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState('');
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [sending, setSending] = useState(false);
 
   const { data, isLoading } = useGetMessagesQuery(
     { orderId, limit: 100 },
-    { pollingInterval: 5000, skip: !orderId }
+    { pollingInterval: 5000, skip: !orderId },
   );
   const [sendMessage] = useSendMessageMutation();
   const [markMessagesRead] = useMarkMessagesReadMutation();
@@ -77,7 +77,7 @@ export default function DeliveryChatScreen() {
   useEffect(() => {
     if (!orderId || messages.length === 0) return;
     const last = messages[messages.length - 1];
-    const lastKey = last.id ?? `${last.createdAt ?? last.timestamp ?? ""}`;
+    const lastKey = last.id ?? `${last.createdAt ?? last.timestamp ?? ''}`;
     const previous = lastReadMessageRef.current;
     if (previous && previous.orderId === orderId && previous.key === lastKey) return;
     lastReadMessageRef.current = { orderId, key: lastKey };
@@ -96,21 +96,21 @@ export default function DeliveryChatScreen() {
 
     setSending(true);
     try {
-      await sendMessage({ orderId, texto: text, tipo: "texto" }).unwrap();
-      setInputText("");
+      await sendMessage({ orderId, texto: text, tipo: 'texto' }).unwrap();
+      setInputText('');
       setShowQuickMessages(false);
       // A mutation invalida a tag Chat e dispara o refetch das mensagens.
     } catch (err) {
-      console.error("Failed to send message:", err);
+      console.error('Failed to send message:', err);
     } finally {
       setSending(false);
     }
   }
 
   function renderMessage({ item }: { item: ChatMessage }) {
-    const isDelivery = item.senderRole === "entregador";
-    const isSystem = item.tipo === "sistema" || item.tipo === "system";
-    const timeValue = item.createdAt ?? item.timestamp ?? "";
+    const isDelivery = item.senderRole === 'entregador';
+    const isSystem = item.tipo === 'sistema' || item.tipo === 'system';
+    const timeValue = item.createdAt ?? item.timestamp ?? '';
 
     return (
       <View
@@ -121,9 +121,7 @@ export default function DeliveryChatScreen() {
           !isDelivery && !isSystem && styles.clientBubble,
         ]}
       >
-        {!isDelivery && !isSystem && (
-          <Text style={styles.senderName}>Cliente</Text>
-        )}
+        {!isDelivery && !isSystem && <Text style={styles.senderName}>Cliente</Text>}
         <Text
           style={[
             styles.messageText,
@@ -149,10 +147,10 @@ export default function DeliveryChatScreen() {
     );
   }
 
-  const orderNumber = orderId ? orderId.slice(-4) : "0000";
+  const orderNumber = orderId ? orderId.slice(-4) : '0000';
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Header
         title={`Chat - Pedido #${orderNumber}`}
         showBack
@@ -161,9 +159,9 @@ export default function DeliveryChatScreen() {
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.content}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {loading ? (
           <View style={styles.emptyContainer}>
@@ -181,9 +179,7 @@ export default function DeliveryChatScreen() {
             maxToRenderPerBatch={15}
             windowSize={7}
             removeClippedSubviews={true}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons
@@ -191,9 +187,7 @@ export default function DeliveryChatScreen() {
                   size={48}
                   color={colors.neutral[300]}
                 />
-                <Text style={styles.emptyText}>
-                  Inicie uma conversa com o cliente
-                </Text>
+                <Text style={styles.emptyText}>Inicie uma conversa com o cliente</Text>
               </View>
             }
           />
@@ -221,12 +215,12 @@ export default function DeliveryChatScreen() {
             onPress={() => setShowQuickMessages(!showQuickMessages)}
           >
             <MaterialCommunityIcons
-              name={showQuickMessages ? "chevron-down" : "message-text"}
+              name={showQuickMessages ? 'chevron-down' : 'message-text'}
               size={16}
               color={colors.primary[500]}
             />
             <Text style={styles.quickToggleText}>
-              {showQuickMessages ? "Ocultar rápidas" : "Mensagens rápidas"}
+              {showQuickMessages ? 'Ocultar rápidas' : 'Mensagens rápidas'}
             </Text>
           </TouchableOpacity>
 
@@ -252,11 +246,7 @@ export default function DeliveryChatScreen() {
               {sending ? (
                 <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <MaterialCommunityIcons
-                  name="send"
-                  size={20}
-                  color={colors.white}
-                />
+                <MaterialCommunityIcons name="send" size={20} color={colors.white} />
               )}
             </TouchableOpacity>
           </View>
@@ -269,7 +259,7 @@ export default function DeliveryChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: '#ffffff',
   },
   content: {
     flex: 1,
@@ -279,134 +269,134 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   messageBubble: {
-    maxWidth: "80%",
+    maxWidth: '80%',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 18,
     marginBottom: 10,
   },
   deliveryBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: "#E84C3D",
+    alignSelf: 'flex-end',
+    backgroundColor: '#E84C3D',
     borderBottomRightRadius: 4,
   },
   clientBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "#F2F2F2",
+    alignSelf: 'flex-start',
+    backgroundColor: '#F2F2F2',
     borderBottomLeftRadius: 4,
   },
   systemBubble: {
-    alignSelf: "center",
-    backgroundColor: "#ffffff",
+    alignSelf: 'center',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: '#E0E0E0',
     borderRadius: 12,
-    maxWidth: "90%",
+    maxWidth: '90%',
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
   deliveryText: {
-    color: "#ffffff",
+    color: '#ffffff',
   },
   clientText: {
-    color: "#212121",
+    color: '#212121',
   },
   systemText: {
-    color: "#757575",
+    color: '#757575',
     fontSize: 13,
-    textAlign: "center",
+    textAlign: 'center',
   },
   messageTime: {
     fontSize: 11,
     marginTop: 4,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
   },
   deliveryTime: {
-    color: "rgba(255,255,255,0.7)",
+    color: 'rgba(255,255,255,0.7)',
   },
   clientTime: {
-    color: "#9E9E9E",
+    color: '#9E9E9E',
   },
   senderName: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#9E9E9E",
+    fontWeight: '700',
+    color: '#9E9E9E',
     marginBottom: 4,
   },
   inputContainer: {
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    backgroundColor: "#ffffff",
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
   quickMessagesRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 10,
     marginBottom: 10,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   quickMessageChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#F2F2F2",
+    backgroundColor: '#F2F2F2',
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: '#E0E0E0',
   },
   quickMessageText: {
     fontSize: 12,
-    color: "#E84C3D",
-    fontWeight: "600",
+    color: '#E84C3D',
+    fontWeight: '600',
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#F2F2F2",
+    backgroundColor: '#F2F2F2',
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: "#212121",
+    color: '#212121',
     maxHeight: 80,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E84C3D",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#E84C3D',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: "#BDBDBD",
+    backgroundColor: '#BDBDBD',
   },
   quickToggle: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
     marginBottom: 10,
   },
   quickToggleText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#E84C3D",
+    fontWeight: '600',
+    color: '#E84C3D',
   },
   emptyContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 48,
   },
   emptyText: {
     fontSize: 14,
-    color: "#9E9E9E",
+    color: '#9E9E9E',
     marginTop: 16,
   },
 });
