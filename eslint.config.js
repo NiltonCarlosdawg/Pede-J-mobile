@@ -15,7 +15,8 @@ module.exports = defineConfig([
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
-      'no-duplicate-imports': 'error',
+      // Em TS o `import type` é separado por decisão de estilo; não é duplicação.
+      'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
     },
   },
   {
