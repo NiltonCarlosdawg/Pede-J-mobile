@@ -1,4 +1,3 @@
-import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 
@@ -52,7 +51,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
     ]);
 
     entranceAnimation.start();
-  }, []);
+  }, [loadingOpacity, logoOpacity, logoRotate, logoScale]);
 
   useEffect(() => {
     // Animação de pulso contínua do logo
@@ -76,7 +75,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
     pulseAnimation.start();
 
     return () => pulseAnimation.stop();
-  }, []);
+  }, [pulseAnim]);
 
   useEffect(() => {
     if (isReady && isVisible) {
@@ -94,7 +93,7 @@ export function AnimatedSplashScreen({ isReady, onComplete }: SplashScreenProps)
 
       return () => clearTimeout(timer);
     }
-  }, [isReady, isVisible]);
+  }, [isReady, isVisible, containerOpacity, onComplete]);
 
   if (!isVisible) {
     return null;

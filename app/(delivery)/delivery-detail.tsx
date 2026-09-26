@@ -33,6 +33,7 @@ export default function DeliveryDetailScreen() {
   // O servidor é a fonte de verdade; o estado local aplica actualizações
   // de status imediatamente e é sincronizado quando chega dados novos.
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- espelho local sincronizado quando o servidor envia dados novos
     setLocalOrder(fetchedOrder ?? null);
   }, [fetchedOrder]);
 

@@ -4,7 +4,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import api, { voipApi } from './api';
-import { safeGetItem, safeSetItem } from '../utils/storage';
+import { safeSetItem } from '../utils/storage';
 import type { VoipConfig, VoipTokenResponse } from '../types';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -190,7 +190,7 @@ export async function initializeVoip(): Promise<boolean> {
   await initializeCallAudio();
 
   if (!canUseNativeVoip()) {
-    console.info('[voip] native modules unavailable (web/Expo Go) — using JS fallback');
+    console.warn('[voip] native modules unavailable (web/Expo Go) — using JS fallback');
     return false;
   }
 

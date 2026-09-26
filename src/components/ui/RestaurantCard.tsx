@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { spacing, borderRadius, shadows } from '../../theme';
+import { spacing, shadows } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
 interface CardProps {

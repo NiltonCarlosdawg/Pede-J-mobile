@@ -270,6 +270,7 @@ export default function SearchScreen() {
 
     if (searchFailed) {
       console.error('Search error:', searchFailed);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- processa o resultado da pesquisa quando o fetch termina
       setResults([]);
     } else if (restaurantsData) {
       const rows = Array.isArray(restaurantsData) ? restaurantsData : restaurantsData.data;

@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -29,7 +28,6 @@ import {
 import type { Product } from '../../src/types';
 
 export default function RestaurantMenuScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -64,6 +62,7 @@ export default function RestaurantMenuScreen() {
   useEffect(() => {
     if (productsData) {
       const rows = Array.isArray(productsData) ? productsData : (productsData.data ?? []);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza o cardápio da API com o estado local das mutações optimistas
       setProducts(rows);
     }
   }, [productsData]);

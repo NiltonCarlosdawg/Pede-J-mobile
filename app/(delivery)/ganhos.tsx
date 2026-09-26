@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,7 +26,6 @@ const PERIOD_PARAM_MAP: Record<PeriodKey, string> = {
 };
 
 export default function EarningsScreen() {
-  const router = useRouter();
   const { colors: themeColors } = useTheme();
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('Hoje');
 

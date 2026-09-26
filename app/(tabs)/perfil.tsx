@@ -30,7 +30,7 @@ export default function PerfilScreen() {
   const isSmallScreen = width < 360;
   const { isDark, colors, toggleTheme } = useTheme();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [, setIsLoggingOut] = useState(false);
   const [logout] = useLogoutMutation();
 
   const styles = useMemo(

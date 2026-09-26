@@ -73,7 +73,7 @@ export default function DeliveryProfileScreen() {
   const [logout] = useLogoutMutation();
   const [toggleLocationSharing] = useToggleLocationSharingMutation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [, setIsLoggingOut] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [documents, setDocuments] = useState<
     Record<string, { uri: string; name: string; uploadedAt: string } | null>

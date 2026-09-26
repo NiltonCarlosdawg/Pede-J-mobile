@@ -75,7 +75,6 @@ export default function TrackingScreen() {
 
   const [routeInfo, setRouteInfo] = useState<OrderRoute | null>(null);
   const [driverLocation, setDriverLocation] = useState<Coordinates | null>(null);
-  const [driverProgress, setDriverProgress] = useState(0);
 
   const restaurantLocation: Coordinates | null = routeInfo?.origem ?? null;
   const customerLocation: Coordinates | null = routeInfo?.destino ?? null;
@@ -92,6 +91,7 @@ export default function TrackingScreen() {
 
   useEffect(() => {
     if (!routeOrderId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia a rota quando deixa de haver pedido rastreável
       setRouteInfo(null);
       return;
     }
@@ -144,12 +144,14 @@ export default function TrackingScreen() {
       .catch((err) => console.warn('WS location subscribe failed:', err));
 
     return () => unsubscribe?.();
-  }, [selectedOrder?.id]);
+    // selectedOrder é um objecto imutável do Redux: só muda de identidade quando o
+    // pedido selecionado é alterado — o re-run apenas re-inscreve na mesma canal WS.
+  }, [selectedOrder]);
 
   const isLocalOrder = Boolean(selectedOrder?.id.startsWith('local-'));
   const hasRealLocation =
     routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
-  const lastKnownAgeMs = hasRealLocation
+  const lastKnownAgeMs = hasRealLocation // eslint-disable-next-line react-hooks/purity -- a idade do lastKnown é amostrada do relógio em cada render; adiá-la para efeito/memo mudaria quando a idade é calculada
     ? Date.now() - new Date(routeInfo!.lastKnown.timestamp).getTime()
     : null;
 

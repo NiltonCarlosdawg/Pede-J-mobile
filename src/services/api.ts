@@ -1,10 +1,11 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { create as createAxios, isAxiosError } from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { clearDemoSession, loadDemoSession, saveDemoSession } from './demoAuth';
 import { API_URL } from './config';
 
 export const BASE_URL = API_URL;
 
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = createAxios({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
@@ -79,7 +80,7 @@ api.interceptors.response.use(
         return api(original);
       } catch (refreshError) {
         if (
-          axios.isAxiosError(refreshError) &&
+          isAxiosError(refreshError) &&
           [400, 401, 403].includes(refreshError.response?.status ?? 0)
         ) {
           if ((await loadDemoSession())?.token === session.token) await clearDemoSession();

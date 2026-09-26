@@ -131,6 +131,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (!addresses.length) return;
     const preferred = addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- escolhe o endereço preferido quando a lista da API carrega
     setSelectedAddress((prev) => {
       if (prev && addresses.some((a) => a.id === prev)) return prev;
       return preferred;
@@ -140,6 +141,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (!paymentMethods.length) return;
     const preferred = paymentMethods.find((p) => p.isDefault)?.id ?? paymentMethods[0]?.id ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- escolhe o pagamento preferido quando a lista da API carrega
     setSelectedPayment((prev) => {
       if (prev && paymentMethods.some((p) => p.id === prev)) return prev;
       return preferred;

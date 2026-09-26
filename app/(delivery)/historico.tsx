@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -38,7 +37,6 @@ const PERIOD_MAP: Record<string, { desde: string; ate: string }> = {
 };
 
 export default function DeliveryHistoryScreen() {
-  const router = useRouter();
   const { colors: themeColors } = useTheme();
   const [activeFilter, setActiveFilter] = useState('Todas');
 

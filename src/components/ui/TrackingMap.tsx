@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -23,14 +23,31 @@ export function TrackingMap({
 }: TrackingMapProps) {
   const { colors } = useTheme();
   const mapRef = useRef<MapView>(null);
-  const [region, setRegion] = useState({
-    latitude: (restaurantLocation.latitude + customerLocation.latitude) / 2,
-    longitude: (restaurantLocation.longitude + customerLocation.longitude) / 2,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  });
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
+
+  // Região derivada dos marcadores + localização do utilizador (mesmo cálculo que o
+  // efeito de ajuste fazia): derivar em render evita setState síncrono no efeito.
+  const region = useMemo(() => {
+    const locations = [restaurantLocation, customerLocation, driverLocation];
+    if (userLocation) locations.push(userLocation);
+
+    const latitudes = locations.map((l) => l.latitude);
+    const longitudes = locations.map((l) => l.longitude);
+
+    const minLat = Math.min(...latitudes);
+    const maxLat = Math.max(...latitudes);
+    const minLon = Math.min(...longitudes);
+    const maxLon = Math.max(...longitudes);
+
+    const padding = 0.01;
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLon + maxLon) / 2,
+      latitudeDelta: Math.max(0.02, maxLat - minLat + padding * 2),
+      longitudeDelta: Math.max(0.02, maxLon - minLon + padding * 2),
+    };
+  }, [restaurantLocation, customerLocation, driverLocation, userLocation]);
 
   // Request location permission and get current location
   useEffect(() => {
@@ -80,31 +97,10 @@ export function TrackingMap({
 
   // Fit map to show all markers
   useEffect(() => {
-    const locations = [restaurantLocation, customerLocation, driverLocation];
-    if (userLocation) locations.push(userLocation);
-
-    const latitudes = locations.map((l) => l.latitude);
-    const longitudes = locations.map((l) => l.longitude);
-
-    const minLat = Math.min(...latitudes);
-    const maxLat = Math.max(...latitudes);
-    const minLon = Math.min(...longitudes);
-    const maxLon = Math.max(...longitudes);
-
-    const padding = 0.01;
-    const newRegion = {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLon + maxLon) / 2,
-      latitudeDelta: Math.max(0.02, maxLat - minLat + padding * 2),
-      longitudeDelta: Math.max(0.02, maxLon - minLon + padding * 2),
-    };
-
-    setRegion(newRegion);
-
     setTimeout(() => {
-      mapRef.current?.animateToRegion(newRegion, 1000);
+      mapRef.current?.animateToRegion(region, 1000);
     }, 500);
-  }, [restaurantLocation, customerLocation, driverLocation, userLocation]);
+  }, [region]);
 
   const centerOnUser = useCallback(() => {
     if (userLocation && mapRef.current) {

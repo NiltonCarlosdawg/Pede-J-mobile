@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -40,7 +39,6 @@ const getApiErrorMessage = (err: unknown, fallback: string): string => {
 };
 
 export default function RestaurantProfileScreen() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const { colors } = useTheme();
   const user = useAppSelector((state) => state.auth.user);
@@ -71,12 +69,11 @@ export default function RestaurantProfileScreen() {
     { day: 6, open: '09:00', close: '23:00', active: false },
     { day: 0, open: '09:00', close: '21:00', active: false },
   ]);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [, setProfileLoading] = useState(true);
 
   // Carrega perfil real da API (PostgreSQL) — sem dados mock
   const loadProfile = useCallback(async () => {
     try {
-      setProfileLoading(true);
       const r = (await fetchMyRestaurant().unwrap()) as any;
       if (r?.name) setFormName(r.name);
       if (r?.description) setFormDescription(r.description);
@@ -102,9 +99,10 @@ export default function RestaurantProfileScreen() {
     } finally {
       setProfileLoading(false);
     }
-  }, []);
+  }, [fetchMyRestaurant]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carrega o perfil da API na montagem; o fetch define o estado do formulário
     loadProfile();
   }, [loadProfile]);
 

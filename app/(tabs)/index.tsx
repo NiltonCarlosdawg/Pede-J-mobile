@@ -420,7 +420,17 @@ export default function HomeScreen() {
         </View>
       </View>
     ),
-    [styles, colors, firstName, cartCount, restaurants, favoriteIds, router, loading],
+    [
+      styles,
+      colors,
+      firstName,
+      cartCount,
+      restaurants,
+      restaurantList,
+      favoriteIds,
+      router,
+      loading,
+    ],
   );
 
   return (

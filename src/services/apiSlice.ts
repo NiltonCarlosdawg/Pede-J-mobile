@@ -1,6 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import axios from 'axios';
-import http, { BASE_URL } from './api';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import type { BaseQueryFn, FetchArgs } from '@reduxjs/toolkit/query/react';
+import { isAxiosError } from 'axios';
+import http from './api';
 
 import type {
   Address,
@@ -103,18 +104,17 @@ type DeliveryHistoryParams = {
   limit?: number;
 };
 
-const rawBaseQuery = fetchBaseQuery({
-  baseUrl: BASE_URL,
-  prepareHeaders: (headers) => {
-    headers.set('Content-Type', 'application/json');
-    return headers;
-  },
-});
+/** Erro normalizado produzido pelo baseQuery (formato consumido pelas telas). */
+type NormalizedQueryError = {
+  status: number | 'TIMEOUT_ERROR' | 'FETCH_ERROR' | 'CUSTOM_ERROR';
+  data: { message: string; code?: string };
+};
 
-const baseQueryWithAuth = async (
-  args: Parameters<typeof rawBaseQuery>[0],
-  api: Parameters<typeof rawBaseQuery>[1],
-  extraOptions: Parameters<typeof rawBaseQuery>[2],
+// Transporte via instância axios (interceptores de auth/refresh) — o
+// fetchBaseQuery do RTK não é usado, apenas os tipos acima.
+const baseQueryWithAuth: BaseQueryFn<FetchArgs | string, unknown, NormalizedQueryError> = async (
+  args,
+  api,
 ) => {
   const request = typeof args === 'string' ? { url: args } : args;
   try {
@@ -128,7 +128,7 @@ const baseQueryWithAuth = async (
     });
     return { data: response.data };
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const timedOut = error.code === 'ECONNABORTED';
       const data = (error.response?.data ?? {}) as Record<string, unknown>;
       return {

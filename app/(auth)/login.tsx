@@ -24,7 +24,7 @@ import {
 } from '../../src/hooks/useApi';
 import { saveDemoSession, roleFromUser } from '../../src/services/demoAuth';
 import { useAppDispatch } from '../../src/store';
-import { clearSession, setSession } from '../../src/store/authSlice';
+import { setSession } from '../../src/store/authSlice';
 import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 
@@ -200,6 +200,7 @@ export default function LoginScreen() {
           : params.role === 'restaurant'
             ? 'restaurant'
             : 'client';
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza o perfil quando o parâmetro da rota muda
       setRole(newRole);
     }
   }, [params.role]);

@@ -79,7 +79,7 @@ export default function AddressScreen() {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setFormLat(String(loc.coords.latitude));
       setFormLng(String(loc.coords.longitude));
-    } catch (e) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível obter a localização.');
     }
   }, []);

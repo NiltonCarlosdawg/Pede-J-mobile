@@ -44,7 +44,7 @@ export default function RestaurantDashboard() {
   const user = useAppSelector((state) => state.auth.user);
 
   const [isOpen, setIsOpen] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const [toggleOpen] = useToggleOpenMutation();
   const { data: stats, isError: statsIsError, error: statsError } = useGetRestaurantStatsQuery();
@@ -63,6 +63,7 @@ export default function RestaurantDashboard() {
     if (statsIsError || ordersIsError) {
       const queryError = statsIsError ? statsError : ordersError;
       console.error('[RestaurantDashboard] fetchData error:', queryError);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- propaga o erro da query para o estado quando ela falha
       setError(
         getApiErrorMessage(
           queryError,

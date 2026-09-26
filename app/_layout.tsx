@@ -8,7 +8,7 @@ import {
 } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, StatusBar, Text, View, Button } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -26,7 +26,7 @@ import { initializeVoip, maybeHandleVoipNotificationData } from '../src/services
 import '../src/services/sentry';
 import { store, useAppDispatch, useAppSelector } from '../src/store';
 import { apiSlice } from '../src/services/apiSlice';
-import { clearSession, hydrateSession } from '../src/store/authSlice';
+import { clearSession } from '../src/store/authSlice';
 import { addNotification } from '../src/store/notificationsSlice';
 import { hydratePaymentMethods } from '../src/store/paymentMethodsSlice';
 import { hydrateCart } from '../src/store/cartSlice';
@@ -125,6 +125,11 @@ function RootLayoutNav() {
     [],
   );
 
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+    SplashScreen.hideAsync();
+  }, []);
+
   if (bootError)
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
@@ -143,11 +148,6 @@ function RootLayoutNav() {
     );
 
   const isReady = !isLoading && initialized;
-
-  const handleSplashComplete = () => {
-    setShowSplash(false);
-    SplashScreen.hideAsync();
-  };
 
   return (
     <>
@@ -186,7 +186,7 @@ function RootLayoutNavContent() {
     else if (role === 'restaurant') target = '/(restaurant)';
     else target = '/(tabs)';
     router.replace(target as never);
-  }, [isAuthenticated, role]);
+  }, [isAuthenticated, role, router]);
 
   // Listen for notifications and add them to the store (native only)
   useEffect(() => {

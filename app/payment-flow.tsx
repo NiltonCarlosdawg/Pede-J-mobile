@@ -22,7 +22,6 @@ export default function PaymentFlowScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string; methodId?: string }>();
   const orderId = params.orderId ?? '';
-  const methodId = params.methodId ?? '';
   const { colors } = useTheme();
   const dispatch = useAppDispatch();
   const orders = useAppSelector(selectOrders);
@@ -39,8 +38,7 @@ export default function PaymentFlowScreen() {
   const [error, setError] = useState('');
   const [timer, setTimer] = useState(180);
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const hasServerOrder = Boolean(order && orderId && !orderId.startsWith('local-'));
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   const styles = useMemo(
     () =>
@@ -253,6 +251,9 @@ export default function PaymentFlowScreen() {
   useEffect(() => {
     const nextPayment = paymentData?.payment;
     if (!nextPayment) return;
+    // Sincroniza o estado local com o pagamento devolvido pela API de polling (fonte externa);
+    // só existe dentro deste efeito de subscrição, por isso não pode ser movida para o render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPayment(nextPayment);
     if (nextPayment.status === 'completed') {
       dispatch(
@@ -290,18 +291,22 @@ export default function PaymentFlowScreen() {
         ]),
       ).start();
     }
-  }, [step]);
+  }, [step, pulseAnim]);
 
   const paymentIdempotencyKeyRef = useRef<string | null>(null);
+
+  // Chave de idempotência gerada fora do render (uma única vez por sessão de pagamento):
+  // retentativas reutilizam a mesma chave para o servidor não iniciar dois pagamentos.
+  useEffect(() => {
+    if (paymentIdempotencyKeyRef.current || !orderId || !paymentMethod) return;
+    paymentIdempotencyKeyRef.current = `${orderId}-${paymentMethod.type}-${Date.now()}`;
+  }, [orderId, paymentMethod]);
 
   async function initiateBackendPayment(phoneNumber?: string) {
     if (!paymentMethod || !orderId) {
       setError('Pedido sem confirmação do servidor. Volte ao checkout.');
       setStep('confirm');
       return;
-    }
-    if (!paymentIdempotencyKeyRef.current) {
-      paymentIdempotencyKeyRef.current = `${orderId}-${paymentMethod.type}-${Date.now()}`;
     }
 
     const { payment: nextPayment } = await initiatePayment({

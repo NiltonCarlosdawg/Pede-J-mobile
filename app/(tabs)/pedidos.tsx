@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '../../src/components/ui/Header';
 import { useAppSelector } from '../../src/store';
-import { selectOrders, selectCurrentOrder, type Order } from '../../src/store/ordersSlice';
+import { selectOrders, type Order } from '../../src/store/ordersSlice';
 import { selectRatingByOrder, selectDriverRatingByOrder } from '../../src/store/ratingsSlice';
 import { spacing, formatPrice, typography } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -126,7 +126,6 @@ function OrderItemCard({
 export default function OrdersScreen() {
   const router = useRouter();
   const allOrders = useAppSelector(selectOrders);
-  const currentOrder = useAppSelector(selectCurrentOrder);
   const { colors: themeColors } = useTheme();
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);

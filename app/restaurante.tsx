@@ -129,35 +129,41 @@ export default function RestaurantScreen() {
       }));
   }, [products, searchQuery]);
 
-  function handleSearch() {
+  const handleSearch = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 320, animated: true });
-  }
+  }, []);
 
-  function handleAddToCart(product: MenuItem) {
-    dispatch(
-      addItem({
-        id: product.id,
-        title: product.title,
-        price: parsePrice(product.price),
-        image: product.image,
-      }),
-    );
-  }
+  const handleAddToCart = useCallback(
+    (product: MenuItem) => {
+      dispatch(
+        addItem({
+          id: product.id,
+          title: product.title,
+          price: parsePrice(product.price),
+          image: product.image,
+        }),
+      );
+    },
+    [dispatch],
+  );
 
-  function handleProductPress(product: MenuItem) {
-    router.push({
-      pathname: '/produto-modal',
-      params: {
-        id: product.id,
-        name: product.title,
-        price: parsePrice(product.price).toString(),
-        image: product.image,
-        restaurant: restaurant?.name ?? '',
-        rating: restaurant ? restaurant.rating.toFixed(1) : '0.0',
-        description: product.description,
-      },
-    });
-  }
+  const handleProductPress = useCallback(
+    (product: MenuItem) => {
+      router.push({
+        pathname: '/produto-modal',
+        params: {
+          id: product.id,
+          name: product.title,
+          price: parsePrice(product.price).toString(),
+          image: product.image,
+          restaurant: restaurant?.name ?? '',
+          rating: restaurant ? restaurant.rating.toFixed(1) : '0.0',
+          description: product.description,
+        },
+      });
+    },
+    [router, restaurant],
+  );
 
   const styles = useMemo(
     () =>
@@ -492,7 +498,7 @@ export default function RestaurantScreen() {
                       message: `Vê o menu do ${restaurant.name}: ${restaurant.image}`,
                     });
                   } catch (error) {
-                    console.log(error);
+                    console.warn(error);
                   }
                 }}
               >

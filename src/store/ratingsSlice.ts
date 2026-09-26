@@ -68,7 +68,6 @@ export const { addRating, removeRating, addDriverRating, removeDriverRating } =
 export const ratingsReducer = ratingsSlice.reducer;
 
 const selectAllRatings = (state: { ratings: RatingsState }) => state.ratings.ratings;
-const selectAllDriverRatings = (state: { ratings: RatingsState }) => state.ratings.driverRatings;
 
 export const selectRatingsByRestaurant = createSelector(
   [selectAllRatings, (state: { ratings: RatingsState }, restaurantId: string) => restaurantId],

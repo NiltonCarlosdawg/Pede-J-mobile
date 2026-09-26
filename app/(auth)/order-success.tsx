@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,13 +11,6 @@ import { useTheme } from '../../src/hooks/useTheme';
 import { useAppSelector } from '../../src/store';
 import { selectOrders } from '../../src/store/ordersSlice';
 import { playNewOrder } from '../../src/utils/sounds';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-interface OrderSuccessScreenProps {
-  orderId?: string;
-  total?: number;
-}
 
 export default function OrderSuccessScreen() {
   const router = useRouter();
@@ -221,7 +214,7 @@ export default function OrderSuccessScreen() {
       }),
     ]);
     animation.start();
-  }, []);
+  }, [scaleAnim, opacityAnim, checkmarkScale, textOpacity, buttonTranslate]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>

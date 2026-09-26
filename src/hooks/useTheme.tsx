@@ -21,7 +21,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // Padrão é sempre light (false) — ignoramos tema do sistema
   const [isDark, setIsDark] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [, setIsLoaded] = useState(false);
 
   // Carrega preferência salva ao montar
   useEffect(() => {

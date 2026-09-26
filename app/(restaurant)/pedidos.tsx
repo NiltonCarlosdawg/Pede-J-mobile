@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -40,8 +39,6 @@ const toRestaurantOrders = (result: OrderPage | Order[] | undefined): Restaurant
 };
 
 export default function RestaurantOrdersScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ orderId?: string }>();
   const { colors } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
@@ -61,6 +58,7 @@ export default function RestaurantOrdersScreen() {
   const error = isError && ordersData === undefined ? 'Erro ao carregar pedidos.' : null;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza os pedidos da API com o estado local das mutações optimistas
     if (ordersData) setOrders(toRestaurantOrders(ordersData));
   }, [ordersData]);
 

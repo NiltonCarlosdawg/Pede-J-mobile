@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +20,6 @@ import {
   useMarkMessagesReadMutation,
   useSendMessageMutation,
 } from '../src/hooks/useApi';
-import { spacing } from '../src/theme';
 import { useTheme } from '../src/hooks/useTheme';
 import type { ChatMessage } from '../src/types';
 
@@ -38,7 +37,6 @@ function formatChatTime(dateString: string) {
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return 'Agora';
   if (diffMins < 60) return `${diffMins}min`;
@@ -47,7 +45,6 @@ function formatChatTime(dateString: string) {
 }
 
 export default function ChatScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string }>();
   const orderId = params.orderId ?? '';
   const { colors } = useTheme();
