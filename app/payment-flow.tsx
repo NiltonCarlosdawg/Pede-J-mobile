@@ -16,10 +16,12 @@ import { Header } from "../src/components/ui/Header";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import { selectOrders } from "../src/store/ordersSlice";
 import { createPaymentTransaction, updateTransactionStatus } from "../src/store/paymentMethodsSlice";
-import { spacing, typography } from "../src/theme";
+import { spacing, typography , formatPrice } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
-import { formatPrice } from "../src/theme";
-import { paymentApi } from "../src/services/api";
+import {
+  useGetPaymentQuery,
+  useInitiatePaymentMutation,
+} from "../src/hooks/useApi";
 import { PaymentMethod, PaymentResponse } from "../src/types";
 import { playPaymentSuccess } from "../src/utils/sounds";
 
@@ -34,6 +36,8 @@ export default function PaymentFlowScreen() {
   const order = orders.find((o) => o.id === orderId);
 
   const paymentMethod = order?.payment as PaymentMethod | undefined;
+  const [initiatePayment] = useInitiatePaymentMutation();
+
   const [step, setStep] = useState<'confirm' | 'phone' | 'processing' | 'awaiting' | 'success'>('confirm');
   const [pin, setPin] = useState("");
   const [phone, setPhone] = useState("");
@@ -187,33 +191,38 @@ export default function PaymentFlowScreen() {
     }
   }, [step, timer]);
 
+  // Polling do pagamento via RTK Query: só enquanto o step é "awaiting"
+  // (antes era um setInterval manual de 5s com a mesma condição).
+  const { data: paymentData, isError: paymentPollError } = useGetPaymentQuery(
+    { orderId, paymentId: payment?.id ?? "" },
+    {
+      pollingInterval: 5000,
+      skip: !orderId || !payment?.id || step !== "awaiting",
+    }
+  );
+
   useEffect(() => {
-    if (step !== "awaiting" || !payment?.id || !orderId) return;
+    const nextPayment = paymentData?.payment;
+    if (!nextPayment) return;
+    setPayment(nextPayment);
+    if (nextPayment.status === "completed") {
+      dispatch(updateTransactionStatus({
+        transactionId: nextPayment.id,
+        status: "completed",
+        completedAt: nextPayment.completedAt ?? new Date().toISOString(),
+      }));
+      setStep("success");
+    } else if (nextPayment.status === "failed" || nextPayment.status === "cancelled") {
+      setError("Pagamento não confirmado. Tente novamente.");
+      setStep("confirm");
+    }
+  }, [paymentData, dispatch]);
 
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await paymentApi.get(orderId, payment.id);
-        const nextPayment = data.payment as PaymentResponse;
-        setPayment(nextPayment);
-        if (nextPayment.status === "completed") {
-          dispatch(updateTransactionStatus({
-            transactionId: nextPayment.id,
-            status: "completed",
-            completedAt: nextPayment.completedAt ?? new Date().toISOString(),
-          }));
-          setStep("success");
-        }
-        if (nextPayment.status === "failed" || nextPayment.status === "cancelled") {
-          setError("Pagamento não confirmado. Tente novamente.");
-          setStep("confirm");
-        }
-      } catch (err) {
-        console.error("Failed to refresh payment:", err);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [dispatch, orderId, payment?.id, step]);
+  useEffect(() => {
+    if (paymentPollError) {
+      console.error("Failed to refresh payment:", paymentPollError);
+    }
+  }, [paymentPollError]);
 
   useEffect(() => {
     if (step === "success") {
@@ -244,12 +253,11 @@ export default function PaymentFlowScreen() {
       paymentIdempotencyKeyRef.current = `${orderId}-${paymentMethod.type}-${Date.now()}`;
     }
 
-    const { data } = await paymentApi.initiate(
+    const { payment: nextPayment } = await initiatePayment({
       orderId,
-      { methodType: paymentMethod.type, phoneNumber },
-      paymentIdempotencyKeyRef.current
-    );
-    const nextPayment = data.payment as PaymentResponse;
+      body: { methodType: paymentMethod.type, phoneNumber },
+      idempotencyKey: paymentIdempotencyKeyRef.current ?? undefined,
+    }).unwrap();
     setPayment(nextPayment);
     dispatch(createPaymentTransaction({
       id: nextPayment.id,

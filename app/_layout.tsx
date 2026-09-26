@@ -1,12 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider as NavigationThemeProvider,
-} from "expo-router";
+ Stack, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
-import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Platform, StatusBar, Text, View, Button } from "react-native";
@@ -14,36 +12,28 @@ import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 
-(Text as any).defaultProps = (Text as any).defaultProps || {};
-(Text as any).defaultProps.style = { fontFamily: "Arvo" };
-
 
 import { AnimatedSplashScreen } from "../src/components/ui/SplashScreen";
 import { loadDemoSession, clearDemoSession, saveDemoSession, onSessionChange } from "../src/services/demoAuth";
-import { authApi } from "../src/services/api";
-import axios from 'axios';
 import { initializeNotifications, setupNotificationListener } from "../src/services/notifications";
 import { initializeVoip, maybeHandleVoipNotificationData } from "../src/services/voip";
 import "../src/services/sentry";
 import { store, useAppDispatch, useAppSelector } from "../src/store";
+import { apiSlice } from "../src/services/apiSlice";
 import { clearSession, hydrateSession } from "../src/store/authSlice";
 import { addNotification } from "../src/store/notificationsSlice";
 import { hydratePaymentMethods } from "../src/store/paymentMethodsSlice";
-import { ThemeProvider } from "../src/hooks/useTheme";
-import { useTheme } from "../src/hooks/useTheme";
+import { hydrateCart } from "../src/store/cartSlice";
+import { ThemeProvider , useTheme } from "../src/hooks/useTheme";
+
+(Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.style = { fontFamily: "Arvo" };
 
 export {
     ErrorBoundary
 } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 60_000, retry: 2 },
-    mutations: { retry: false },
-  },
-});
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -66,11 +56,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <RootLayoutNav />
           </ThemeProvider>
-        </QueryClientProvider>
       </Provider>
     </SafeAreaProvider>
   );
@@ -92,15 +80,16 @@ function RootLayoutNav() {
         setBootError(false);
         const session = await loadDemoSession();
         if (session) {
-          const { data } = await authApi.getProfile();
+          const data = await dispatch(apiSlice.endpoints.getProfile.initiate(undefined, { forceRefetch: true })).unwrap();
           if (!isMounted) return;
           const current = await loadDemoSession();
-          if (current) await saveDemoSession({ ...current, user: data.user ?? data });
+          if (current) await saveDemoSession({ ...current, user: (data as { user?: typeof data }).user ?? data });
         } else if (isMounted) dispatch(clearSession());
         if (isMounted) setIsLoading(false);
       } catch (error) {
         if (!isMounted) return;
-        if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
+        const status = typeof error === "object" && error !== null && "status" in error ? (error as { status: unknown }).status : undefined;
+        if (status === 401 || status === 403) {
           await clearDemoSession();
           setIsLoading(false);
         } else {
@@ -115,7 +104,7 @@ function RootLayoutNav() {
     };
   }, [dispatch, attempt]);
 
-  useEffect(() => onSessionChange(() => { queryClient.clear(); }), []);
+  useEffect(() => onSessionChange(() => { store.dispatch(apiSlice.util.resetApiState()); }), []);
 
   if (bootError) return <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
     <Text>Não foi possível verificar a sessão. Verifique a ligação e tente novamente.</Text>
@@ -149,6 +138,11 @@ function RootLayoutNavContent() {
   const isAuthenticated = useAppSelector((state) => Boolean(state.auth.token));
   const role = useAppSelector((state) => state.auth.role);
   const { isDark, colors } = useTheme();
+
+  useEffect(() => {
+    // Restaura o carrinho salvo no boot (independe de sessão, como favoritos/tema).
+    dispatch(hydrateCart());
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

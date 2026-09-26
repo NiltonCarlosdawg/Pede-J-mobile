@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -14,8 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "../../src/components/ui/Header";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-import { deliveryApi } from "../../src/services/api";
-import type { Earnings } from "../../src/types";
+import { useGetEarningsQuery } from "../../src/hooks/useApi";
 
 type PeriodKey = "Hoje" | "Semana" | "Mês" | "Ano";
 const PERIODS: PeriodKey[] = ["Hoje", "Semana", "Mês", "Ano"];
@@ -31,27 +30,19 @@ export default function EarningsScreen() {
   const router = useRouter();
   const { colors: themeColors } = useTheme();
   const [activePeriod, setActivePeriod] = useState<PeriodKey>("Hoje");
-  const [earnings, setEarnings] = useState<Earnings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await deliveryApi.getEarnings({ periodo: PERIOD_PARAM_MAP[activePeriod] });
-      setEarnings(res.data);
-    } catch (err: any) {
-      console.error("[EarningsScreen] fetchData error:", err);
-      setError("Erro ao carregar ganhos.");
-    } finally {
-      setLoading(false);
-    }
-  }, [activePeriod]);
+  const {
+    data: earnings,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetEarningsQuery(
+    { periodo: PERIOD_PARAM_MAP[activePeriod] },
+    { refetchOnMountOrArgChange: true }
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const loading = isFetching;
+  const error = isError ? "Erro ao carregar ganhos." : null;
 
   const chartData = useMemo(() => {
     return earnings?.detalhe?.map((d) => d.ganho) ?? [];
@@ -139,7 +130,7 @@ export default function EarningsScreen() {
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={themeColors.error} />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
               <Text style={styles.retryText}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>

@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
-import { deliveryApi } from '../services/api';
+import { apiSlice } from '../services/apiSlice';
+import { useAppDispatch } from '../store';
 import { publishDriverLocation, validCoordinates } from '../services/realtime';
 import { safeGetItem } from '../utils/storage';
 
@@ -17,7 +18,7 @@ function ensureTask() {
       console.warn('[location] background error', error);
       return;
     }
-    const locations = (data as { locations?: Array<{ coords: { latitude: number; longitude: number; heading: number | null } }> })?.locations;
+    const locations = (data as { locations?: { coords: { latitude: number; longitude: number; heading: number | null } }[] })?.locations;
     const coords = locations?.[0]?.coords;
     if (!coords || !validCoordinates(coords)) return;
     const orderId = (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId;
@@ -33,6 +34,7 @@ function ensureTask() {
  * publica coordenadas via WebSocket (location:update).
  */
 export function useDriverLocationPublisher(activeOrderId?: string | null) {
+  const dispatch = useAppDispatch();
   const watchRef = useRef<Location.LocationSubscription | null>(null);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
       const canBackground = background.status === 'granted';
 
       try {
-        await deliveryApi.toggleLocationSharing(true);
+        await dispatch(apiSlice.endpoints.toggleLocationSharing.initiate(true)).unwrap();
       } catch (err) {
         console.warn('Failed to enable location sharing on server:', err);
       }
@@ -108,7 +110,7 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
         void Location.stopLocationUpdatesAsync(BACKGROUND_TASK).catch(() => undefined);
       }
     };
-  }, [activeOrderId]);
+  }, [activeOrderId, dispatch]);
 }
 
 export { SHARING_KEY as LOCATION_SHARING_STORAGE_KEY };

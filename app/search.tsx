@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -15,7 +15,7 @@ import { Header } from "../src/components/ui/Header";
 import { SearchBar } from "../src/components/ui/SearchBar";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
-import { restaurantApi } from "../src/services/api";
+import { useGetRestaurantsQuery } from "../src/hooks/useApi";
 import { Restaurant } from "../src/types";
 
 interface SearchResult {
@@ -35,8 +35,18 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchType, setSearchType] = useState<"all" | "restaurants" | "products">("all");
+  const [searchStarted, setSearchStarted] = useState(false);
+  const [pendingSearch, setPendingSearch] = useState<{ query: string; type: string } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restaurantsCacheRef = useRef<Restaurant[]>([]);
+  const fetchingSeenRef = useRef(false);
+
+  const {
+    data: restaurantsData,
+    isFetching,
+    isError: searchFailed,
+    refetch,
+  } = useGetRestaurantsQuery({ limit: 50 }, { skip: !searchStarted });
 
   const styles = useMemo(() => StyleSheet.create({
     safeArea: {
@@ -232,23 +242,44 @@ export default function SearchScreen() {
 
       setLoading(true);
 
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const response = await restaurantApi.list({ limit: 50 });
-          const restaurants: Restaurant[] = response.data.data || response.data;
-          restaurantsCacheRef.current = restaurants;
-          const filtered = filterRestaurants(query, searchType);
-          setResults(filtered);
-        } catch (error) {
-          console.error("Search error:", error);
-          setResults([]);
-        } finally {
-          setLoading(false);
+      debounceRef.current = setTimeout(() => {
+        fetchingSeenRef.current = false;
+        setPendingSearch({ query, type: searchType });
+        if (searchStarted) {
+          refetch();
+        } else {
+          setSearchStarted(true);
         }
       }, 400);
     },
-    [searchType, filterRestaurants]
+    [searchType, searchStarted, refetch]
   );
+
+  useEffect(() => {
+    if (!pendingSearch) return;
+
+    if (isFetching) {
+      fetchingSeenRef.current = true;
+      return;
+    }
+
+    // Wait until a fetch for this pending search has actually started and settled.
+    if (!fetchingSeenRef.current) return;
+    if (!searchFailed && !restaurantsData) return;
+
+    if (searchFailed) {
+      console.error("Search error:", searchFailed);
+      setResults([]);
+    } else if (restaurantsData) {
+      const rows = Array.isArray(restaurantsData)
+        ? restaurantsData
+        : restaurantsData.data;
+      restaurantsCacheRef.current = rows ?? [];
+      setResults(filterRestaurants(pendingSearch.query, pendingSearch.type));
+    }
+    setPendingSearch(null);
+    setLoading(false);
+  }, [pendingSearch, isFetching, searchFailed, restaurantsData, filterRestaurants]);
 
   const handleClear = () => {
     if (debounceRef.current) {

@@ -17,8 +17,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
+import {
+  useRegisterMutation,
+  useRequestOtpMutation,
+  useVerifyOtpMutation,
+  useLazyGetOtpDevCodeQuery,
+} from "../../src/hooks/useApi";
 import { useTheme } from "../../src/hooks/useTheme";
-import { authApi } from "../../src/services/api";
 import { saveDemoSession, roleFromUser } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { setSession } from "../../src/store/authSlice";
@@ -41,6 +46,10 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
+  const [registerMutation] = useRegisterMutation();
+  const [requestOtpMutation] = useRequestOtpMutation();
+  const [verifyOtpMutation] = useVerifyOtpMutation();
+  const [fetchOtpDevCode] = useLazyGetOtpDevCodeQuery();
 
   const styles = React.useMemo(
     () =>
@@ -218,17 +227,17 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await authApi.register({
+      const registerData = await registerMutation({
         nome: name.trim(),
         email: email.trim().toLowerCase(),
         telefone: phone.trim(),
         password,
         role: selectedRole,
-      });
+      }).unwrap();
 
       // Backend devolve { user, requiresOtp } sem tokens — é preciso verificar OTP
-      if (response.data?.token && response.data?.user) {
-        const { token, refreshToken, user } = response.data;
+      if (registerData?.token && registerData?.user) {
+        const { token, refreshToken, user } = registerData;
         const role = roleFromUser(user);
         await saveDemoSession({ token, refreshToken, user, role });
         dispatch(setSession({ token, user, role }));
@@ -239,16 +248,20 @@ export default function RegisterScreen() {
       // Fluxo OTP (obrigatório no backend atual)
       const telefone = phone.trim();
       setPendingPhone(telefone);
-      await authApi.requestOtp(telefone);
+      await requestOtpMutation({ telefone }).unwrap();
       // Em dev, tenta obter o código automaticamente via /auth/otp/dev-code
       try {
-        const { data } = await authApi.verifyOtp(telefone, "000000").catch(() => ({ data: null }));
+        // Preserva a tentativa de auto-verify com código de teste (resultado não é usado)
+        await verifyOtpMutation({ telefone, codigo: "000000" }).unwrap().catch(() => null);
         // Se chegou aqui, não há auto-verify — tenta buscar dev-code
         if (__DEV__) {
-          const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone } }).catch(() => null);
-          if (devRes?.data?.codigo) {
-            const verifyRes = await authApi.verifyOtp(telefone, devRes.data.codigo);
-            const { token, refreshToken, user } = verifyRes.data;
+          const devCodigo = await fetchOtpDevCode({ telefone })
+            .unwrap()
+            .then((d) => d?.codigo)
+            .catch(() => undefined);
+          if (devCodigo) {
+            const verifyRes = await verifyOtpMutation({ telefone, codigo: devCodigo }).unwrap();
+            const { token, refreshToken, user } = verifyRes;
             const role = roleFromUser(user);
             await saveDemoSession({ token, refreshToken, user, role });
             dispatch(setSession({ token, user, role }));
@@ -260,7 +273,8 @@ export default function RegisterScreen() {
       setOtpStep(true);
       setError("Enviámos um código por SMS. Em desenvolvimento, verifica o console do backend ou usa o código de teste.");
     } catch (err: any) {
-      const data = err?.response?.data;
+      // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
+      const data = err?.data;
       const message = data?.message || (Array.isArray(data?.message) ? data.message.join(", ") : null) || "Não foi possível criar a conta. Tente novamente.";
       if (data?.code === "EMAIL_TAKEN" || data?.code === "PHONE_TAKEN") {
         setError(message);
@@ -282,14 +296,14 @@ export default function RegisterScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authApi.verifyOtp(pendingPhone, otpCode.trim());
-      const { token, refreshToken, user } = res.data;
+      const res = await verifyOtpMutation({ telefone: pendingPhone, codigo: otpCode.trim() }).unwrap();
+      const { token, refreshToken, user } = res;
       const role = roleFromUser(user);
       await saveDemoSession({ token, refreshToken, user, role });
       dispatch(setSession({ token, user, role }));
       router.replace("/(tabs)");
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Código inválido ou expirado. Peça um novo.";
+      const msg = err?.data?.message || "Código inválido ou expirado. Peça um novo.";
       setError(msg);
       triggerShake();
     } finally {
@@ -301,17 +315,17 @@ export default function RegisterScreen() {
     if (!pendingPhone) return;
     setLoading(true);
     try {
-      await authApi.requestOtp(pendingPhone);
+      await requestOtpMutation({ telefone: pendingPhone }).unwrap();
       setError(null);
       // Tenta auto-preencher em dev
       if (__DEV__) {
         try {
-          const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone: pendingPhone } });
-          if (devRes?.data?.codigo) setOtpCode(devRes.data.codigo);
+          const devCodigo = await fetchOtpDevCode({ telefone: pendingPhone }).unwrap().then((d) => d?.codigo);
+          if (devCodigo) setOtpCode(devCodigo);
         } catch {}
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Não foi possível reenviar o código.");
+      setError(err?.data?.message || "Não foi possível reenviar o código.");
     } finally {
       setLoading(false);
     }

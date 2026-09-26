@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -19,7 +19,7 @@ import {
     setPromotions,
     type Promotion,
 } from "../src/store/promotionsSlice";
-import { promotionApi } from "../src/services/api";
+import { useGetPromotionsQuery } from "../src/hooks/useApi";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 import type { PromotionSummary } from "../src/types";
@@ -46,27 +46,15 @@ export default function PromotionsScreen() {
   const { colors } = useTheme();
   const promotions = useAppSelector(selectActivePromotions);
   const coupons = useAppSelector(selectActiveCoupons);
-  const [loading, setLoading] = useState(true);
+  const { data: promotionsData, isLoading: loading } = useGetPromotionsQuery({ limit: 30 });
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await promotionApi.list({ limit: 30 });
-        const rows = (data.data ?? data) as PromotionSummary[];
-        if (!cancelled && Array.isArray(rows)) {
-          dispatch(setPromotions(rows.map(mapApiPromotion)));
-        }
-      } catch (err) {
-        console.warn("Failed to load promotions:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [dispatch]);
+    if (!promotionsData) return;
+    const rows = Array.isArray(promotionsData) ? promotionsData : promotionsData.data;
+    if (Array.isArray(rows)) {
+      dispatch(setPromotions(rows.map(mapApiPromotion)));
+    }
+  }, [promotionsData, dispatch]);
 
   const styles = useMemo(() => StyleSheet.create({
     container: {

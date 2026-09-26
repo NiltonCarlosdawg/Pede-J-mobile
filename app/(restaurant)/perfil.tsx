@@ -21,15 +21,35 @@ import { useTheme } from "../../src/hooks/useTheme";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 import { clearSession } from "../../src/store/authSlice";
 import { clearDemoSession } from "../../src/services/demoAuth";
-import { restaurantManageApi } from "../../src/services/api";
+import {
+    useLogoutMutation,
+    useToggleOpenMutation,
+    useLazyGetMyRestaurantQuery,
+    useUpdateOpeningHoursMutation,
+    useUpdateRestaurantProfileMutation,
+} from "../../src/hooks/useApi";
 
 const DAYS_OF_WEEK = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+type ApiErrorLike = { message?: unknown; data?: { message?: unknown } | string };
+
+const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const e = err as ApiErrorLike | undefined;
+  const message = e?.data && typeof e.data === "object" ? e.data.message : e?.message;
+  return typeof message === "string" && message ? message : fallback;
+};
 
 export default function RestaurantProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { colors } = useTheme();
   const user = useAppSelector((state) => state.auth.user);
+
+  const [updateProfile] = useUpdateRestaurantProfileMutation();
+  const [updateOpeningHours] = useUpdateOpeningHoursMutation();
+  const [toggleOpen] = useToggleOpenMutation();
+  const [logout] = useLogoutMutation();
+  const [fetchMyRestaurant] = useLazyGetMyRestaurantQuery();
 
   const [editing, setEditing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -57,9 +77,7 @@ export default function RestaurantProfileScreen() {
   const loadProfile = useCallback(async () => {
     try {
       setProfileLoading(true);
-      const api = (await import("../../src/services/api")).default;
-      const { data } = await api.get("/restaurants/me");
-      const r = data as any;
+      const r = (await fetchMyRestaurant().unwrap()) as any;
       if (r?.name) setFormName(r.name);
       if (r?.description) setFormDescription(r.description);
       if (r?.owner?.phone ?? r?.phone) setFormPhone(r.owner?.phone ?? r.phone);
@@ -84,38 +102,37 @@ export default function RestaurantProfileScreen() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await restaurantManageApi.updateProfile({
+      await updateProfile({
         name: formName,
         description: formDescription,
         phone: formPhone,
         deliveryFee: parseFloat(formDeliveryFee) || 0,
         deliveryTime: formDeliveryTime,
-      });
-      await restaurantManageApi.updateOpeningHours(
+      }).unwrap();
+      await updateOpeningHours(
         openingHours.filter(h => h.active).map((h) => ({ diaSemana: h.day, abre: h.open, fecha: h.close }))
-      );
-      await restaurantManageApi.toggleOpen(isOpen);
+      ).unwrap();
+      await toggleOpen(isOpen).unwrap();
       setEditing(false);
       Alert.alert("Sucesso", "Perfil atualizado na API (PostgreSQL)!");
-    } catch (err: any) {
+    } catch (err) {
       console.error("[RestaurantProfile] handleSave error:", err);
-      Alert.alert("Erro", err?.response?.data?.message ?? "Não foi possível salvar na API real.");
+      Alert.alert("Erro", getApiErrorMessage(err, "Não foi possível salvar na API real."));
     } finally {
       setSaving(false);
     }
-  }, [formName, formDescription, formPhone, formDeliveryFee, formDeliveryTime, openingHours, isOpen]);
+  }, [formName, formDescription, formPhone, formDeliveryFee, formDeliveryTime, openingHours, isOpen, updateProfile, updateOpeningHours, toggleOpen]);
 
   const handleLogout = useCallback(async () => {
     try {
-      const { authApi } = await import("../../src/services/api");
-      await authApi.logout().catch(() => undefined);
+      await logout().unwrap().catch(() => undefined);
     } finally {
       await clearDemoSession();
       const { clearCart } = await import("../../src/store/cartSlice");
       dispatch(clearCart());
       dispatch(clearSession());
     }
-  }, [dispatch]);
+  }, [dispatch, logout]);
 
   const toggleDay = useCallback((index: number) => {
     setOpeningHours((prev) =>

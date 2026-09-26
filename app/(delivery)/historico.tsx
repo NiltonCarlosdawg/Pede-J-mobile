@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "../../src/components/ui/Header";
 import { spacing, typography } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-import { deliveryApi } from "../../src/services/api";
+import { useGetDeliveryHistoryQuery } from "../../src/hooks/useApi";
 import type { Order } from "../../src/types";
 
 const FILTERS = ["Todas", "Hoje", "Semana", "Mês"] as const;
@@ -41,32 +41,27 @@ export default function DeliveryHistoryScreen() {
   const router = useRouter();
   const { colors: themeColors } = useTheme();
   const [activeFilter, setActiveFilter] = useState("Todas");
-  const [deliveries, setDeliveries] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const params: { desde?: string; ate?: string; limit?: number } = { limit: 50 };
-      if (activeFilter !== "Todas" && PERIOD_MAP[activeFilter]) {
-        params.desde = PERIOD_MAP[activeFilter].desde;
-        params.ate = PERIOD_MAP[activeFilter].ate;
-      }
-      const res = await deliveryApi.getHistory(params);
-      setDeliveries(res.data.data ?? res.data);
-    } catch (err: any) {
-      console.error("[DeliveryHistory] fetchData error:", err);
-      setError("Erro ao carregar histórico.");
-    } finally {
-      setLoading(false);
+  const params = useMemo<{ desde?: string; ate?: string; limit: number }>(() => {
+    const base: { desde?: string; ate?: string; limit: number } = { limit: 50 };
+    if (activeFilter !== "Todas" && PERIOD_MAP[activeFilter]) {
+      base.desde = PERIOD_MAP[activeFilter].desde;
+      base.ate = PERIOD_MAP[activeFilter].ate;
     }
+    return base;
   }, [activeFilter]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const { data, isFetching, isError, refetch } = useGetDeliveryHistoryQuery(params, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const deliveries = useMemo<Order[]>(() => {
+    if (!data) return [];
+    return Array.isArray(data) ? data : data.data ?? [];
+  }, [data]);
+
+  const loading = isFetching;
+  const error = isError ? "Erro ao carregar histórico." : null;
 
   const stats = useMemo(() => {
     const completed = deliveries.filter((d) => d.status === "delivered");
@@ -169,7 +164,7 @@ export default function DeliveryHistoryScreen() {
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={themeColors.error} />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
               <Text style={styles.retryText}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>

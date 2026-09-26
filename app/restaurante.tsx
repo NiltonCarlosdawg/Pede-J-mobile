@@ -20,8 +20,10 @@ import { useAppDispatch, useAppSelector } from "../src/store";
 import { selectCartCount, selectCartSubtotal } from "../src/store/cartSelectors";
 import { addItem } from "../src/store/cartSlice";
 import { useTheme } from "../src/hooks/useTheme";
-import { restaurantApi } from "../src/services/api";
-import type { Restaurant, Product, ProductPage } from "../src/types";
+import {
+  useGetRestaurantByIdQuery,
+  useGetRestaurantProductsQuery,
+} from "../src/hooks/useApi";
 
 type MenuItem = {
   id: string;
@@ -61,40 +63,34 @@ export default function RestaurantScreen() {
   const cartSubtotal = useAppSelector(selectCartSubtotal);
   const { colors } = useTheme();
 
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: restaurant,
+    isLoading: restaurantLoading,
+    isError: restaurantFailed,
+    error: restaurantError,
+  } = useGetRestaurantByIdQuery(id ?? "", { skip: !id });
+
+  const {
+    data: productsPage,
+    isLoading: productsLoading,
+    isError: productsFailed,
+    error: productsError,
+  } = useGetRestaurantProductsQuery(id ?? "", { skip: !id });
+
+  const products = useMemo(() => productsPage?.data ?? [], [productsPage]);
+
+  const loadFailed = restaurantFailed || productsFailed;
+  const error = loadFailed ? "Não foi possível carregar os dados do restaurante." : null;
+  const loading = !id || (!loadFailed && (restaurantLoading || productsLoading));
 
   useEffect(() => {
-    if (!id) return;
-
-    let cancelled = false;
-
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [restRes, prodRes] = await Promise.all([
-          restaurantApi.getById(id),
-          restaurantApi.getProducts(id),
-        ]);
-        if (cancelled) return;
-        setRestaurant(restRes.data);
-        const page: ProductPage = prodRes.data;
-        setProducts(page.data);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to fetch restaurant:", err);
-        setError("Não foi possível carregar os dados do restaurante.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    if (restaurantError) {
+      console.error("Failed to fetch restaurant:", restaurantError);
     }
-
-    fetchData();
-    return () => { cancelled = true; };
-  }, [id]);
+    if (productsError) {
+      console.error("Failed to fetch restaurant:", productsError);
+    }
+  }, [restaurantError, productsError]);
 
   const menuSections = useMemo<Section[]>(() => {
     const categoryMap = new Map<string, boolean>();

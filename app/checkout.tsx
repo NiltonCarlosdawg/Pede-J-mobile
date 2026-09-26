@@ -21,11 +21,10 @@ import { Input } from "../src/components/ui/Input";
 import {
   classifyOrderError,
   useSubmitOrderMutation,
+  type OrderMutationError,
 } from "../src/hooks/useSubmitOrderMutation";
-import type { OrderMutationError } from "../src/hooks/useSubmitOrderMutation";
 import { useTheme } from "../src/hooks/useTheme";
 import { notifyOrderConfirmed } from "../src/services/notifications";
-import { promotionApi } from "../src/services/api";
 import { useAppDispatch, useAppSelector } from "../src/store";
 import {
   addCoupon,
@@ -41,10 +40,9 @@ import {
   selectCartSubtotal,
 } from "../src/store/cartSelectors";
 import { clearCart } from "../src/store/cartSlice";
-import { addOrder } from "../src/store/ordersSlice";
-import type { Order as LocalOrder } from "../src/store/ordersSlice";
+import { addOrder, type Order as LocalOrder } from "../src/store/ordersSlice";
 import { selectPaymentMethods } from "../src/store/paymentMethodsSlice";
-import { useGetAddressesQuery } from "../src/hooks/useApi";
+import { useGetAddressesQuery, useValidateCouponMutation } from "../src/hooks/useApi";
 import { formatPrice, spacing, typography } from "../src/theme";
 import type { Address, PaymentMethod } from "../src/types";
 import * as Crypto from "expo-crypto";
@@ -122,6 +120,7 @@ export default function CheckoutScreen() {
   const [retryCount, setRetryCount] = useState(0);
 
   const submitMutation = useSubmitOrderMutation();
+  const [validateCouponMutation] = useValidateCouponMutation();
   const retryPayloadRef = useRef<{
     payload: Record<string, unknown>;
     idempotencyKey: string;
@@ -389,7 +388,7 @@ export default function CheckoutScreen() {
     const code = couponCode.trim().toUpperCase();
 
     try {
-      const { data } = await promotionApi.validateCoupon(code, subtotal);
+      const data = await validateCouponMutation({ codigo: code, subtotal }).unwrap();
       if (!data.valido) {
         setCouponError(data.mensagem ?? "Cupão inválido ou expirado");
         return;

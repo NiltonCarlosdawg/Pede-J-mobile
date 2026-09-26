@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -13,44 +13,49 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { borderRadius, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-import { useAppSelector } from "../../src/store";
-import { deliveryApi } from "../../src/services/api";
-import type { Order, Earnings } from "../../src/types";
+import {
+    useGetAvailableDeliveriesQuery,
+    useGetDeliveryHistoryQuery,
+    useGetEarningsQuery,
+} from "../../src/hooks/useApi";
+import type { Order } from "../../src/types";
 
 export default function DeliveryDashboard() {
   const router = useRouter();
   const { colors } = useTheme();
-  const user = useAppSelector((state) => state.auth.user);
 
-  const [loading, setLoading] = useState(true);
-  const [availableDeliveries, setAvailableDeliveries] = useState<Order[]>([]);
-  const [recentDeliveries, setRecentDeliveries] = useState<Order[]>([]);
-  const [earnings, setEarnings] = useState<Earnings | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    isFetching: isFetchingAvailable,
+    isError: isErrorAvailable,
+    refetch: refetchAvailable,
+  } = useGetAvailableDeliveriesQuery({ limit: 10 }, { refetchOnMountOrArgChange: true });
+  const {
+    data: earnings,
+    isFetching: isFetchingEarnings,
+    isError: isErrorEarnings,
+    refetch: refetchEarnings,
+  } = useGetEarningsQuery(undefined, { refetchOnMountOrArgChange: true });
+  const {
+    data: historyData,
+    isFetching: isFetchingHistory,
+    refetch: refetchHistory,
+  } = useGetDeliveryHistoryQuery({ limit: 5 }, { refetchOnMountOrArgChange: true });
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [availableRes, earningsRes, historyRes] = await Promise.all([
-        deliveryApi.getAvailable({ limit: 10 }),
-        deliveryApi.getEarnings(),
-        deliveryApi.getHistory({ limit: 5 }).catch(() => ({ data: { data: [] } })),
-      ]);
-      setAvailableDeliveries(availableRes.data.data ?? availableRes.data);
-      setEarnings(earningsRes.data);
-      setRecentDeliveries(historyRes.data.data ?? []);
-    } catch (err: any) {
-      console.error("[DeliveryDashboard] fetchData error:", err);
-      setError("Erro ao carregar dados. Puxe para atualizar.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const recentDeliveries = useMemo<Order[]>(() => {
+    if (!historyData) return [];
+    return Array.isArray(historyData) ? historyData : historyData.data ?? [];
+  }, [historyData]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const loading = isFetchingAvailable || isFetchingEarnings || isFetchingHistory;
+  const error = isErrorAvailable || isErrorEarnings
+    ? "Erro ao carregar dados. Puxe para atualizar."
+    : null;
+
+  const fetchData = useCallback(() => {
+    void refetchAvailable();
+    void refetchEarnings();
+    void refetchHistory();
+  }, [refetchAvailable, refetchEarnings, refetchHistory]);
 
   const formatCurrency = useCallback((value: number) => {
     return `Kz ${value.toLocaleString("pt-AO")}`;

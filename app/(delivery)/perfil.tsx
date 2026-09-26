@@ -22,7 +22,7 @@ import { clearSession } from "../../src/store/authSlice";
 import { clearCart } from "../../src/store/cartSlice";
 import { clearDemoSession } from "../../src/services/demoAuth";
 import { requestLocationPermissions } from "../../src/services/location";
-import { deliveryApi, authApi } from "../../src/services/api";
+import { useLogoutMutation, useToggleLocationSharingMutation } from "../../src/hooks/useApi";
 import { LOCATION_SHARING_STORAGE_KEY } from "../../src/hooks/useDriverLocationPublisher";
 import { safeGetItem, safeSetItem } from "../../src/utils/storage";
 import { spacing } from "../../src/theme";
@@ -70,6 +70,8 @@ export default function DeliveryProfileScreen() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const { colors } = useTheme();
+  const [logout] = useLogoutMutation();
+  const [toggleLocationSharing] = useToggleLocationSharingMutation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
@@ -465,7 +467,7 @@ export default function DeliveryProfileScreen() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
     try {
-      await authApi.logout().catch(() => undefined);
+      await logout().unwrap().catch(() => undefined);
     } finally {
       await clearDemoSession();
       dispatch(clearCart());
@@ -605,7 +607,7 @@ export default function DeliveryProfileScreen() {
                     return;
                   }
                   try {
-                    await deliveryApi.toggleLocationSharing(true);
+                    await toggleLocationSharing(true).unwrap();
                     await safeSetItem(LOCATION_SHARING_STORAGE_KEY, "1");
                     setLocationEnabled(true);
                   } catch (err) {
@@ -615,7 +617,7 @@ export default function DeliveryProfileScreen() {
                   }
                 } else {
                   try {
-                    await deliveryApi.toggleLocationSharing(false);
+                    await toggleLocationSharing(false).unwrap();
                   } catch (err) {
                     console.warn("Failed to disable location sharing:", err);
                   }

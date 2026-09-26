@@ -1,12 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useAppSelector } from "../../store";
 import { selectHasUnreadChat } from "../../store/chatSlice";
 import { useTheme } from "../../hooks/useTheme";
-import { orderApi } from "../../services/api";
+import { useGetUnreadMessagesQuery } from "../../hooks/useApi";
 
 interface ChatBadgeProps {
   orderId?: string;
@@ -19,31 +19,13 @@ export function ChatBadge({ orderId, size = 24 }: ChatBadgeProps) {
   const localUnread = useAppSelector((state) =>
     orderId ? selectHasUnreadChat(state, orderId) : false
   );
-  const [remoteUnread, setRemoteUnread] = useState(0);
-
-  useEffect(() => {
-    if (!orderId || orderId.startsWith("local-")) {
-      setRemoteUnread(0);
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const { data } = await orderApi.getUnreadMessages(orderId);
-        if (!cancelled) setRemoteUnread(Number(data.unreadCount ?? 0));
-      } catch {
-        // Mantém badge local se a API falhar.
-      }
-    };
-
-    load();
-    const interval = setInterval(load, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [orderId]);
+  // Polling de 15s via RTK Query. Em caso de falha da API, o RTK mantém o
+  // último valor lido com sucesso (comportamento anterior do badge).
+  const { data: unreadData } = useGetUnreadMessagesQuery(orderId ?? "", {
+    pollingInterval: 15000,
+    skip: !orderId || orderId.startsWith("local-"),
+  });
+  const remoteUnread = Number(unreadData?.unreadCount ?? 0);
 
   const hasUnread = remoteUnread > 0 || localUnread;
 

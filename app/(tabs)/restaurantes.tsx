@@ -18,7 +18,7 @@ import {
     loadFavoriteRestaurantIds,
     toggleFavoriteRestaurant,
 } from "../../src/services/favorites";
-import { restaurantApi } from "../../src/services/api";
+import { useGetRestaurantsQuery } from "../../src/hooks/useApi";
 import { borderRadius, formatPrice, spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 import { Restaurant } from "../../src/types";
@@ -35,29 +35,22 @@ export default function RestaurantesScreen() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: restaurantsData,
+    error: restaurantsError,
+  } = useGetRestaurantsQuery(undefined);
+
+  const restaurants = useMemo<Restaurant[]>(() => {
+    if (!restaurantsData) return [];
+    const rows = Array.isArray(restaurantsData) ? restaurantsData : restaurantsData.data;
+    return rows ?? [];
+  }, [restaurantsData]);
 
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const response = await restaurantApi.list();
-        if (mounted) {
-          setRestaurants(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch restaurants:", error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (restaurantsError) {
+      console.error("Failed to fetch restaurants:", restaurantsError);
+    }
+  }, [restaurantsError]);
 
   useEffect(() => {
     let mounted = true;

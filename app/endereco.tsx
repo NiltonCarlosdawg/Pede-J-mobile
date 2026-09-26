@@ -17,8 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 
-import { useGetAddressesQuery } from "../src/hooks/useApi";
-import { userApi } from "../src/services/api";
+import { useAddAddressMutation, useGetAddressesQuery } from "../src/hooks/useApi";
 import { Header } from "../src/components/ui/Header";
 import { spacing, typography } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
@@ -43,6 +42,7 @@ export default function AddressScreen() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [addAddress] = useAddAddressMutation();
   const [formLabel, setFormLabel] = useState("Casa");
   const [formAddress, setFormAddress] = useState("");
   const [formNeighborhood, setFormNeighborhood] = useState("");
@@ -89,7 +89,7 @@ export default function AddressScreen() {
     }
     setSaving(true);
     try {
-      await userApi.addAddress({
+      await addAddress({
         label: formLabel.trim() || "Casa",
         address: formAddress.trim(),
         neighborhood: formNeighborhood.trim(),
@@ -97,18 +97,18 @@ export default function AddressScreen() {
         latitude: lat,
         longitude: lng,
         isDefault: formDefault || addresses.length === 0,
-      });
+      }).unwrap();
       setShowAdd(false);
       resetForm();
-      refetch();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      const detail = Array.isArray(msg) ? msg.join("\n") : msg;
+      // O invalidatesTags da mutation já dispara o refetch de getAddresses.
+    } catch (err) {
+      const message = (err as { data?: { message?: string | string[] } })?.data?.message;
+      const detail = Array.isArray(message) ? message.join("\n") : message;
       Alert.alert("Erro ao gravar", detail || "Não foi possível gravar o endereço na API real.");
     } finally {
       setSaving(false);
     }
-  }, [formLabel, formAddress, formNeighborhood, formCity, formLat, formLng, formDefault, addresses.length, refetch, resetForm]);
+  }, [formLabel, formAddress, formNeighborhood, formCity, formLat, formLng, formDefault, addresses.length, addAddress, resetForm]);
 
   const styles = useMemo(
     () =>

@@ -9,7 +9,7 @@ import { useAppSelector } from "../../src/store";
 import { selectOrders, Order, OrderStatus } from "../../src/store/ordersSlice";
 import { spacing, formatPrice } from "../../src/theme";
 import { shadowStyle } from "../../src/utils/shadow";
-import { orderApi } from "../../src/services/api";
+import { useGetOrderRouteQuery } from "../../src/hooks/useApi";
 import { subscribeOrderLocation } from "../../src/services/realtime";
 import { startVoipCall } from "../../src/services/voip";
 import {
@@ -82,41 +82,37 @@ export default function TrackingScreen() {
   const customerLocation: Coordinates | null = routeInfo?.destino ?? null;
   const hasRoute = Boolean(restaurantLocation && customerLocation);
 
-  // REST fallback: última posição persistida do entregador
+  // REST fallback: última posição persistida do entregador.
+  // Fetch via RTK Query com o mesmo intervalo do antigo setInterval (8s).
+  const routeOrderId =
+    selectedOrder && !selectedOrder.id.startsWith("local-") ? selectedOrder.id : "";
+  const { data: routeData, isError: routeError } = useGetOrderRouteQuery(
+    routeOrderId,
+    { pollingInterval: 8000, skip: !routeOrderId }
+  );
+
   useEffect(() => {
-    if (!selectedOrder || selectedOrder.id.startsWith("local-")) {
+    if (!routeOrderId) {
       setRouteInfo(null);
       return;
     }
+    if (!routeData) return;
+    setRouteInfo(routeData);
+    if (routeData.lastKnown.latitude != null && routeData.lastKnown.longitude != null) {
+      setDriverLocation({
+        latitude: routeData.lastKnown.latitude,
+        longitude: routeData.lastKnown.longitude,
+      });
+    } else if (routeData.origem) {
+      setDriverLocation(routeData.origem);
+    }
+  }, [routeOrderId, routeData]);
 
-    let cancelled = false;
-
-    const fetchRoute = async () => {
-      try {
-        const { data } = await orderApi.getRoute(selectedOrder.id);
-        if (cancelled) return;
-        const route = data as OrderRoute;
-        setRouteInfo(route);
-        if (route.lastKnown.latitude != null && route.lastKnown.longitude != null) {
-          setDriverLocation({
-            latitude: route.lastKnown.latitude,
-            longitude: route.lastKnown.longitude,
-          });
-        } else if (route.origem) {
-          setDriverLocation(route.origem);
-        }
-      } catch (err) {
-        console.warn("Failed to fetch order route:", err);
-      }
-    };
-
-    fetchRoute();
-    const interval = setInterval(fetchRoute, 8000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [selectedOrder?.id]);
+  useEffect(() => {
+    if (routeError) {
+      console.warn("Failed to fetch order route:", routeError);
+    }
+  }, [routeError]);
 
   // Live updates via WebSocket quando disponíveis
   useEffect(() => {

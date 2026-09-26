@@ -12,10 +12,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../../src/components/ui/Header";
-import { Button } from "../../src/components/ui/Button";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-import { restaurantManageApi } from "../../src/services/api";
+import {
+    useGetRestaurantOrdersQuery,
+    useUpdateRestaurantOrderStatusMutation,
+} from "../../src/hooks/useApi";
+import type { Order, OrderPage } from "../../src/types";
 import type { RestaurantOrder, RestaurantOrderStatus } from "../../src/store/restaurantOrdersSlice";
 
 type FilterType = "all" | "pending" | "confirmed" | "preparing" | "ready" | "delivered";
@@ -29,37 +32,45 @@ const FILTERS: { key: FilterType; label: string }[] = [
   { key: "delivered", label: "Entregues" },
 ];
 
+const toRestaurantOrders = (result: OrderPage | Order[] | undefined): RestaurantOrder[] => {
+  const rows = Array.isArray(result) ? result : result?.data ?? [];
+  // O endpoint /restaurant/orders devolve o formato do painel (clientName, items com nome/preço),
+  // que o tipo Order da API não reflete — o cast replica o comportamento anterior (res.data).
+  return rows as unknown as RestaurantOrder[];
+};
+
 export default function RestaurantOrdersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ orderId?: string }>();
   const { colors } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const statusParam = activeFilter === "all" ? undefined : activeFilter;
-      const res = await restaurantManageApi.getOrders({ status: statusParam, limit: 50 });
-      setOrders(res.data.data ?? res.data);
-    } catch (err: any) {
-      console.error("[RestaurantOrders] fetchOrders error:", err);
-      setError("Erro ao carregar pedidos.");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeFilter]);
+  const statusParam = activeFilter === "all" ? undefined : activeFilter;
+  const {
+    data: ordersData,
+    isError,
+    error: queryError,
+    refetch,
+  } = useGetRestaurantOrdersQuery({ status: statusParam, limit: 50 });
+  const [updateOrderStatus] = useUpdateRestaurantOrderStatusMutation();
+
+  // Spinner em carga inicial, troca de filtro e novo retry (sem dados e sem erro),
+  // igual ao antigo estado `loading` local — sem piscar em refetches de invalidação.
+  const loading = ordersData === undefined && !isError;
+  const error = isError && ordersData === undefined ? "Erro ao carregar pedidos." : null;
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    if (ordersData) setOrders(toRestaurantOrders(ordersData));
+  }, [ordersData]);
+
+  useEffect(() => {
+    if (isError) console.error("[RestaurantOrders] fetchOrders error:", queryError);
+  }, [isError, queryError]);
 
   const handleUpdateStatus = useCallback(async (orderId: string, newStatus: RestaurantOrderStatus) => {
     try {
-      await restaurantManageApi.updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus({ orderId, status: newStatus }).unwrap();
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o
@@ -68,7 +79,7 @@ export default function RestaurantOrdersScreen() {
     } catch (err) {
       console.error("[RestaurantOrders] updateStatus error:", err);
     }
-  }, []);
+  }, [updateOrderStatus]);
 
   const getNextStatus = useCallback((currentStatus: RestaurantOrderStatus): RestaurantOrderStatus | null => {
     switch (currentStatus) {
@@ -355,7 +366,7 @@ export default function RestaurantOrdersScreen() {
           <View style={styles.errorContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchOrders}>
+            <TouchableOpacity style={styles.retryButton} onPress={refetch}>
               <Text style={styles.retryText}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>

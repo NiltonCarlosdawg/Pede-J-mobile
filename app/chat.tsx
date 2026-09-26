@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -15,7 +15,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../src/components/ui/Header";
-import { orderApi } from "../src/services/api";
+import {
+  useGetMessagesQuery,
+  useMarkMessagesReadMutation,
+  useSendMessageMutation,
+} from "../src/hooks/useApi";
 import { spacing } from "../src/theme";
 import { useTheme } from "../src/hooks/useTheme";
 import type { ChatMessage } from "../src/types";
@@ -48,37 +52,39 @@ export default function ChatScreen() {
   const orderId = params.orderId ?? "";
   const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
-  const fetchMessages = useCallback(async () => {
-    if (!orderId) return;
-    try {
-      const { data } = await orderApi.getMessages(orderId, { limit: 100 });
-      const list = (data.data ?? data) as ChatMessage[];
-      setMessages(list);
-      const last = list[list.length - 1];
-      const lastReadAt = last?.createdAt ?? last?.timestamp;
-      await orderApi.markMessagesRead(orderId, lastReadAt).catch(() => undefined);
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [orderId]);
+  const { data, isLoading } = useGetMessagesQuery(
+    { orderId, limit: 100 },
+    { pollingInterval: 5000, skip: !orderId }
+  );
+  const [sendMessage] = useSendMessageMutation();
+  const [markMessagesRead] = useMarkMessagesReadMutation();
 
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+  const messages = useMemo<ChatMessage[]>(() => {
+    if (!data) return [];
+    return Array.isArray(data) ? data : data.data;
+  }, [data]);
 
+  // Spinner inicial igual ao anterior: ativo até a primeira resposta
+  // (ou indefinidamente quando não há orderId).
+  const loading = isLoading || !orderId;
+
+  // Marca como lido apenas quando surge uma NOVA última mensagem, para não
+  // entrar em loop (markMessagesRead invalida a tag Chat e refaz o fetch).
+  const lastReadMessageRef = useRef<{ orderId: string; key: string } | null>(null);
   useEffect(() => {
-    if (!orderId) return;
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, [orderId, fetchMessages]);
+    if (!orderId || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    const lastKey = last.id ?? `${last.createdAt ?? last.timestamp ?? ""}`;
+    const previous = lastReadMessageRef.current;
+    if (previous && previous.orderId === orderId && previous.key === lastKey) return;
+    lastReadMessageRef.current = { orderId, key: lastKey };
+    const lastReadAt = last.createdAt ?? last.timestamp;
+    markMessagesRead({ orderId, lastReadAt }).catch(() => undefined);
+  }, [messages, orderId, markMessagesRead]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -92,10 +98,14 @@ export default function ChatScreen() {
 
     setSending(true);
     try {
-      await orderApi.sendMessage(orderId, normalized, "texto");
+      await sendMessage({
+        orderId,
+        texto: normalized,
+        tipo: "texto",
+      }).unwrap();
       setInputText("");
       setShowQuickMessages(false);
-      await fetchMessages();
+      // A mutation invalida a tag Chat e dispara o refetch das mensagens.
     } catch (err) {
       console.error("Failed to send message:", err);
     } finally {

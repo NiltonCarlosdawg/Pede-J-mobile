@@ -15,53 +15,69 @@ import { Header } from "../../src/components/ui/Header";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useAppSelector } from "../../src/store";
-import { restaurantManageApi } from "../../src/services/api";
-import type { RestaurantOrder, RestaurantStats } from "../../src/store/restaurantOrdersSlice";
+import {
+    useGetRestaurantOrdersQuery,
+    useGetRestaurantStatsQuery,
+    useToggleOpenMutation,
+} from "../../src/hooks/useApi";
+import type { Order, OrderPage } from "../../src/types";
+import type { RestaurantOrder } from "../../src/store/restaurantOrdersSlice";
+
+const toRestaurantOrders = (result: OrderPage | Order[] | undefined): RestaurantOrder[] => {
+  const rows = Array.isArray(result) ? result : result?.data ?? [];
+  // O endpoint /restaurant/orders devolve o formato do painel (clientName, items com nome/preço),
+  // que o tipo Order da API não reflete — o cast replica o comportamento anterior (res.data).
+  return rows as unknown as RestaurantOrder[];
+};
+
+type ApiErrorLike = { message?: unknown; data?: { message?: unknown } | string };
+
+const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const e = err as ApiErrorLike | undefined;
+  const message = e?.data && typeof e.data === "object" ? e.data.message : e?.message;
+  return typeof message === "string" && message ? message : fallback;
+};
 
 export default function RestaurantDashboard() {
   const router = useRouter();
   const { colors } = useTheme();
   const user = useAppSelector((state) => state.auth.user);
 
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<RestaurantStats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<RestaurantOrder[]>([]);
   const [isOpen, setIsOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [statsRes, ordersRes] = await Promise.all([
-        restaurantManageApi.getStats(),
-        restaurantManageApi.getOrders({ limit: 5 }),
-      ]);
-      setStats(statsRes.data);
-      setRecentOrders(ordersRes.data.data ?? []);
-    } catch (err: any) {
-      console.error("[RestaurantDashboard] fetchData error:", err);
-      const msg = err?.response?.data?.message ?? "Erro ao carregar dados reais da API (PostgreSQL). Verifique se o restaurante está aprovado.";
-      setError(msg);
-    } finally {
-      setLoading(false);
+  const [toggleOpen] = useToggleOpenMutation();
+  const { data: stats, isError: statsIsError, error: statsError } = useGetRestaurantStatsQuery();
+  const { data: ordersData, isError: ordersIsError, error: ordersError } = useGetRestaurantOrdersQuery({ limit: 5 });
+
+  const statsPending = stats === undefined && !statsIsError;
+  const ordersPending = ordersData === undefined && !ordersIsError;
+  const loading = (statsPending || ordersPending) && !statsIsError && !ordersIsError;
+  const recentOrders = toRestaurantOrders(ordersData);
+
+  useEffect(() => {
+    if (statsIsError || ordersIsError) {
+      const queryError = statsIsError ? statsError : ordersError;
+      console.error("[RestaurantDashboard] fetchData error:", queryError);
+      setError(
+        getApiErrorMessage(
+          queryError,
+          "Erro ao carregar dados reais da API (PostgreSQL). Verifique se o restaurante está aprovado.",
+        ),
+      );
     }
-  }, []);
+  }, [statsIsError, statsError, ordersIsError, ordersError]);
 
   const handleToggleOpen = useCallback(async () => {
     const next = !isOpen;
     try {
-      await restaurantManageApi.toggleOpen(next);
+      await toggleOpen(next).unwrap();
       setIsOpen(next);
-    } catch (err: any) {
+    } catch (err) {
       console.error("[RestaurantDashboard] toggleOpen error:", err);
-      setError(err?.response?.data?.message ?? "Não foi possível alterar o estado da loja.");
+      setError(getApiErrorMessage(err, "Não foi possível alterar o estado da loja."));
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  }, [isOpen, toggleOpen]);
 
   const formatCurrency = useCallback((value: number) => {
     return `Kz ${value.toLocaleString("pt-AO")}`;

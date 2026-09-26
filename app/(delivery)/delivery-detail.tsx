@@ -16,7 +16,7 @@ import { spacing, formatPrice } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useDriverLocationPublisher } from "../../src/hooks/useDriverLocationPublisher";
 import { startVoipCall } from "../../src/services/voip";
-import { deliveryApi, orderApi } from "../../src/services/api";
+import { useGetDeliveryQuery, useUpdateDeliveryStatusMutation } from "../../src/hooks/useApi";
 import type { Order } from "../../src/types";
 
 export default function DeliveryDetailScreen() {
@@ -24,11 +24,29 @@ export default function DeliveryDetailScreen() {
   const params = useLocalSearchParams<{ jobId?: string }>();
   const orderId = params.jobId ?? "";
   useDriverLocationPublisher(orderId || null);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: fetchedOrder,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetDeliveryQuery(orderId, { skip: !orderId, refetchOnMountOrArgChange: true });
+  const [localOrder, setLocalOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [updateStatus] = useUpdateDeliveryStatusMutation();
   const { colors } = useTheme();
+
+  // O servidor é a fonte de verdade; o estado local aplica actualizações
+  // de status imediatamente e é sincronizado quando chega dados novos.
+  React.useEffect(() => {
+    setLocalOrder(fetchedOrder ?? null);
+  }, [fetchedOrder]);
+
+  const order = localOrder ?? fetchedOrder ?? null;
+  const loading = isFetching && !order;
+  const error = isError
+    ? "Não foi possível carregar esta entrega. Verifique a ligação."
+    : actionError;
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -202,27 +220,6 @@ export default function DeliveryDetailScreen() {
     },
   }), [colors]);
 
-  const fetchOrder = React.useCallback(async () => {
-    if (!orderId) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setError(null);
-      const { data } = await deliveryApi.getDelivery(orderId).catch(() => orderApi.getById(orderId));
-      setOrder((data.order ?? data) as Order);
-    } catch (err) {
-      console.error("[delivery-detail] load error", err);
-      setError("Não foi possível carregar esta entrega. Verifique a ligação.");
-    } finally {
-      setLoading(false);
-    }
-  }, [orderId]);
-
-  React.useEffect(() => {
-    fetchOrder();
-  }, [fetchOrder]);
-
   const statusOrder: Record<string, number> = {
     pending: 0,
     confirmed: 1,
@@ -255,12 +252,12 @@ export default function DeliveryDetailScreen() {
     if (!next) return;
     try {
       setUpdating(true);
-      setError(null);
-      await deliveryApi.updateStatus(order.id, next);
-      setOrder({ ...order, status: next as Order["status"] });
+      setActionError(null);
+      await updateStatus({ orderId: order.id, status: next }).unwrap();
+      setLocalOrder({ ...order, status: next as Order["status"] });
     } catch (err) {
       console.error("[delivery-detail] status error", err);
-      setError("Não foi possível atualizar o estado. Tente novamente.");
+      setActionError("Não foi possível atualizar o estado. Tente novamente.");
     } finally {
       setUpdating(false);
     }
@@ -289,7 +286,7 @@ export default function DeliveryDetailScreen() {
         <Header title="Detalhe da Entrega" showBack showCart={false} />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg, gap: spacing.md }}>
           <Text style={{ color: colors.error, textAlign: "center" }}>{error}</Text>
-          <Button title="Tentar novamente" onPress={fetchOrder} />
+          <Button title="Tentar novamente" onPress={() => refetch()} />
         </View>
       </SafeAreaView>
     );

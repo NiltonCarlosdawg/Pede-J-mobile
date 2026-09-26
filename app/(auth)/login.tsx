@@ -16,7 +16,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../../src/components/ui/Button";
-import { authApi } from "../../src/services/api";
+import {
+  useLoginMutation,
+  useRequestOtpMutation,
+  useVerifyOtpMutation,
+  useLazyGetOtpDevCodeQuery,
+} from "../../src/hooks/useApi";
 import { saveDemoSession, roleFromUser } from "../../src/services/demoAuth";
 import { useAppDispatch } from "../../src/store";
 import { clearSession, setSession } from "../../src/store/authSlice";
@@ -39,6 +44,10 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
+  const [loginMutation] = useLoginMutation();
+  const [requestOtpMutation] = useRequestOtpMutation();
+  const [verifyOtpMutation] = useVerifyOtpMutation();
+  const [fetchOtpDevCode] = useLazyGetOtpDevCodeQuery();
 
   const styles = React.useMemo(() => StyleSheet.create({
     safeArea: {
@@ -214,34 +223,37 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const response = await authApi.login({
+      const { token, refreshToken, user } = await loginMutation({
         identificador: normalizedEmail,
         password,
-      });
-
-      const { token, refreshToken, user } = response.data;
+      }).unwrap();
       const sessionRole = roleFromUser(user);
 
       await saveDemoSession({ token, refreshToken, user, role: sessionRole });
       dispatch(setSession({ token, user, role: sessionRole }));
     } catch (loginError: any) {
-      const data = loginError?.response?.data;
+      // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
+      const data = loginError?.data;
       const code = data?.code;
       const message = data?.message || "Email ou senha incorretos.";
       if (code === "PHONE_NOT_VERIFIED") {
         setError("Conta ainda não verificada. A confirmar automaticamente...");
         try {
-          await authApi.requestOtp(normalizedEmail).catch(() => authApi.requestOtp(email.trim()));
+          await requestOtpMutation({ telefone: normalizedEmail })
+            .unwrap()
+            .catch(() => requestOtpMutation({ telefone: email.trim() }).unwrap());
         } catch {}
         // tenta verificar via dev-code se estiver em dev
         if (__DEV__) {
           try {
             const tel = email.trim();
-            // tenta como telefone também
-            const devRes = await (await import("../../src/services/api")).default.get(`/auth/otp/dev-code`, { params: { telefone: tel } }).catch(() => null);
-            if (devRes?.data?.codigo) {
-              const verifyRes = await authApi.verifyOtp(tel, devRes.data.codigo);
-              const { token: t, refreshToken: rt, user: u } = verifyRes.data;
+            const devCodigo = await fetchOtpDevCode({ telefone: tel })
+              .unwrap()
+              .then((d) => d?.codigo)
+              .catch(() => undefined);
+            if (devCodigo) {
+              const verifyRes = await verifyOtpMutation({ telefone: tel, codigo: devCodigo }).unwrap();
+              const { token: t, refreshToken: rt, user: u } = verifyRes;
               const sRole = roleFromUser(u);
               await saveDemoSession({ token: t, refreshToken: rt, user: u, role: sRole });
               dispatch(setSession({ token: t, user: u, role: sRole }));

@@ -18,7 +18,7 @@ import { clearSession } from "../../src/store/authSlice";
 import { clearCart } from "../../src/store/cartSlice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 import { clearDemoSession } from "../../src/services/demoAuth";
-import { authApi } from "../../src/services/api";
+import { useLogoutMutation } from "../../src/hooks/useApi";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
 
@@ -31,6 +31,7 @@ export default function PerfilScreen() {
   const { isDark, colors, toggleTheme } = useTheme();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logout] = useLogoutMutation();
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -329,7 +330,7 @@ export default function PerfilScreen() {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
     try {
-      await authApi.logout().catch(() => undefined);
+      await logout().unwrap().catch(() => undefined);
     } finally {
       await clearDemoSession();
       dispatch(clearCart());

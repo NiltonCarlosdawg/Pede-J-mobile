@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Header } from "../../src/components/ui/Header";
-import { restaurantApi } from "../../src/services/api";
 import {
     loadFavoriteRestaurantIds,
     toggleFavoriteRestaurant,
@@ -21,6 +20,7 @@ import {
 import { useAppSelector } from "../../src/store";
 import { selectCartCount, selectCartSubtotal } from "../../src/store/cartSelectors";
 import { spacing, formatPrice, typography } from "../../src/theme";
+import { useGetRestaurantsQuery } from "../../src/hooks/useApi";
 import { useTheme } from "../../src/hooks/useTheme";
 import type { Restaurant } from "../../src/types";
 
@@ -34,8 +34,17 @@ export default function HomeScreen() {
   const firstName = user?.name?.split(" ")[0] ?? "";
   const avatarUrl = user?.avatar;
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: restaurantsData,
+    isLoading: loading,
+    error: restaurantsError,
+  } = useGetRestaurantsQuery({ limit: 20 });
+
+  const restaurants = useMemo<Restaurant[]>(() => {
+    if (!restaurantsData) return [];
+    const rows = Array.isArray(restaurantsData) ? restaurantsData : restaurantsData.data;
+    return rows ?? [];
+  }, [restaurantsData]);
 
   useEffect(() => {
     let mounted = true;
@@ -49,21 +58,10 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const { data } = await restaurantApi.list({ limit: 20 });
-        if (mounted) setRestaurants(data.data ?? []);
-      } catch (err) {
-        console.warn("[home] failed to load restaurants", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, []);
+    if (restaurantsError) {
+      console.warn("[home] failed to load restaurants", restaurantsError);
+    }
+  }, [restaurantsError]);
 
   async function handleToggleFavorite(id: string) {
     const nextIds = await toggleFavoriteRestaurant(id);

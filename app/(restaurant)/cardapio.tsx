@@ -20,15 +20,18 @@ import { Button } from "../../src/components/ui/Button";
 import { ConfirmDialog } from "../../src/components/ui/ConfirmDialog";
 import { spacing } from "../../src/theme";
 import { useTheme } from "../../src/hooks/useTheme";
-import { restaurantManageApi } from "../../src/services/api";
+import {
+    useCreateProductMutation,
+    useDeleteProductMutation,
+    useGetManageProductsQuery,
+    useUpdateProductMutation,
+} from "../../src/hooks/useApi";
 import type { Product } from "../../src/types";
 
 export default function RestaurantMenuScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Product | null>(null);
@@ -43,23 +46,31 @@ export default function RestaurantMenuScreen() {
   const [formFeatured, setFormFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await restaurantManageApi.getProducts({ limit: 100 });
-      setProducts(res.data.data ?? res.data);
-    } catch (err: any) {
-      console.error("[RestaurantMenu] fetchProducts error:", err);
-      setError("Erro ao carregar cardápio.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: productsData,
+    isError,
+    error: queryError,
+    refetch,
+  } = useGetManageProductsQuery({ limit: 100 });
+  const [createProduct] = useCreateProductMutation();
+  const [updateProduct] = useUpdateProductMutation();
+  const [deleteProduct] = useDeleteProductMutation();
+
+  // Spinner em carga inicial e novo retry (sem dados e sem erro), igual ao antigo `loading`
+  // local — sem piscar em refetches de invalidação pós-mutação.
+  const loading = productsData === undefined && !isError;
+  const error = isError && productsData === undefined ? "Erro ao carregar cardápio." : null;
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (productsData) {
+      const rows = Array.isArray(productsData) ? productsData : productsData.data ?? [];
+      setProducts(rows);
+    }
+  }, [productsData]);
+
+  useEffect(() => {
+    if (isError) console.error("[RestaurantMenu] fetchProducts error:", queryError);
+  }, [isError, queryError]);
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -105,13 +116,13 @@ export default function RestaurantMenuScreen() {
       };
 
       if (editingProduct) {
-        await restaurantManageApi.updateProduct(editingProduct.id, data);
+        await updateProduct({ productId: editingProduct.id, payload: data }).unwrap();
         setProducts((prev) =>
           prev.map((p) => (p.id === editingProduct.id ? { ...p, ...data, image: data.image ?? p.image } : p))
         );
       } else {
-        const res = await restaurantManageApi.createProduct(data);
-        setProducts((prev) => [res.data, ...prev]);
+        const created = await createProduct(data).unwrap();
+        setProducts((prev) => [created, ...prev]);
       }
 
       setShowAddModal(false);
@@ -121,31 +132,31 @@ export default function RestaurantMenuScreen() {
     } finally {
       setSaving(false);
     }
-  }, [formName, formDescription, formPrice, formCategory, formImage, formAvailable, formFeatured, editingProduct, resetForm]);
+  }, [formName, formDescription, formPrice, formCategory, formImage, formAvailable, formFeatured, editingProduct, resetForm, createProduct, updateProduct]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteConfirm) return;
 
     try {
-      await restaurantManageApi.deleteProduct(deleteConfirm.id);
+      await deleteProduct(deleteConfirm.id).unwrap();
       setProducts((prev) => prev.filter((p) => p.id !== deleteConfirm.id));
       setDeleteConfirm(null);
     } catch (err) {
       console.error("[RestaurantMenu] handleDelete error:", err);
     }
-  }, [deleteConfirm]);
+  }, [deleteConfirm, deleteProduct]);
 
   const toggleAvailability = useCallback(async (product: Product) => {
     try {
       const newAvailability = !product.isAvailable;
-      await restaurantManageApi.updateProduct(product.id, { isAvailable: newAvailability });
+      await updateProduct({ productId: product.id, payload: { isAvailable: newAvailability } }).unwrap();
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, isAvailable: newAvailability } : p))
       );
     } catch (err) {
       console.error("[RestaurantMenu] toggleAvailability error:", err);
     }
-  }, []);
+  }, [updateProduct]);
 
   const formatCurrency = useCallback((value: number | string) => {
     const num = typeof value === "string" ? parseFloat(value) : value;
@@ -375,7 +386,7 @@ export default function RestaurantMenuScreen() {
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="alert-circle-outline" size={32} color={colors.error} />
             <Text style={styles.emptyText}>{error}</Text>
-            <Button title="Tentar novamente" onPress={fetchProducts} variant="secondary" />
+            <Button title="Tentar novamente" onPress={refetch} variant="secondary" />
           </View>
         ) : products.length === 0 ? (
           <View style={styles.emptyContainer}>
