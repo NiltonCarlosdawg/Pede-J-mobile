@@ -127,10 +127,37 @@ function navigateToCallScreen(call: ActiveVoipCall) {
   }
 }
 
+/**
+ * O CallKit activa/desactiva a sessão de áudio (AVAudioSession) quando o
+ * utilizador atende/desliga uma chamada com a app em background. Sem esta
+ * ponte para o WebRTC, o iOS fica com a sessão "detida" pelo CallKit e a
+ * chamada LiveKit continua sem áudio (mic mudo / não se ouve o outro).
+ * Só existe em iOS — ver LiveKit docs: CallKit + RTCAudioSession.
+ */
+async function bridgeCallKitAudioSession(action: 'activate' | 'deactivate') {
+  if (Platform.OS !== 'ios') return;
+  try {
+    const { RTCAudioSession } = await import('@livekit/react-native-webrtc');
+    if (action === 'activate') RTCAudioSession.audioSessionDidActivate();
+    else RTCAudioSession.audioSessionDidDeactivate();
+  } catch (err) {
+    console.warn('[voip] RTCAudioSession bridge failed:', err);
+  }
+}
+
 async function bindCallKeepListeners() {
   if (listenersBound || !canUseNativeVoip()) return;
   listenersBound = true;
   const RNCallKeep = await loadCallKeep();
+
+  if (Platform.OS === 'ios') {
+    RNCallKeep.addEventListener('didActivateAudioSession', () => {
+      void bridgeCallKitAudioSession('activate');
+    });
+    RNCallKeep.addEventListener('didDeactivateAudioSession', () => {
+      void bridgeCallKitAudioSession('deactivate');
+    });
+  }
 
   RNCallKeep.addEventListener('answerCall', ({ callUUID }) => {
     void (async () => {
@@ -162,6 +189,14 @@ async function bindCallKeepListeners() {
       }
       if (event?.name === 'RNCallKeepPerformEndCallAction' && event.data?.callUUID) {
         void endVoipCall(event.data.callUUID);
+      }
+      // Eventos entregues em lote (RNCallKeep v4) — a sessão de áudio do
+      // CallKit também pode chegar por aqui quando a app estava em background.
+      if (event?.name === 'RNCallKeepDidActivateAudioSession') {
+        void bridgeCallKitAudioSession('activate');
+      }
+      if (event?.name === 'RNCallKeepDidDeactivateAudioSession') {
+        void bridgeCallKitAudioSession('deactivate');
       }
     }
   });

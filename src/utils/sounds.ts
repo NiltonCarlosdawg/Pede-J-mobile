@@ -4,6 +4,19 @@ let successSound: AudioPlayer | null = null;
 let notificationSound: AudioPlayer | null = null;
 let statusSound: AudioPlayer | null = null;
 
+/**
+ * Enquanto os sons da app estão suprimidos (chamada LiveKit em curso), não se
+ * toca nada: o expo-audio mexe no AVAudioSession e, se roubar a sessão ao
+ * WebRTC durante a chamada, o áudio deixa de funcionar no iOS (LiveKit #286).
+ * Ex.: `playStatusChange()` dispara a cada actualização de estado do pedido,
+ * exactamente enquanto o utilizador está a falar com o entregador.
+ */
+let soundsSuppressed = false;
+
+export function setAppSoundsSuppressed(suppressed: boolean) {
+  soundsSuppressed = suppressed;
+}
+
 async function loadSound(uri: string): Promise<AudioPlayer | null> {
   try {
     return createAudioPlayer(uri);
@@ -13,6 +26,7 @@ async function loadSound(uri: string): Promise<AudioPlayer | null> {
 }
 
 export async function initSounds() {
+  if (soundsSuppressed) return;
   try {
     await setAudioModeAsync({
       playsInSilentMode: true,
@@ -24,6 +38,7 @@ export async function initSounds() {
 }
 
 export async function playPaymentSuccess() {
+  if (soundsSuppressed) return;
   try {
     if (!successSound) {
       // Som de coleta de moeda estilo retro (8-bit)
@@ -41,6 +56,7 @@ export async function playPaymentSuccess() {
 }
 
 export async function playNewOrder() {
+  if (soundsSuppressed) return;
   try {
     if (!notificationSound) {
       // Som de "plim" / notificação curta
@@ -58,6 +74,7 @@ export async function playNewOrder() {
 }
 
 export async function playStatusChange() {
+  if (soundsSuppressed) return;
   try {
     if (!statusSound) {
       // Beep curto e simples

@@ -23,6 +23,7 @@ import {
   setVoipMuted,
 } from '../src/services/voip';
 import { getRealtimeSocket } from '../src/services/realtime';
+import { setAppSoundsSuppressed } from '../src/utils/sounds';
 import { spacing, typography } from '../src/theme';
 
 type Phase =
@@ -79,8 +80,6 @@ export default function CallScreen() {
     };
 
     void (async () => {
-      await initializeCallAudio();
-
       // 1. Sessão da chamada — quem recebe pede o token da sala aqui.
       let call = getActiveVoipCall();
       if (call && !call.token) call = (await answerVoipCall(call.callId)) ?? call;
@@ -90,12 +89,19 @@ export default function CallScreen() {
       }
 
       // 2. Globals do LiveKit (WebRTC) — exige development build.
+      //    Nota: a partir daqui o LiveKit é dono do AVAudioSession no iOS.
+      //    Chamar setAudioModeAsync (expo-audio) durante a chamada rouba a
+      //    sessão ao WebRTC e o áudio deixa de funcionar (LiveKit #286).
       try {
         const lk = await import('@livekit/react-native');
         lk.registerGlobals();
         await lk.AudioSession.startAudioSession();
         liveKitRef.current = lk;
+        // Sons da app silenciados enquanto o LiveKit é dono do AVAudioSession.
+        setAppSoundsSuppressed(true);
       } catch (err) {
+        // Sem módulos nativos (Expo Go / web) — fallback JS: expo-audio trata o áudio.
+        await initializeCallAudio();
         console.warn('[call] LiveKit indisponível:', err);
         finishWithError(
           'As chamadas de voz exigem um development build nativo (não correm no Expo Go).',
@@ -167,10 +173,16 @@ export default function CallScreen() {
       cancelled = true;
       cleanedRef.current = true;
       offMissed?.();
+      setAppSoundsSuppressed(false);
       void roomRef.current?.disconnect(true).catch(() => undefined);
       roomRef.current = null;
-      void liveKitRef.current?.AudioSession.stopAudioSession().catch(() => undefined);
-      void cleanupCallAudio();
+      if (liveKitRef.current) {
+        // O LiveKit geriu a sessão de áudio — é ele que a encerra.
+        void liveKitRef.current.AudioSession.stopAudioSession().catch(() => undefined);
+      } else {
+        // Sem LiveKit: o expo-audio é quem tratou do áudio, resta o estado normal.
+        void cleanupCallAudio();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -318,9 +330,12 @@ export default function CallScreen() {
   async function toggleSpeaker() {
     const next = !speaker;
     setSpeaker(next);
-    try {
-      const lk = liveKitRef.current;
-      if (lk) {
+    const lk = liveKitRef.current;
+    if (lk) {
+      // O LiveKit é dono do AVAudioSession durante a chamada: usar o
+      // expo-audio (setAudioModeAsync) aqui roubaria a sessão ao WebRTC e
+      // cortava o áudio no iOS (LiveKit #286).
+      try {
         const outputs = await lk.AudioSession.getAudioOutputs();
         const wanted =
           Platform.OS === 'ios'
@@ -331,10 +346,12 @@ export default function CallScreen() {
               ? 'speaker'
               : 'earpiece';
         if (outputs.includes(wanted)) await lk.AudioSession.selectAudioOutput(wanted);
+      } catch (err) {
+        console.warn('[call] speaker switch failed:', err);
       }
-    } catch (err) {
-      console.warn('[call] speaker switch failed:', err);
+      return;
     }
+    // Fallback (sem módulos nativos): o expo-audio é quem gere o áudio.
     await setSpeakerEnabled(next);
   }
 
