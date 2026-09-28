@@ -1,65 +1,19 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Header } from '../../src/components/ui/Header';
-import { TrackingMap } from '../../src/components/ui/TrackingMap';
 import { useTheme } from '../../src/hooks/useTheme';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppSelector } from '../../src/store';
-import { selectOrders, Order, OrderStatus } from '../../src/store/ordersSlice';
+import { selectOrders, Order } from '../../src/store/ordersSlice';
 import { spacing, formatPrice } from '../../src/theme';
 import { shadowStyle } from '../../src/utils/shadow';
-import { useGetOrderRouteQuery } from '../../src/hooks/useApi';
-import { subscribeOrderLocation } from '../../src/services/realtime';
-import { startVoipCall } from '../../src/services/voip';
-import {
-  calculateDistance,
-  estimateDeliveryTime,
-  type Coordinates,
-} from '../../src/services/location';
-import type { OrderRoute } from '../../src/types';
-
-const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: string; color: string }> = {
-  preparing: { label: 'Preparando', icon: 'chef-hat', color: '#fbac1d' },
-  ready: { label: 'Pronto', icon: 'package-variant', color: '#4CAF50' },
-  delivering: { label: 'Em entrega', icon: 'truck-delivery', color: '#2196F3' },
-  delivered: { label: 'Entregue', icon: 'check-circle', color: '#4CAF50' },
-  cancelled: { label: 'Cancelado', icon: 'close-circle', color: '#BA1A1A' },
-};
-
-const TRACKING_STEPS = [
-  { id: '1', title: 'Pedido Confirmado', time: '19:45', completed: true },
-  { id: '2', title: 'Em preparo', time: '19:50', completed: true },
-  { id: '3', title: 'Em entrega', time: null, active: true, driver: 'Carlos está a caminho' },
-  { id: '4', title: 'Entregue', time: null, completed: false },
-];
-
-const RESTAURANT_IMAGES: Record<string, string> = {
-  'order-001': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
-  'order-002': 'https://images.unsplash.com/photo-1517248135467-4c7aad601933?w=200',
-  'order-003': 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200',
-  'order-004': 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=200',
-  'order-005': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
-};
-
-const RESTAURANT_NAMES: Record<string, string> = {
-  'order-001': 'Burger Joint Master',
-  'order-002': 'Sabor da Praça',
-  'order-003': 'Sushi Master',
-  'order-004': 'Chicken Station',
-  'order-005': 'Burger Joint Master',
-};
-
-function getStatusIndex(status: OrderStatus) {
-  const map: Record<OrderStatus, number> = {
-    preparing: 1,
-    ready: 2,
-    delivering: 3,
-    delivered: 4,
-    cancelled: 4,
-  };
-  return map[status] ?? 1;
-}
+import { OrderSwitcher } from '../../src/features/tracking/OrderSwitcher';
+import { SelectedOrderCard } from '../../src/features/tracking/SelectedOrderCard';
+import { TrackingMapSection } from '../../src/features/tracking/TrackingMapSection';
+import { TrackingSteps } from '../../src/features/tracking/TrackingSteps';
+import { STATUS_CONFIG } from '../../src/features/tracking/constants';
+import { useOrderTracking } from '../../src/features/tracking/useOrderTracking';
 
 export default function TrackingScreen() {
   const { colors } = useTheme();
@@ -73,98 +27,21 @@ export default function TrackingScreen() {
   const selectedOrder =
     activeOrders.find((o) => o.id === selectedOrderId) ?? activeOrders[0] ?? null;
 
-  const [routeInfo, setRouteInfo] = useState<OrderRoute | null>(null);
-  const [driverLocation, setDriverLocation] = useState<Coordinates | null>(null);
-
-  const restaurantLocation: Coordinates | null = routeInfo?.origem ?? null;
-  const customerLocation: Coordinates | null = routeInfo?.destino ?? null;
-  const hasRoute = Boolean(restaurantLocation && customerLocation);
-
-  // REST fallback: última posição persistida do entregador.
-  // Fetch via RTK Query com o mesmo intervalo do antigo setInterval (8s).
-  const routeOrderId = selectedOrder ? selectedOrder.id : '';
-  const { data: routeData, isError: routeError } = useGetOrderRouteQuery(routeOrderId, {
-    pollingInterval: 8000,
-    skip: !routeOrderId,
-  });
-
-  useEffect(() => {
-    if (!routeOrderId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicia a rota quando deixa de haver pedido rastreável
-      setRouteInfo(null);
-      return;
-    }
-    if (!routeData) return;
-    setRouteInfo(routeData);
-    if (routeData.lastKnown.latitude != null && routeData.lastKnown.longitude != null) {
-      setDriverLocation({
-        latitude: routeData.lastKnown.latitude,
-        longitude: routeData.lastKnown.longitude,
-      });
-    } else if (routeData.origem) {
-      setDriverLocation(routeData.origem);
-    }
-  }, [routeOrderId, routeData]);
-
-  useEffect(() => {
-    if (routeError) {
-      console.warn('Failed to fetch order route:', routeError);
-    }
-  }, [routeError]);
-
-  // Live updates via WebSocket quando disponíveis
-  useEffect(() => {
-    if (!selectedOrder) return;
-
-    let unsubscribe: (() => void) | undefined;
-    subscribeOrderLocation(selectedOrder.id, (payload) => {
-      setDriverLocation({
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-      });
-      setRouteInfo((prev) =>
-        prev
-          ? {
-              ...prev,
-              lastKnown: {
-                ...prev.lastKnown,
-                latitude: payload.latitude,
-                longitude: payload.longitude,
-                heading: payload.heading,
-                timestamp: payload.timestamp,
-              },
-            }
-          : prev,
-      );
-    })
-      .then((fn) => {
-        unsubscribe = fn;
-      })
-      .catch((err) => console.warn('WS location subscribe failed:', err));
-
-    return () => unsubscribe?.();
-    // selectedOrder é um objecto imutável do Redux: só muda de identidade quando o
-    // pedido selecionado é alterado — o re-run apenas re-inscreve na mesma canal WS.
-  }, [selectedOrder]);
-
-  const hasRealLocation =
-    routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
-  const lastKnownAgeMs = hasRealLocation // eslint-disable-next-line react-hooks/purity -- a idade do lastKnown é amostrada do relógio em cada render; adiá-la para efeito/memo mudaria quando a idade é calculada
-    ? Date.now() - new Date(routeInfo!.lastKnown.timestamp).getTime()
-    : null;
-
-  const distance =
-    driverLocation && customerLocation ? calculateDistance(driverLocation, customerLocation) : null;
-  const estimatedMinutes = distance != null ? estimateDeliveryTime(distance) : null;
+  const {
+    restaurantLocation,
+    customerLocation,
+    hasRoute,
+    driverLocation,
+    distance,
+    estimatedMinutes,
+    hasRealLocation,
+    lastKnownAgeMs,
+  } = useOrderTracking(selectedOrder);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: { flex: 1, backgroundColor: colors.background },
-        mapContainer: {
-          height: 300,
-          position: 'relative',
-        },
         content: {
           backgroundColor: colors.surface,
           borderTopLeftRadius: 32,
@@ -181,178 +58,6 @@ export default function TrackingScreen() {
           backgroundColor: colors.neutral[300],
           alignSelf: 'center',
           marginVertical: 16,
-        },
-        orderSelector: {
-          flexDirection: 'row',
-          gap: spacing.sm,
-          marginBottom: spacing.md,
-          flexWrap: 'wrap',
-        },
-        orderChip: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.xs,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderRadius: 12,
-          backgroundColor: colors.surfaceContainer,
-          borderWidth: 1,
-          borderColor: colors.surfaceVariant,
-        },
-        orderChipActive: {
-          backgroundColor: colors.primary[500],
-          borderColor: colors.primary[500],
-        },
-        orderChipText: {
-          fontSize: 13,
-          fontWeight: '700',
-          color: colors.onSurface,
-        },
-        orderChipTextActive: {
-          color: colors.white,
-        },
-        statusSection: {
-          alignItems: 'center',
-          marginBottom: 24,
-        },
-        arrivalTime: {
-          fontSize: 24,
-          fontWeight: '700',
-          color: colors.onSurface,
-        },
-        arrivalRange: {
-          fontSize: 14,
-          color: colors.neutral[500],
-          marginTop: 4,
-        },
-        restaurantCard: {
-          backgroundColor: colors.white,
-          borderRadius: 12,
-          padding: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 24,
-          borderWidth: 1,
-          borderColor: colors.surfaceContainer,
-        },
-        restaurantImage: {
-          width: 56,
-          height: 56,
-          borderRadius: 8,
-        },
-        restaurantInfo: {
-          flex: 1,
-        },
-        restaurantName: {
-          fontSize: 16,
-          fontWeight: 'bold',
-          color: colors.onSurface,
-        },
-        orderNumber: {
-          fontSize: 14,
-          color: colors.neutral[500],
-        },
-        actionButtonsContainer: {
-          flexDirection: 'row',
-          gap: spacing.sm,
-        },
-        actionButton: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 4,
-        },
-        actionButtonCircle: {
-          width: 48,
-          height: 48,
-          borderRadius: 24,
-          backgroundColor: colors.primary[500],
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...shadowStyle({
-            color: colors.primary[500],
-            offsetY: 2,
-            blur: 4,
-            opacity: 0.3,
-            elevation: 4,
-          }),
-        },
-        actionButtonText: {
-          fontSize: 11,
-          fontWeight: '700',
-          color: colors.primary[500],
-        },
-        timeline: {
-          position: 'relative',
-          paddingLeft: 24,
-          marginBottom: 32,
-        },
-        timelineLine: {
-          position: 'absolute',
-          left: 11,
-          top: 24,
-          bottom: 24,
-          width: 2,
-          backgroundColor: colors.surfaceVariant,
-        },
-        stepItem: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          gap: 16,
-          marginBottom: 24,
-        },
-        pendingStep: {
-          opacity: 0.5,
-        },
-        stepIcon: {
-          width: 24,
-          height: 24,
-          borderRadius: 12,
-          backgroundColor: colors.surfaceVariant,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 2,
-          borderColor: colors.white,
-          zIndex: 1,
-        },
-        completedIcon: {
-          backgroundColor: colors.secondary[500],
-        },
-        activeIcon: {
-          backgroundColor: colors.primary[500],
-          ...shadowStyle({
-            color: colors.primary[500],
-            offsetY: 0,
-            blur: 8,
-            opacity: 0.2,
-            elevation: 4,
-          }),
-        },
-        pendingDot: {
-          width: 8,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: colors.white,
-        },
-        stepContent: {
-          flex: 1,
-        },
-        stepTitle: {
-          fontSize: 16,
-          fontWeight: '600',
-          color: colors.onSurface,
-        },
-        activeStepTitle: {
-          fontWeight: '700',
-        },
-        stepTime: {
-          fontSize: 14,
-          color: colors.neutral[500],
-        },
-        driverText: {
-          fontSize: 14,
-          color: colors.primary[500],
-          fontWeight: '500',
         },
         sectionTitle: {
           fontSize: 18,
@@ -484,261 +189,39 @@ export default function TrackingScreen() {
     );
   }
 
-  function renderTimeline() {
-    const idx = selectedOrder ? getStatusIndex(selectedOrder.status) : 1;
-    return (
-      <View style={styles.timeline}>
-        <View style={styles.timelineLine} />
-        {TRACKING_STEPS.map((step, index) => {
-          const isCompleted = index < idx;
-          const isActive = index === idx;
-          return (
-            <View
-              key={step.id}
-              style={[styles.stepItem, !isCompleted && !isActive && styles.pendingStep]}
-            >
-              <View
-                style={[
-                  styles.stepIcon,
-                  isCompleted && styles.completedIcon,
-                  isActive && styles.activeIcon,
-                ]}
-              >
-                {isCompleted ? (
-                  <MaterialCommunityIcons name="check" size={14} color={colors.white} />
-                ) : isActive ? (
-                  <MaterialCommunityIcons name="moped" size={14} color={colors.white} />
-                ) : (
-                  <View style={styles.pendingDot} />
-                )}
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={[styles.stepTitle, isActive && styles.activeStepTitle]}>
-                  {step.title}
-                </Text>
-                {step.time && <Text style={styles.stepTime}>{step.time}</Text>}
-                {isActive && step.driver && <Text style={styles.driverText}>{step.driver}</Text>}
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Header title="Acompanhamento" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Map Area - Real Map apenas com dados do Postgres (sem coordenadas mock) */}
-        <View style={styles.mapContainer}>
-          {hasRoute && driverLocation ? (
-            <TrackingMap
-              restaurantLocation={restaurantLocation!}
-              customerLocation={customerLocation!}
-              driverLocation={driverLocation}
-            />
-          ) : hasRoute ? (
-            <TrackingMap
-              restaurantLocation={restaurantLocation!}
-              customerLocation={customerLocation!}
-              driverLocation={restaurantLocation!}
-            />
-          ) : (
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.surfaceContainer,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-            >
-              <MaterialCommunityIcons name="map-marker-off" size={32} color={colors.neutral[400]} />
-              <Text
-                style={{ color: colors.neutral[500], textAlign: 'center', paddingHorizontal: 24 }}
-              >
-                Rota indisponível — aguardando dados reais do restaurante e cliente no banco
-                (origem/destino).
-              </Text>
-            </View>
-          )}
-        </View>
+        <TrackingMapSection
+          hasRoute={hasRoute}
+          restaurantLocation={restaurantLocation}
+          customerLocation={customerLocation}
+          driverLocation={driverLocation}
+        />
 
         <View style={styles.content}>
           <View style={styles.handle} />
 
           {/* Order Selector */}
-          {activeOrders.length > 1 && (
-            <View style={styles.orderSelector}>
-              {activeOrders.map((order) => {
-                const isActive = selectedOrder?.id === order.id;
-                const status = STATUS_CONFIG[order.status];
-                return (
-                  <TouchableOpacity
-                    key={order.id}
-                    style={[styles.orderChip, isActive && styles.orderChipActive]}
-                    onPress={() => setSelectedOrderId(order.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name={status.icon as any}
-                      size={16}
-                      color={isActive ? colors.white : status.color}
-                    />
-                    <Text style={[styles.orderChipText, isActive && styles.orderChipTextActive]}>
-                      Pedido #{order.id.slice(-4)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
+          <OrderSwitcher
+            orders={activeOrders}
+            selectedId={selectedOrder?.id}
+            onSelect={setSelectedOrderId}
+          />
 
           {selectedOrder ? (
             <>
-              <View style={styles.statusSection}>
-                <Text style={styles.arrivalTime}>
-                  {selectedOrder.status === 'delivering' &&
-                  hasRealLocation &&
-                  estimatedMinutes != null
-                    ? `Chegando em ${estimatedMinutes} min`
-                    : selectedOrder.status === 'delivering'
-                      ? 'Entregador a caminho'
-                      : selectedOrder.status === 'ready'
-                        ? 'Pronto para entrega'
-                        : 'Preparando seu pedido'}
-                </Text>
-                <Text style={styles.arrivalRange}>
-                  {selectedOrder.status === 'delivering' ? (
-                    hasRealLocation && distance != null ? (
-                      <Text>
-                        {distance.toFixed(1)} km restantes · Pedido #{selectedOrder.id.slice(-4)} ·{' '}
-                        {STATUS_CONFIG[selectedOrder.status].label}
-                        {lastKnownAgeMs != null && lastKnownAgeMs > 30000
-                          ? ` · actualizado há ${Math.round(lastKnownAgeMs / 1000)}s`
-                          : ''}
-                      </Text>
-                    ) : (
-                      <Text>
-                        Pedido #{selectedOrder.id.slice(-4)} ·{' '}
-                        {STATUS_CONFIG[selectedOrder.status].label} · Aguardando localização
-                      </Text>
-                    )
-                  ) : (
-                    <Text>
-                      Pedido #{selectedOrder.id.slice(-4)} ·{' '}
-                      {STATUS_CONFIG[selectedOrder.status].label}
-                    </Text>
-                  )}
-                </Text>
-                {selectedOrder.status === 'delivering' && !hasRealLocation ? (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.neutral[500],
-                      marginTop: 8,
-                      textAlign: 'center',
-                    }}
-                  >
-                    A localização em tempo real aparecerá quando o entregador iniciar a partilha e o
-                    servidor confirmar.
-                  </Text>
-                ) : null}
-              </View>
-
-              <View style={styles.restaurantCard}>
-                <Image
-                  source={{
-                    uri:
-                      RESTAURANT_IMAGES[selectedOrder.id] ??
-                      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
-                  }}
-                  style={styles.restaurantImage}
-                />
-                <View style={styles.restaurantInfo}>
-                  <Text style={styles.restaurantName}>
-                    {RESTAURANT_NAMES[selectedOrder.id] ?? 'Restaurante'}
-                  </Text>
-                  <Text style={styles.orderNumber}>Pedido #{selectedOrder.id.slice(-4)}</Text>
-                </View>
-                <View style={styles.actionButtonsContainer}>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() =>
-                      router.push({ pathname: '/chat', params: { orderId: selectedOrder.id } })
-                    }
-                  >
-                    <View style={styles.actionButtonCircle}>
-                      <MaterialCommunityIcons name="chat" size={22} color={colors.white} />
-                    </View>
-                    <Text style={styles.actionButtonText}>Chat</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.actionButton,
-                      (selectedOrder.status === 'delivered' ||
-                        selectedOrder.status === 'cancelled') && { opacity: 0.4 },
-                    ]}
-                    disabled={
-                      selectedOrder.status === 'delivered' || selectedOrder.status === 'cancelled'
-                    }
-                    onPress={() => startVoipCall(selectedOrder.id)}
-                  >
-                    <View style={styles.actionButtonCircle}>
-                      <MaterialCommunityIcons name="phone" size={22} color={colors.white} />
-                    </View>
-                    <Text style={styles.actionButtonText}>Ligar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {selectedOrder.driver && (
-                <View
-                  style={[
-                    styles.restaurantCard,
-                    { marginTop: -12, backgroundColor: colors.surfaceContainerLowest },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.actionButtonCircle,
-                      {
-                        backgroundColor: colors.primary[100],
-                        width: 44,
-                        height: 44,
-                        borderRadius: 14,
-                      },
-                    ]}
-                  >
-                    <MaterialCommunityIcons name="account" size={22} color={colors.primary[500]} />
-                  </View>
-                  <View style={styles.restaurantInfo}>
-                    <Text style={styles.restaurantName}>{selectedOrder.driver.name}</Text>
-                    <Text style={styles.orderNumber}>
-                      {selectedOrder.driver.vehicle ?? 'Entregador'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() =>
-                      router.push({ pathname: '/chat', params: { orderId: selectedOrder.id } })
-                    }
-                  >
-                    <View
-                      style={[
-                        styles.actionButtonCircle,
-                        { width: 40, height: 40, borderRadius: 20 },
-                      ]}
-                    >
-                      <MaterialCommunityIcons name="chat" size={18} color={colors.white} />
-                    </View>
-                    <Text style={styles.actionButtonText}>Chat</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {renderTimeline()}
+              <SelectedOrderCard
+                order={selectedOrder}
+                hasRealLocation={hasRealLocation}
+                estimatedMinutes={estimatedMinutes}
+                distance={distance}
+                lastKnownAgeMs={lastKnownAgeMs}
+              />
+              <TrackingSteps status={selectedOrder.status} />
             </>
           ) : (
             <View style={[styles.emptyHistory, { marginVertical: spacing.lg }]}>

@@ -1,18 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import {
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '../../src/components/ui/Header';
@@ -21,49 +10,12 @@ import { useAppDispatch, useAppSelector } from '../../src/store';
 import { clearSession } from '../../src/store/authSlice';
 import { clearCart } from '../../src/store/cartSlice';
 import { clearStoredSession } from '../../src/services/session';
-import { requestLocationPermissions } from '../../src/services/location';
-import { useLogoutMutation, useToggleLocationSharingMutation } from '../../src/hooks/useApi';
-import { LOCATION_SHARING_STORAGE_KEY } from '../../src/hooks/useDriverLocationPublisher';
-import { safeGetItem, safeSetItem } from '../../src/utils/storage';
+import { useLogoutMutation } from '../../src/hooks/useApi';
 import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
-
-const initialDocs = [
-  { id: 'bi', label: 'BI', description: 'Bilhete de Identidade' },
-  { id: 'license', label: 'Carta de Condução', description: 'Categoria A' },
-  { id: 'insurance', label: 'Seguro Obrigatório', description: 'Responsabilidade Civil' },
-  { id: 'criminal', label: 'Registo Criminal', description: 'Atualizado' },
-];
-
-const documentIcons: Record<string, string> = {
-  bi: 'card-account-details-outline',
-  license: 'license',
-  insurance: 'file-shield-outline',
-  criminal: 'file-check-outline',
-};
-
-const LUANDA_NEIGHBORHOODS = [
-  'Maianga',
-  'Ingombota',
-  'Kilamba',
-  'Talatona',
-  'Viana',
-  'Cazenga',
-  'Rangel',
-  'Sambizanga',
-  'Neves Bendinha',
-  'Prenda',
-  'Morro Bento',
-  'Patriota',
-  'Alvalade',
-  'São Paulo',
-  'Marçal',
-  'Cacuaco',
-  'Benfica',
-  'Futungo de Belas',
-  'Camama',
-  'Zamba',
-];
+import { DocumentSection } from '../../src/features/delivery-profile/DocumentSection';
+import { SettingsSection } from '../../src/features/delivery-profile/SettingsSection';
+import { ZoneModal } from '../../src/features/delivery-profile/ZoneModal';
 
 export default function DeliveryProfileScreen() {
   const router = useRouter();
@@ -71,75 +23,10 @@ export default function DeliveryProfileScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const { colors } = useTheme();
   const [logout] = useLogoutMutation();
-  const [toggleLocationSharing] = useToggleLocationSharingMutation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [, setIsLoggingOut] = useState(false);
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [documents, setDocuments] = useState<
-    Record<string, { uri: string; name: string; uploadedAt: string } | null>
-  >({});
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [selectedZones, setSelectedZones] = useState<string[]>(['Maianga', 'Ingombota']);
-
-  useEffect(() => {
-    const checkLocation = async () => {
-      const stored = await safeGetItem(LOCATION_SHARING_STORAGE_KEY);
-      if (stored === '1') {
-        setLocationEnabled(true);
-        return;
-      }
-      const granted = await requestLocationPermissions();
-      setLocationEnabled(granted && stored !== '0');
-    };
-    checkLocation();
-  }, []);
-
-  const handleUpload = useCallback(async (docId: string) => {
-    try {
-      setUploadingId(docId);
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/jpeg', 'image/png'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets?.[0]) {
-        const file = result.assets[0];
-        const doc = initialDocs.find((d) => d.id === docId);
-        setDocuments((prev) => ({
-          ...prev,
-          [docId]: {
-            uri: file.uri,
-            name: file.name || `${doc?.label || 'documento'}.pdf`,
-            uploadedAt: new Date().toLocaleDateString('pt-AO'),
-          },
-        }));
-      }
-    } catch (error: any) {
-      if (error?.message !== 'User cancelled') {
-        Alert.alert('Erro', 'Não foi possível carregar o documento.');
-      }
-    } finally {
-      setUploadingId(null);
-    }
-  }, []);
-
-  const handleRemoveDocument = useCallback((docId: string) => {
-    Alert.alert('Remover documento', 'Tem certeza que deseja remover este documento?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Remover',
-        style: 'destructive',
-        onPress: () => {
-          setDocuments((prev) => {
-            const next = { ...prev };
-            delete next[docId];
-            return next;
-          });
-        },
-      },
-    ]);
-  }, []);
 
   const toggleZone = useCallback((neighborhood: string) => {
     setSelectedZones((prev) =>
@@ -217,143 +104,6 @@ export default function DeliveryProfileScreen() {
           color: colors.neutral[500],
           marginBottom: spacing.lg,
         },
-        card: {
-          backgroundColor: colors.surfaceContainerLowest,
-          borderRadius: 24,
-          padding: spacing.lg,
-          marginBottom: spacing.md,
-          borderWidth: 1,
-          borderColor: colors.surfaceVariant,
-        },
-        cardHeader: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: spacing.md,
-        },
-        sectionTitle: {
-          fontSize: 16,
-          fontWeight: '700',
-          color: colors.onSurface,
-        },
-        editLink: {
-          fontSize: 14,
-          fontWeight: '600',
-          color: colors.primary[500],
-        },
-        documentsList: {
-          gap: spacing.sm,
-        },
-        documentItem: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.surfaceVariant,
-        },
-        documentIcon: {
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          backgroundColor: colors.primary[100],
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        documentContent: {
-          flex: 1,
-        },
-        documentLabel: {
-          fontSize: 14,
-          fontWeight: '600',
-          color: colors.onSurface,
-          marginBottom: 2,
-        },
-        documentMeta: {
-          fontSize: 12,
-          color: colors.neutral[500],
-        },
-        documentStatus: {
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 4,
-          borderRadius: 8,
-          backgroundColor: colors.error + '15',
-        },
-        documentStatusValid: {
-          backgroundColor: colors.primary[100],
-        },
-        documentStatusText: {
-          fontSize: 11,
-          fontWeight: '700',
-          color: colors.error,
-        },
-        documentStatusTextValid: {
-          color: colors.primary[500],
-        },
-        menuItem: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.surfaceVariant,
-        },
-        menuText: {
-          flex: 1,
-          fontSize: 15,
-          color: colors.onSurface,
-          marginLeft: spacing.md,
-        },
-        logoutItem: {
-          marginTop: spacing.sm,
-          borderTopWidth: 1,
-          borderTopColor: colors.error,
-          opacity: 0.8,
-        },
-        logoutIcon: {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: colors.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        logoutText: {
-          fontSize: 16,
-          fontWeight: '600',
-          color: colors.error,
-          marginLeft: spacing.md,
-        },
-        uploadButton: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 6,
-          borderRadius: 8,
-          backgroundColor: colors.primary[100],
-        },
-        uploadButtonText: {
-          fontSize: 12,
-          fontWeight: '700',
-          color: colors.primary[500],
-        },
-        uploadedBadge: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 4,
-          borderRadius: 8,
-          backgroundColor: colors.primary[100],
-        },
-        uploadedBadgeText: {
-          fontSize: 11,
-          fontWeight: '600',
-          color: colors.primary[500],
-        },
-        removeDocButton: {
-          padding: 4,
-        },
         zoneCard: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -401,62 +151,6 @@ export default function DeliveryProfileScreen() {
         zoneTagTextActive: {
           color: colors.white,
         },
-        modalOverlay: {
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'flex-end',
-        },
-        modalContent: {
-          backgroundColor: colors.surface,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          maxHeight: '80%',
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.xxl,
-        },
-        modalHeader: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingHorizontal: spacing.lg,
-          marginBottom: spacing.md,
-        },
-        modalTitle: {
-          fontSize: 18,
-          fontWeight: '700',
-          color: colors.onSurface,
-        },
-        modalClose: {
-          padding: spacing.xs,
-        },
-        modalList: {
-          paddingHorizontal: spacing.lg,
-        },
-        modalItem: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingVertical: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.surfaceVariant,
-        },
-        modalItemLabel: {
-          fontSize: 15,
-          color: colors.onSurface,
-        },
-        modalConfirmButton: {
-          marginHorizontal: spacing.lg,
-          marginTop: spacing.lg,
-          backgroundColor: colors.primary[500],
-          paddingVertical: spacing.md,
-          borderRadius: 16,
-          alignItems: 'center',
-        },
-        modalConfirmText: {
-          fontSize: 16,
-          fontWeight: '700',
-          color: colors.white,
-        },
       }),
     [colors],
   );
@@ -502,71 +196,7 @@ export default function DeliveryProfileScreen() {
           <Text style={styles.email}>{user?.email ?? ''}</Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>Documentos</Text>
-            <Text style={styles.editLink}>Obrigatório</Text>
-          </View>
-          <View style={styles.documentsList}>
-            {initialDocs.map((doc) => {
-              const uploaded = documents[doc.id];
-              return (
-                <View key={doc.id} style={styles.documentItem}>
-                  <View style={styles.documentIcon}>
-                    <MaterialCommunityIcons
-                      name={(documentIcons[doc.id] || 'file-document-outline') as any}
-                      size={20}
-                      color={uploaded ? colors.primary[500] : colors.neutral[400]}
-                    />
-                  </View>
-                  <View style={styles.documentContent}>
-                    <Text style={styles.documentLabel}>{doc.label}</Text>
-                    <Text style={styles.documentMeta}>
-                      {uploaded ? `Carregado em ${uploaded.uploadedAt}` : doc.description}
-                    </Text>
-                  </View>
-                  {uploaded ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <View style={styles.uploadedBadge}>
-                        <MaterialCommunityIcons
-                          name="check-circle"
-                          size={14}
-                          color={colors.primary[500]}
-                        />
-                        <Text style={styles.uploadedBadgeText}>OK</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.removeDocButton}
-                        onPress={() => handleRemoveDocument(doc.id)}
-                      >
-                        <MaterialCommunityIcons
-                          name="close-circle"
-                          size={20}
-                          color={colors.neutral[400]}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.uploadButton}
-                      onPress={() => handleUpload(doc.id)}
-                      disabled={uploadingId === doc.id}
-                    >
-                      <MaterialCommunityIcons
-                        name="upload"
-                        size={16}
-                        color={uploadingId === doc.id ? colors.neutral[400] : colors.primary[500]}
-                      />
-                      <Text style={styles.uploadButtonText}>
-                        {uploadingId === doc.id ? '...' : 'Upload'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        <DocumentSection />
 
         <TouchableOpacity
           style={styles.zoneCard}
@@ -597,127 +227,15 @@ export default function DeliveryProfileScreen() {
           <MaterialCommunityIcons name="chevron-right" size={24} color={colors.neutral[300]} />
         </TouchableOpacity>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Configurações</Text>
-          <TouchableOpacity style={styles.menuItem}>
-            <MaterialCommunityIcons name="bell-outline" size={22} color={colors.neutral[500]} />
-            <Text style={styles.menuText}>Notificações</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.neutral[300]} />
-          </TouchableOpacity>
-          <View style={styles.menuItem}>
-            <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.neutral[500]} />
-            <Text style={styles.menuText}>Compartilhar localização</Text>
-            <Switch
-              value={locationEnabled}
-              onValueChange={async (value) => {
-                if (value) {
-                  const granted = await requestLocationPermissions();
-                  if (!granted) {
-                    setLocationEnabled(false);
-                    Alert.alert(
-                      'Permissão necessária',
-                      'Ative a localização para partilhar a posição.',
-                    );
-                    return;
-                  }
-                  try {
-                    await toggleLocationSharing(true).unwrap();
-                    await safeSetItem(LOCATION_SHARING_STORAGE_KEY, '1');
-                    setLocationEnabled(true);
-                  } catch (err) {
-                    console.error('Failed to enable location sharing:', err);
-                    Alert.alert('Erro', 'Não foi possível activar a partilha no servidor.');
-                    setLocationEnabled(false);
-                  }
-                } else {
-                  try {
-                    await toggleLocationSharing(false).unwrap();
-                  } catch (err) {
-                    console.warn('Failed to disable location sharing:', err);
-                  }
-                  await safeSetItem(LOCATION_SHARING_STORAGE_KEY, '0');
-                  setLocationEnabled(false);
-                }
-              }}
-              trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
-              thumbColor={colors.white}
-            />
-          </View>
-          <TouchableOpacity style={styles.menuItem}>
-            <MaterialCommunityIcons name="wallet-outline" size={22} color={colors.neutral[500]} />
-            <Text style={styles.menuText}>Método de pagamento</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.neutral[300]} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <MaterialCommunityIcons
-              name="help-circle-outline"
-              size={22}
-              color={colors.neutral[500]}
-            />
-            <Text style={styles.menuText}>Ajuda e Suporte</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.neutral[300]} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.menuItem, styles.logoutItem]}
-            onPress={() => setShowLogoutConfirm(true)}
-          >
-            <View style={styles.logoutIcon}>
-              <MaterialCommunityIcons name="logout" size={22} color={colors.error} />
-            </View>
-            <Text style={styles.logoutText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
+        <SettingsSection onRequestLogout={() => setShowLogoutConfirm(true)} />
       </ScrollView>
 
-      <Modal
+      <ZoneModal
         visible={showZoneModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowZoneModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={() => setShowZoneModal(false)}
-          />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar bairros</Text>
-              <TouchableOpacity style={styles.modalClose} onPress={() => setShowZoneModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={colors.neutral[500]} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalList}>
-              {LUANDA_NEIGHBORHOODS.map((neighborhood) => {
-                const isSelected = selectedZones.includes(neighborhood);
-                return (
-                  <TouchableOpacity
-                    key={neighborhood}
-                    style={styles.modalItem}
-                    onPress={() => toggleZone(neighborhood)}
-                  >
-                    <Text style={styles.modalItemLabel}>{neighborhood}</Text>
-                    <MaterialCommunityIcons
-                      name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                      size={22}
-                      color={isSelected ? colors.primary[500] : colors.neutral[300]}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.modalConfirmButton}
-              onPress={() => setShowZoneModal(false)}
-            >
-              <Text style={styles.modalConfirmText}>Confirmar ({selectedZones.length})</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        selectedZones={selectedZones}
+        toggleZone={toggleZone}
+        onClose={() => setShowZoneModal(false)}
+      />
 
       <ConfirmDialog
         visible={showLogoutConfirm}
