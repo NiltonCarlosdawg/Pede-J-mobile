@@ -61,8 +61,7 @@ api.interceptors.response.use(
               { refreshToken: session.refreshToken },
               { timeout: 15000 },
             );
-            if ((await loadSession())?.token !== session.token)
-              throw new Error('Sessão alterada.');
+            if ((await loadSession())?.token !== session.token) throw new Error('Sessão alterada.');
             if (typeof response.data.token !== 'string' || !response.data.token)
               throw new Error('Token inválido.');
             await saveSession({
@@ -193,11 +192,7 @@ export const callsApi = {
   getConfig: () => api.get('/calls/config'),
   /** Exige header Idempotency-Key (estável por tentativa do utilizador). */
   initiate: (orderId: string, idempotencyKey: string) =>
-    api.post(
-      '/calls/initiate',
-      { orderId },
-      { headers: { 'Idempotency-Key': idempotencyKey } },
-    ),
+    api.post('/calls/initiate', { orderId }, { headers: { 'Idempotency-Key': idempotencyKey } }),
   /** Token do destinatário — atende a chamada (passa a `ongoing`). */
   accept: (callId: string) => api.post(`/calls/${callId}/token`, {}),
   setStatus: (callId: string, status: 'ongoing' | 'ended' | 'declined' | 'missed') =>

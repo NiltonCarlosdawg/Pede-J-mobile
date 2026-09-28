@@ -105,8 +105,7 @@ export async function endVoipCall(_uuid?: string, outcome: 'ended' | 'declined' 
   const id = activeCall?.callId;
   if (id) {
     const declined =
-      outcome === 'declined' ||
-      (activeCall?.direction === 'incoming' && !activeCall?.token);
+      outcome === 'declined' || (activeCall?.direction === 'incoming' && !activeCall?.token);
     try {
       await callsApi.setStatus(id, declined ? 'declined' : 'ended');
     } catch {

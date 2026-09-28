@@ -239,7 +239,6 @@ export default function ProfileSelectScreen() {
               )}
             </Animated.View>
           </Pressable>
-
         </View>
 
         {/* Footer */}

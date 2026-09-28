@@ -415,7 +415,11 @@ export async function subscribeVoipEvents(): Promise<() => void> {
       void displayIncomingVoipCall(payload as IncomingPayload);
     };
     const onMissed = (payload: Record<string, unknown>) => {
-      if (activeCall && activeCall.callId === payload.callId && activeCall.direction === 'outgoing') {
+      if (
+        activeCall &&
+        activeCall.callId === payload.callId &&
+        activeCall.direction === 'outgoing'
+      ) {
         Alert.alert('Chamada não atendida', 'A chamada não foi atendida.');
         void endVoipCall(activeCall.uuid);
       }

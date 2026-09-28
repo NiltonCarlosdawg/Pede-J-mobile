@@ -66,9 +66,7 @@ describe('session (sessão segura)', () => {
       expect(roleFromUser(DELIVERY_USER)).toBe('delivery');
     });
     it('rejeita o perfil de restaurante (frontend separado)', () => {
-      expect(() => roleFromUser(RESTAURANT_USER)).toThrow(
-        'aplicação separada',
-      );
+      expect(() => roleFromUser(RESTAURANT_USER)).toThrow('aplicação separada');
     });
     it('rejeita roles desconhecidas', () => {
       expect(() => roleFromUser({ ...CLIENT_USER, role: 'admin' as any })).toThrow();
@@ -81,7 +79,9 @@ describe('session (sessão segura)', () => {
       expect(validateSession(session).role).toBe('client');
     });
     it('rejeita token vazio ou utilizador inválido', () => {
-      expect(() => validateSession({ token: '', user: CLIENT_USER, role: 'client' } as any)).toThrow();
+      expect(() =>
+        validateSession({ token: '', user: CLIENT_USER, role: 'client' } as any),
+      ).toThrow();
       expect(() =>
         validateSession({ token: 't', user: { ...CLIENT_USER, id: '' }, role: 'client' } as any),
       ).toThrow();

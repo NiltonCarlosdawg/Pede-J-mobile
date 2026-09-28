@@ -21,14 +21,20 @@ module.exports = {
   ],
   coverageThreshold: {
     // O Jest aplica o threshold "global" apenas aos ficheiros NÃO abrangidos
-    // pelas entradas específicas abaixo. Este piso protege o código ainda sem
-    // testes (UI em `app/**`, serviços) contra regressões grandes; a exigência
-    // real está nos limites por módulo, logo a seguir.
+    // pelas entradas específicas abaixo — ou seja, ao código ainda sem testes
+    // (UI em `app/**`, serviços e utilitários sem specs).
+    //
+    // Piso calibrado a ~50% do valor atual do grupo (1.48 / 0.75 / 1.00 / 1.48),
+    // para funcionar mesmo como rede de segurança: como o grupo só desce quando
+    // entra código novo sem testes, um piso colado ao valor atual faz o CI falhar
+    // a cada feature nova — que é ruído, não regressão. Aqui só cai quem apagar
+    // testes ou acumular muito código sem cobertura.
+    // A exigência real está nos limites por módulo, logo a seguir.
     global: {
-      statements: 1,
-      branches: 0.5,
-      functions: 1,
-      lines: 1,
+      statements: 0.75,
+      branches: 0.4,
+      functions: 0.5,
+      lines: 0.75,
     },
     // Módulos com testes: limite estrito, qualquer regressão falha o CI.
     './src/store/cartSlice.ts': {

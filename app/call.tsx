@@ -273,7 +273,9 @@ export default function CallScreen() {
   );
 
   function formatTimer(total: number) {
-    const m = Math.floor(total / 60).toString().padStart(2, '0');
+    const m = Math.floor(total / 60)
+      .toString()
+      .padStart(2, '0');
     const s = (total % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
@@ -320,7 +322,14 @@ export default function CallScreen() {
       const lk = liveKitRef.current;
       if (lk) {
         const outputs = await lk.AudioSession.getAudioOutputs();
-        const wanted = Platform.OS === 'ios' ? (next ? 'force_speaker' : 'default') : next ? 'speaker' : 'earpiece';
+        const wanted =
+          Platform.OS === 'ios'
+            ? next
+              ? 'force_speaker'
+              : 'default'
+            : next
+              ? 'speaker'
+              : 'earpiece';
         if (outputs.includes(wanted)) await lk.AudioSession.selectAudioOutput(wanted);
       }
     } catch (err) {
@@ -357,12 +366,12 @@ export default function CallScreen() {
             <ActivityIndicator color={colors.white} style={{ marginTop: spacing.lg }} />
           )}
 
-          <Text style={styles.timer}>
-            {answered ? formatTimer(seconds) : '--:--'}
-          </Text>
+          <Text style={styles.timer}>{answered ? formatTimer(seconds) : '--:--'}</Text>
 
           {phase === 'connected' && (
-            <Text style={styles.quality}>Ligação ativa · {muted ? 'micro desligado' : 'micro ligado'}</Text>
+            <Text style={styles.quality}>
+              Ligação ativa · {muted ? 'micro desligado' : 'micro ligado'}
+            </Text>
           )}
 
           {phase === 'error' && error ? (
@@ -378,7 +387,11 @@ export default function CallScreen() {
         </View>
 
         <View style={styles.controls}>
-          <TouchableOpacity style={styles.controlBtn} onPress={toggleMute} disabled={phase === 'error'}>
+          <TouchableOpacity
+            style={styles.controlBtn}
+            onPress={toggleMute}
+            disabled={phase === 'error'}
+          >
             <View style={[styles.controlCircle, muted && styles.controlCircleActive]}>
               <MaterialCommunityIcons
                 name={muted ? 'microphone-off' : 'microphone'}
@@ -396,7 +409,11 @@ export default function CallScreen() {
             <Text style={styles.controlLabel}>Desligar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlBtn} onPress={toggleSpeaker} disabled={phase === 'error'}>
+          <TouchableOpacity
+            style={styles.controlBtn}
+            onPress={toggleSpeaker}
+            disabled={phase === 'error'}
+          >
             <View style={[styles.controlCircle, speaker && styles.controlCircleActive]}>
               <MaterialCommunityIcons
                 name={speaker ? 'volume-high' : 'volume-medium'}

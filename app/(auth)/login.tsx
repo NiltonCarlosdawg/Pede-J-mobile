@@ -240,7 +240,6 @@ export default function LoginScreen() {
             <Text style={styles.tagline}>Entre e aproveite</Text>
           </View>
 
-
           {/* Formulário */}
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
             <View style={styles.inputWrapper}>

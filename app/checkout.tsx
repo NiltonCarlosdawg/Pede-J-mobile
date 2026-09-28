@@ -445,7 +445,8 @@ export default function CheckoutScreen() {
       if (!cartRestaurantId) {
         const validation: OrderMutationError = {
           type: 'VALIDATION_ERROR',
-          message: 'O carrinho não tem restaurante associado. Volte e escolha os produtos novamente.',
+          message:
+            'O carrinho não tem restaurante associado. Volte e escolha os produtos novamente.',
         };
         setOrderError(validation);
         return { error: validation, fatal: true };
