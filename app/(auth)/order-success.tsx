@@ -17,8 +17,6 @@ export default function OrderSuccessScreen() {
   const params = useLocalSearchParams<{
     orderId?: string;
     total?: string;
-    sync?: string;
-    syncMessage?: string;
   }>();
   const { colors } = useTheme();
   const [scaleAnim] = useState(() => new Animated.Value(0));
@@ -28,14 +26,8 @@ export default function OrderSuccessScreen() {
   const [buttonTranslate] = useState(() => new Animated.Value(50));
   const orders = useAppSelector(selectOrders);
   const readParam = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value);
-  const syncPending = readParam(params.sync) === 'pending';
   const orderId = readParam(params.orderId) ?? 'Pedido';
   const orderTotal = Number(readParam(params.total));
-  const syncMessageValue = readParam(params.syncMessage);
-  const syncMessage =
-    typeof syncMessageValue === 'string' && syncMessageValue.trim().length > 0
-      ? syncMessageValue
-      : 'A confirmação no servidor falhou temporariamente. O pedido foi guardado neste dispositivo e será reenviado assim que houver ligação.';
   const order = orders.find((o) => o.id === orderId);
 
   const styles = useMemo(
@@ -136,32 +128,6 @@ export default function OrderSuccessScreen() {
           fontWeight: '700',
           color: colors.onSurface,
         },
-        warningCard: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          gap: spacing.sm,
-          padding: spacing.md,
-          borderRadius: 16,
-          backgroundColor: colors.warning + '18',
-          borderWidth: 1,
-          borderColor: colors.warning + '55',
-          marginBottom: spacing.lg,
-          width: '100%',
-        },
-        warningTextWrap: {
-          flex: 1,
-        },
-        warningTitle: {
-          fontSize: 14,
-          fontWeight: '700',
-          color: colors.onSurface,
-          marginBottom: 2,
-        },
-        warningText: {
-          fontSize: 13,
-          lineHeight: 18,
-          color: colors.neutral[700],
-        },
         divider: {
           height: 1,
           backgroundColor: colors.surfaceVariant,
@@ -246,16 +212,6 @@ export default function OrderSuccessScreen() {
             Você receberá atualizações sobre o status do seu pedido em breve.
           </Text>
         </Animated.View>
-
-        {syncPending ? (
-          <View style={styles.warningCard}>
-            <MaterialCommunityIcons name="cloud-alert" size={20} color={colors.warning} />
-            <View style={styles.warningTextWrap}>
-              <Text style={styles.warningTitle}>Sincronização pendente</Text>
-              <Text style={styles.warningText}>{syncMessage}</Text>
-            </View>
-          </View>
-        ) : null}
 
         {/* Order Info Card */}
         <Animated.View style={[styles.orderCard, { opacity: textOpacity }]}>
