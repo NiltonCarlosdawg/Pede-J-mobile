@@ -55,7 +55,9 @@ didReceiveIncomingPushWithPayload:(PKPushPayload *)payload
   NSString *callerName = data[@"callerName"] ?: data[@"title"] ?: @"PedeJá";
   NSString *handle = data[@"handle"] ?: data[@"orderId"] ?: @"pedeja";
 
-  [RNVoipPushNotificationManager addCompletionHandler:uuid completionHandler:completion];
+  // O completionHandler do PushKit pertence SÓ ao CallKit (ver nota no template Swift):
+  // não registar aqui também, senão o JS o voltaria a chamar em
+  // onVoipNotificationCompleted(uuid) — 2 invocações do mesmo bloco.
   [RNVoipPushNotificationManager didReceiveIncomingPushWithPayload:payload forType:(NSString *)type];
 
   [RNCallKeep reportNewIncomingCall:uuid
@@ -115,7 +117,11 @@ extension AppDelegate {
     let callerName = (data["callerName"] as? String) ?? (data["title"] as? String) ?? "PedeJá"
     let handle = (data["handle"] as? String) ?? (data["orderId"] as? String) ?? "pedeja"
 
-    RNVoipPushNotificationManager.addCompletionHandler(uuid, completionHandler: completionHandler)
+    // O completionHandler do PushKit pertence SÓ ao CallKit: reportNewIncomingCall
+    // chama-o assim que reporta a chamada. Registar o mesmo bloco também no
+    // RNVoipPushNotificationManager (addCompletionHandler) faria o JS chamá-lo
+    // outra vez em onVoipNotificationCompleted(uuid) — 2 invocações, indefinido
+    // pela Apple (deve ser chamado exactamente uma vez).
     RNVoipPushNotificationManager.didReceiveIncomingPush(with: payload, forType: type.rawValue)
 
     RNCallKeep.reportNewIncomingCall(

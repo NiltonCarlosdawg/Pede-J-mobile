@@ -86,5 +86,16 @@
     "react-test-renderer": "19.1.0",
     "typescript": "~6.0.3"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@livekit/react-native-expo-plugin",
+          "react-native-callkeep",
+          "react-native-voip-push-notification"
+        ]
+      }
+    }
+  },
   "private": true
 }
