@@ -17,7 +17,7 @@ import { ConfirmDialog } from '../../src/components/ui/ConfirmDialog';
 import { clearSession } from '../../src/store/authSlice';
 import { clearCart } from '../../src/store/cartSlice';
 import { useAppDispatch, useAppSelector } from '../../src/store';
-import { clearDemoSession } from '../../src/services/demoAuth';
+import { clearStoredSession } from '../../src/services/session';
 import { useLogoutMutation } from '../../src/hooks/useApi';
 import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -338,7 +338,7 @@ export default function PerfilScreen() {
         .unwrap()
         .catch(() => undefined);
     } finally {
-      await clearDemoSession();
+      await clearStoredSession();
       dispatch(clearCart());
       dispatch(clearSession());
       router.replace('/(auth)/login');

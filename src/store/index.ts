@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { apiSlice } from '../services/apiSlice';
 import { authReducer, clearSession, hydrateSession } from './authSlice';
-import { onSessionChange } from '../services/demoAuth';
+import { onSessionChange } from '../services/session';
 import { disconnectRealtime } from '../services/realtime';
 import {
   cartReducer,

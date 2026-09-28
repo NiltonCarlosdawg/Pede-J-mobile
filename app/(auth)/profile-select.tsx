@@ -5,14 +5,13 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../../src/components/ui/Button';
-import { DemoRole } from '../../src/services/demoAuth';
 import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 
 export default function ProfileSelectScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [selectedRole, setSelectedRole] = useState<DemoRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'client' | 'delivery' | null>(null);
   const [scaleAnim] = useState(new Animated.Value(1));
 
   const styles = useMemo(
@@ -136,7 +135,7 @@ export default function ProfileSelectScreen() {
     ]).start();
   }
 
-  function handleSelect(role: DemoRole) {
+  function handleSelect(role: 'client' | 'delivery') {
     animatePress();
     setSelectedRole(role);
   }
@@ -144,12 +143,9 @@ export default function ProfileSelectScreen() {
   function handleContinue() {
     if (selectedRole) {
       if (selectedRole === 'client') {
-        router.push({ pathname: '/(auth)/register', params: { role: 'cliente' } });
+        router.push('/(auth)/register');
       } else {
-        router.push({
-          pathname: '/(auth)/login',
-          params: { role: selectedRole },
-        });
+        router.push('/(auth)/login');
       }
     }
   }
@@ -244,43 +240,6 @@ export default function ProfileSelectScreen() {
             </Animated.View>
           </Pressable>
 
-          <Pressable
-            onPress={() => handleSelect('restaurant')}
-            style={[styles.card, selectedRole === 'restaurant' && styles.cardSelected]}
-          >
-            <Animated.View
-              style={[
-                styles.cardContent,
-                selectedRole === 'restaurant' && { transform: [{ scale: scaleAnim }] },
-              ]}
-            >
-              <View
-                style={[
-                  styles.iconContainer,
-                  selectedRole === 'restaurant' && styles.iconContainerSelected,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="store"
-                  size={32}
-                  color={selectedRole === 'restaurant' ? colors.white : colors.primary[500]}
-                />
-              </View>
-              <Text style={styles.cardTitle}>Tenho um restaurante</Text>
-              <Text style={styles.cardDescription}>
-                Gerencie seu menu, pedidos e acompanhe vendas
-              </Text>
-              {selectedRole === 'restaurant' && (
-                <View style={styles.checkBadge}>
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={24}
-                    color={colors.primary[500]}
-                  />
-                </View>
-              )}
-            </Animated.View>
-          </Pressable>
         </View>
 
         {/* Footer */}

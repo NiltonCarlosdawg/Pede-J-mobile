@@ -1,34 +1,34 @@
 # Situação Actual — Frontend PedeJá Mobile
 
-> Documento de contexto para o backend. Actualizado em 2026-09-24 — sessão de hardening + remoção de mocks.
+> Documento de contexto para o backend. Actualizado em 2026-09-27 — limpeza de contas demo/opções de restaurante.
 
 ## 1. Resumo
 
-O frontend (Expo Router + React Native) implementa **3 tipos de utilizador com navegação e fluxos completamente separados, agora com isolamento visual e de rotas**:
+O frontend (Expo Router + React Native) suporta **2 tipos de utilizador com navegação e fluxos completamente separados**:
 
 | Role (frontend) | Role (API) | Descrição | Rota |
 |---|---|---|---|
 | `client` | `cliente` | Utilizador que pede comida | `/(tabs)` — Home, Restaurantes, Rastreamento |
 | `delivery` | `entregador` | Entregador que aceita e realiza entregas | `/(delivery)` — header `ENTREGADOR` amarelo, Dashboard, Detalhe, Histórico, Ganhos |
-| `restaurant` | `restaurante` | Dono de restaurante que gere menu e pedidos | `/(restaurant)` — header preto `RESTAURANTE GESTÃO`, Dashboard, Pedidos, Cardápio, Perfil |
+| ~~`restaurant`~~ | `restaurante` | Painel de restaurante — **frontend separado**, sem acesso nesta app | `/(restaurant)` — mantido no repo, inalcançável |
 
-A autenticação é **server-authoritative**: `POST /auth/login` devolve `{user, token, refreshToken}` e o mobile deriva `DemoRole` via `roleFromUser(user.role)` (`cliente→client` etc.) — o selector do login é apenas UX/demo quick-fill, não decide acesso. Rotas protegidas com `Stack.Protected` + `router.replace` por role em `app/_layout.tsx:146`.
+A autenticação é **server-authoritative**: `POST /auth/login` devolve `{user, token, refreshToken}` e o mobile deriva `SessionRole` via `roleFromUser(user.role)` (`cliente→client`, `entregador→delivery`). Contas `restaurante` são **rejeitadas** em `roleFromUser` (mensagem "aplicação separada") — não existe selector de perfil nem quick-fill de contas demo no login. Registo público só cria contas `cliente`. Rotas protegidas com `Stack.Protected` + `router.replace` por role em `app/_layout.tsx`.
 
 Sessão guardada em `expo-secure-store` (Keychain/Keystore) com `SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY`, nunca em `AsyncStorage` plain. `onSessionChange` limpa Redux + React Query + Socket.IO em logout/troca de conta.
 
 ---
 
-## 2. Fluxo do Restaurante
+## 2. Fluxo do Restaurante (arquivado — a app do restaurante é separada)
 
-### 2.1 Autenticação
-O utilizador escolhe "Restaurante" no `profile-select` → regista com `role: "restaurante"` (`app/(auth)/register.tsx`) ou faz login com credenciais do seed.
+### 2.1 Acesso
+**Sem acesso nesta app:** `profile-select` e `login` já não oferecem o perfil restaurante, o registo público cria apenas `cliente` e `roleFromUser` rejeita contas `restaurante` com "O painel do restaurante é uma aplicação separada". Os 4 ecrãs de `app/(restaurant)/` ficam no repo como referência, protegidos por `Stack.Protected guard={role === 'restaurant'}` (inalcançável, porque nenhuma sessão obtém esse role).
 
-**Credenciais demo (seed `prisma/seed.ts:114`):**
+Contas existentes no seed (para a app separada):
 - Email: `restaurante@pedeja.com` / Senha: `123456` → `Sabor da Praça` (aprovado)
 - Email: `demo-rest@pedeja.ao` / `segredo123` → `Brasa do Kilamba`
 
-### 2.2 Navegação
-Quando `role === "restaurant"`, `app/_layout.tsx` redireciona para `/(restaurant)/` com 4 tabs e header preto:
+### 2.2 Navegação (inactiva)
+Se uma sessão tivesse `role === "restaurant"`, `app/_layout.tsx` redirecionaria para `/(restaurant)/` com 4 tabs e header preto:
 
 - **Dashboard** (`index.tsx`) — `GET /restaurant/stats` + `GET /restaurant/orders?limit=5` reais do Postgres (sem `.catch(()=>mock)`), toggle `PATCH /restaurant/toggle-open` real
 - **Pedidos** (`pedidos.tsx`) — filtros por `status`, `PATCH /restaurant/orders/:id/status` com transições `pending→confirmed→preparing→ready`
@@ -126,7 +126,7 @@ Frontend em `src/types/index.ts`:
 ```ts
 export type Role = 'cliente' | 'entregador' | 'restaurante' | 'admin';
 ```
-Derivação segura em `src/services/demoAuth.ts:16` `roleFromUser`.
+Derivação segura em `src/services/session.ts` `roleFromUser` (rejeita `restaurante`).
 
 ---
 
@@ -201,13 +201,13 @@ app/(tabs)/
 ├── index.tsx          ← lista via restaurantApi.list real
 
 app/(auth)/
-├── login.tsx          ← quick-fill demo por role, aviso que perfil vem da conta, POST /auth/login
-├── register.tsx       ← selector cliente/entregador/restaurante, fluxo OTP request/verify/dev-code
+├── login.tsx          ← sem selector de perfil nem contas demo, POST /auth/login + dev-code OTP
+├── register.tsx       ← registo só `cliente` (role fixo), fluxo OTP request/verify/dev-code
 └── profile-select.tsx ← encaminha cliente→register, outros→login
 
 app/
 ├── _layout.tsx        ← SecureStore, Stack.Protected + redirect por role, VOIP/notifications só após auth
-├── checkout.tsx       ← sem FALLBACK_ADDRESSES, exige GET /users/me/addresses real, Idempotency-Key via expo-crypto.randomUUID()
+├── checkout.tsx       ← sem FALLBACK_ADDRESSES/DEMO_RESTAURANT_ID/cupão local, exige GET /users/me/addresses real, Idempotency-Key via expo-crypto.randomUUID()
 ├── endereco.tsx       ← modal POST /users/me/addresses real com lat/lng + "Usar minha localização" (expo-location), sem aria-hidden focus bug
 ├── payment-flow.tsx   ← sem simulatePaymentProcessing para local-*, polling só com payment.id real, PIN/phone validados
 ├── call.tsx           ← cronómetro só após connected (backend/SDK deve confirmar)
@@ -217,7 +217,7 @@ src/services/
 ├── api.ts             ← BASE_URL validado (HTTPS em prod), publicAuth, refresh via {refreshToken}
 ├── apiSlice.ts        ← baseQuery via axios http.request, providesTags defensivo Array.isArray
 ├── config.ts          ← validateApiUrl + EXPO_PUBLIC_API_URL
-├── demoAuth.ts        ← SecureStore, roleFromUser, validateSession
+├── session.ts         ← SecureStore, roleFromUser (bloqueia restaurante), validateSession
 ├── realtime.ts        ← Socket.IO com onSessionChange, validCoordinates, volatile emit
 └── voip.ts            ← mute tipado, call audio
 
@@ -247,7 +247,7 @@ Backend corrigido nesta sessão:
 
 3. **Timeout** — `orderApi.create` 45s, outros 30s (`src/services/api.ts:7`).
 
-4. **Logout** — `POST /auth/logout` + `clearDemoSession()` + `clearCart()` + `clearSession()` + `disconnectRealtime()` em todos os perfis.
+4. **Logout** — `POST /auth/logout` + `clearStoredSession()` + `clearCart()` + Redux `clearSession()` + `disconnectRealtime()` em todos os perfis.
 
 5. **Product** — backend devolve `restaurantId, hidden, createdAt, updatedAt` como Number/string corretos.
 
@@ -262,3 +262,17 @@ Backend corrigido nesta sessão:
 - **Endereços:** modal `POST /users/me/addresses` com `expo-location`, `GET` lida com array paginado ou não (`apiSlice` defensivo), fix `aria-hidden` warning via `Modal` + `autoFocus`.
 - **Backend:** fix `take: "201"` string → `Number(limit)`, CORS LAN, seed validado (`restaurante@pedeja.com` 123456).
 - **Qualidade:** `tsc --noEmit` 0 erros, `jest` 48/48, `docs/` adicionados, `app.json` com `expo-location` + `secure-store`.
+
+---
+
+## 12. Limpeza da sessão 2026-09-27 (contas demo / restaurante removidas da UI)
+
+- **Sessão:** `src/services/demoAuth.ts` → `src/services/session.ts` (`DemoRole`→`SessionRole`, `loadDemoSession`→`loadSession`, `clearDemoSession`→`clearStoredSession`, colisão com a action Redux `clearSession` resolvida renomeando a da storage).
+- **Login:** sem selector de perfil (Cliente/Entregador/Restaurante), sem botões demo; auto-preenchimento do dev-code OTP mantido (âmbito de teste).
+- **Registo:** sem bloco "Tipo de conta" — envia sempre `role: 'cliente'`; `profile-select` só Cliente/Entregador (cartão "Tenho um restaurante" removido).
+- **Bloqueio:** `roleFromUser` lança para `restaurante` ("O painel do restaurante é uma aplicação separada"); ecrãs `app/(restaurant)/` mantidos no repo mas inalcançáveis (decisão: só esconder, não apagar).
+- **Checkout:** `DEMO_RESTAURANT_ID` e fallback local de cupão removidos (`buildOrderSnapshot`); `src/constants/checkoutFallbacks.ts` apagado.
+- **Código morto `local-*` removido** (7 sítios): `rastreamento.tsx` (routeOrderId/effect/isLocalOrder/label demonstração), `ChatBadge`, `useDriverLocationPublisher`, `voip.ts`/`voip.web.ts`.
+- **Onboarding:** slide "Seja um Parceiro" deixou de mencionar "restaurante parceiro".
+- **Mantidos de propósito:** `POST /auth/otp/dev-code`, `MockPaymentProvider`, seeds de contas, `Role='restaurante'` no tipo (guards das rotas arquivadas).
+- **Qualidade:** `tsc --noEmit` 0 erros, `eslint` 0 problemas, `jest` 98/98.

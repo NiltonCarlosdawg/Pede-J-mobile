@@ -49,6 +49,8 @@
     "plugins": [
       "expo-router",
       "@config-plugins/react-native-callkeep",
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
       "./plugins/withVoipNative.js",
       [
         "expo-splash-screen",

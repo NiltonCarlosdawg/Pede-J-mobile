@@ -48,7 +48,7 @@ export function useDriverLocationPublisher(activeOrderId?: string | null) {
   const watchRef = useRef<Location.LocationSubscription | null>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !activeOrderId || activeOrderId.startsWith('local-')) {
+    if (Platform.OS === 'web' || !activeOrderId) {
       (globalThis as unknown as { __pedejaActiveOrderId?: string }).__pedejaActiveOrderId =
         undefined;
       return;

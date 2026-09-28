@@ -1,7 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Animated,
   Image,
@@ -24,24 +23,14 @@ import {
   useLazyGetOtpDevCodeQuery,
 } from '../../src/hooks/useApi';
 import { useTheme } from '../../src/hooks/useTheme';
-import { saveDemoSession, roleFromUser } from '../../src/services/demoAuth';
+import { saveSession, roleFromUser } from '../../src/services/session';
 import { useAppDispatch } from '../../src/store';
 import { setSession } from '../../src/store/authSlice';
 import { spacing } from '../../src/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: string }>();
-  const initialRole =
-    params.role === 'entregador'
-      ? 'entregador'
-      : params.role === 'restaurante'
-        ? 'restaurante'
-        : 'cliente';
   const { colors } = useTheme();
-  const [selectedRole, setSelectedRole] = useState<'cliente' | 'entregador' | 'restaurante'>(
-    initialRole as any,
-  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -239,14 +228,14 @@ export default function RegisterScreen() {
         email: email.trim().toLowerCase(),
         telefone: phone.trim(),
         password,
-        role: selectedRole,
+        role: 'cliente',
       }).unwrap();
 
       // Backend devolve { user, requiresOtp } sem tokens — é preciso verificar OTP
       if (registerData?.token && registerData?.user) {
         const { token, refreshToken, user } = registerData;
         const role = roleFromUser(user);
-        await saveDemoSession({ token, refreshToken, user, role });
+        await saveSession({ token, refreshToken, user, role });
         dispatch(setSession({ token, user, role }));
         router.replace('/(tabs)');
         return;
@@ -272,7 +261,7 @@ export default function RegisterScreen() {
             const verifyRes = await verifyOtpMutation({ telefone, codigo: devCodigo }).unwrap();
             const { token, refreshToken, user } = verifyRes;
             const role = roleFromUser(user);
-            await saveDemoSession({ token, refreshToken, user, role });
+            await saveSession({ token, refreshToken, user, role });
             dispatch(setSession({ token, user, role }));
             router.replace('/(tabs)');
             return;
@@ -316,7 +305,7 @@ export default function RegisterScreen() {
       }).unwrap();
       const { token, refreshToken, user } = res;
       const role = roleFromUser(user);
-      await saveDemoSession({ token, refreshToken, user, role });
+      await saveSession({ token, refreshToken, user, role });
       dispatch(setSession({ token, user, role }));
       router.replace('/(tabs)');
     } catch (err: any) {
@@ -371,57 +360,6 @@ export default function RegisterScreen() {
           </View>
 
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '700',
-                color: colors.neutral[700],
-                textAlign: 'center',
-              }}
-            >
-              Tipo de conta
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {[
-                { id: 'cliente', label: 'Cliente', icon: 'person' },
-                { id: 'entregador', label: 'Entregador', icon: 'bicycle' },
-                { id: 'restaurante', label: 'Restaurante', icon: 'storefront' },
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  onPress={() => setSelectedRole(opt.id as any)}
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor:
-                      selectedRole === opt.id ? colors.primary[500] : colors.neutral[200],
-                    backgroundColor:
-                      selectedRole === opt.id ? colors.primary[500] : colors.surfaceContainer,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name={opt.icon as any}
-                    size={16}
-                    color={selectedRole === opt.id ? colors.white : colors.neutral[500]}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: '700',
-                      color: selectedRole === opt.id ? colors.white : colors.neutral[500],
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
             <View style={styles.inputWrapper}>
               <Ionicons
                 name="person-outline"

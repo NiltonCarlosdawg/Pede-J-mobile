@@ -283,6 +283,25 @@ export interface VoipTokenResponse {
   native: VoipNativeConfig;
 }
 
+export type CallStatus = 'ringing' | 'ongoing' | 'ended' | 'missed' | 'declined';
+
+/** Resposta de POST /calls/initiate e POST /calls/:id/token */
+export interface CallSessionResponse {
+  callId: string;
+  roomId?: string;
+  roomName: string;
+  token: string;
+  livekitUrl: string;
+  provider: string;
+  identity: string;
+  orderId: string;
+  status?: CallStatus;
+  expiresIn: number;
+  callerName?: string;
+  calleeName?: string;
+  native?: VoipNativeConfig;
+}
+
 export interface Rating {
   id: string;
   orderId: string;

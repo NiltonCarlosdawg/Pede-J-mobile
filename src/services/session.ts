@@ -3,31 +3,35 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User } from '../types';
 
-// Names retained for existing imports. All sessions are now server-authenticated.
-export type DemoRole = 'client' | 'delivery' | 'restaurant';
-export type DemoSession = { token: string; refreshToken?: string; user: User; role: DemoRole };
+// Sessão persistida no SecureStore. Todos os tokens vêm da API (não há contas locais).
+// 'restaurant' mantém-se apenas como tipo das rotas guardadas de app/(restaurant);
+// roleFromUser rejeita esse perfil, porque o painel do restaurante é uma app separada.
+export type SessionRole = 'client' | 'delivery' | 'restaurant';
+export type Session = { token: string; refreshToken?: string; user: User; role: SessionRole };
 const SESSION_KEY = 'pedeja.session.v2';
-const listeners = new Set<(session: DemoSession | null) => void>();
-let memorySession: DemoSession | null = null;
+const listeners = new Set<(session: Session | null) => void>();
+let memorySession: Session | null = null;
 let loaded = false;
 let generation = 0;
 let persistence: Promise<unknown> = Promise.resolve();
 
-export function roleFromUser(user: User): DemoRole {
+export function roleFromUser(user: User): SessionRole {
   switch (user?.role) {
     case 'cliente':
       return 'client';
     case 'entregador':
       return 'delivery';
     case 'restaurante':
-      return 'restaurant';
+      throw new Error(
+        'O painel do restaurante é uma aplicação separada. Entre com uma conta de cliente ou entregador.',
+      );
     default:
       throw new Error('Este perfil não tem acesso à aplicação mobile.');
   }
 }
 
-export function validateSession(value: unknown): DemoSession {
-  const session = value as DemoSession;
+export function validateSession(value: unknown): Session {
+  const session = value as Session;
   if (
     !session ||
     typeof session.token !== 'string' ||
@@ -42,14 +46,14 @@ export function validateSession(value: unknown): DemoSession {
   return { ...session, role: roleFromUser(session.user) };
 }
 
-export function onSessionChange(listener: (session: DemoSession | null) => void) {
+export function onSessionChange(listener: (session: Session | null) => void) {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
 }
 
-export async function loadDemoSession(): Promise<DemoSession | null> {
+export async function loadSession(): Promise<Session | null> {
   if (loaded) return memorySession;
   const version = generation;
   // Never migrate plaintext tokens. Existing installations must authenticate again.
@@ -66,7 +70,7 @@ export async function loadDemoSession(): Promise<DemoSession | null> {
   return memorySession;
 }
 
-export async function saveDemoSession(value: DemoSession): Promise<void> {
+export async function saveSession(value: Session): Promise<void> {
   const session = validateSession(value);
   const version = ++generation;
   const write = persistence
@@ -86,7 +90,7 @@ export async function saveDemoSession(value: DemoSession): Promise<void> {
   await write;
 }
 
-export async function clearDemoSession(): Promise<void> {
+export async function clearStoredSession(): Promise<void> {
   generation++;
   memorySession = null;
   loaded = true;

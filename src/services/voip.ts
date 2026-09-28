@@ -1,11 +1,13 @@
 import { Alert, AppState, NativeModules, Platform } from 'react-native';
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import * as Crypto from 'expo-crypto';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
-import api, { voipApi } from './api';
+import api, { callsApi, voipApi } from './api';
+import { getRealtimeSocket } from './realtime';
 import { safeSetItem } from '../utils/storage';
-import type { VoipConfig, VoipTokenResponse } from '../types';
+import type { VoipConfig } from '../types';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const VOIP_CHANNEL_ID = 'pedeja-calls';
@@ -17,6 +19,10 @@ export type ActiveVoipCall = {
   callId: string;
   orderId: string;
   token: string;
+  /** Sala LiveKit — o token de quem recebe é pedido em /calls/:id/token */
+  roomName?: string;
+  /** URL pública do LiveKit (vem do backend — nunca hardcoded no app) */
+  livekitUrl?: string;
   provider: string;
   identity: string;
   direction: 'outgoing' | 'incoming';
@@ -29,6 +35,8 @@ type IncomingPayload = {
   callId?: string;
   uuid?: string;
   orderId?: string;
+  roomName?: string;
+  livekitUrl?: string;
   callerName?: string;
   handle?: string;
   title?: string;
@@ -254,7 +262,9 @@ export async function displayIncomingVoipCall(payload: IncomingPayload) {
     callId,
     orderId,
     token: String(payload.token ?? ''),
-    provider: String(payload.provider ?? cachedConfig?.provider ?? 'mock'),
+    roomName: payload.roomName ? String(payload.roomName) : undefined,
+    livekitUrl: payload.livekitUrl ? String(payload.livekitUrl) : undefined,
+    provider: String(payload.provider ?? cachedConfig?.provider ?? 'livekit'),
     identity: '',
     direction: 'incoming',
     callerName,
@@ -273,35 +283,41 @@ export async function displayIncomingVoipCall(payload: IncomingPayload) {
 
   // Fallback JS (Expo Go / web): alerta local.
   Alert.alert('Chamada a entrar', `${callerName} — Pedido #${orderId.slice(-4) || '----'}`, [
-    { text: 'Recusar', style: 'cancel', onPress: () => void endVoipCall(uuid) },
+    { text: 'Recusar', style: 'cancel', onPress: () => void endVoipCall(uuid, 'declined') },
     { text: 'Atender', onPress: () => navigateToCallScreen(call) },
   ]);
   return call;
 }
 
-export async function startVoipCall(orderId: string): Promise<VoipTokenResponse | null> {
-  if (!orderId || orderId.startsWith('local-')) {
-    Alert.alert('Chamada indisponível', 'Este pedido ainda não está sincronizado com o servidor.');
+/**
+ * Inicia uma chamada 1-1 para o pedido via `POST /calls/initiate`
+ * (Header Idempotency-Key estável por tentativa) e navega para /call.
+ */
+export async function startVoipCall(orderId: string): Promise<ActiveVoipCall | null> {
+  if (!orderId) {
+    Alert.alert('Chamada indisponível', 'Pedido inválido.');
     return null;
   }
 
   try {
-    const [{ data: config }, { data: tokenData }] = await Promise.all([
-      voipApi.getConfig(),
-      voipApi.requestToken(orderId),
-    ]);
-    cachedConfig = config as VoipConfig;
-    const session = tokenData as VoipTokenResponse;
+    const idempotencyKey = Crypto.randomUUID();
+    const { data: config } = await voipApi.getConfig().catch(() => ({ data: null }));
+    if (config) cachedConfig = config as VoipConfig;
+
+    const { data: session } = await callsApi.initiate(orderId, idempotencyKey);
     const uuid = newCallUuid();
-    const callerName = 'Entrega PedeJá';
+    // Na tela de chamada mostramos a OUTRA parte: para quem liga, é o callee.
+    const callerName = String(session.calleeName ?? session.callerName ?? 'Chamada PedeJá');
 
     const call: ActiveVoipCall = {
       uuid,
-      callId: session.callId,
-      orderId: session.orderId,
-      token: session.token,
-      provider: session.provider,
-      identity: session.identity,
+      callId: String(session.callId ?? ''),
+      orderId: String(session.orderId ?? orderId),
+      token: String(session.token ?? ''),
+      roomName: session.roomName ? String(session.roomName) : undefined,
+      livekitUrl: session.livekitUrl ? String(session.livekitUrl) : undefined,
+      provider: String(session.provider ?? 'livekit'),
+      identity: String(session.identity ?? ''),
       direction: 'outgoing',
       callerName,
       startedAt: new Date().toISOString(),
@@ -315,16 +331,67 @@ export async function startVoipCall(orderId: string): Promise<VoipTokenResponse 
     }
 
     navigateToCallScreen(call);
-    return session;
+    return call;
   } catch (err) {
-    console.error('Failed to start VoIP call:', err);
+    console.error('Failed to start call:', err);
     Alert.alert('Erro', 'Não foi possível iniciar a chamada. Tente novamente.');
     return null;
   }
 }
 
-export async function endVoipCall(uuid?: string) {
+/**
+ * Quem recebe a chamada: pede o token da sala em `POST /calls/:id/token`
+ * (a chamada passa a `ongoing` no servidor) e devolve a sessão para ligar.
+ */
+export async function answerVoipCall(callId?: string): Promise<ActiveVoipCall | null> {
+  const current = activeCall;
+  const id = callId ?? current?.callId;
+  if (!id) return null;
+  if (current?.token && current?.livekitUrl) return current;
+
+  try {
+    const { data } = await callsApi.accept(id);
+    const next: ActiveVoipCall = {
+      uuid: current?.uuid ?? id,
+      callId: id,
+      orderId: String(data.orderId ?? current?.orderId ?? ''),
+      token: String(data.token ?? ''),
+      roomName: data.roomName ? String(data.roomName) : current?.roomName,
+      livekitUrl: data.livekitUrl ? String(data.livekitUrl) : current?.livekitUrl,
+      provider: String(data.provider ?? 'livekit'),
+      identity: String(data.identity ?? current?.identity ?? ''),
+      direction: current?.direction ?? 'incoming',
+      callerName: current?.callerName ?? 'Chamada PedeJá',
+      startedAt: current?.startedAt ?? new Date().toISOString(),
+      muted: current?.muted,
+    };
+    await persistActiveCall(next);
+    return next;
+  } catch (err) {
+    console.error('[voip] answer failed:', err);
+    Alert.alert('Chamada', 'Não foi possível atender a chamada.');
+    return null;
+  }
+}
+
+/**
+ * Termina a chamada: `ended` quando já havia atendimento, `declined` quando
+ * ainda estava a tocar e quem recebe recusa.
+ */
+export async function endVoipCall(uuid?: string, outcome: 'ended' | 'declined' = 'ended') {
   const target = uuid ?? activeCall?.uuid;
+  const callId = activeCall?.callId;
+  // Recusa real: quem recebe desliga antes de pedir o token da sala.
+  const declined =
+    outcome === 'declined' ||
+    (activeCall?.direction === 'incoming' && !activeCall?.token && !activeCall?.livekitUrl);
+  if (callId) {
+    try {
+      await callsApi.setStatus(callId, declined ? 'declined' : 'ended');
+    } catch (err) {
+      console.warn('[voip] failed to update call status:', err);
+    }
+  }
   if (canUseNativeVoip() && target) {
     try {
       const RNCallKeep = await loadCallKeep();
@@ -335,6 +402,34 @@ export async function endVoipCall(uuid?: string) {
   }
   await cleanupCallAudio();
   await persistActiveCall(null);
+}
+
+/**
+ * Subscrição Socket.IO dos eventos de chamada (chamada recebida / perdida).
+ * Chamar uma vez por sessão autenticada (app/_layout.tsx).
+ */
+export async function subscribeVoipEvents(): Promise<() => void> {
+  try {
+    const socket = await getRealtimeSocket();
+    const onIncoming = (payload: Record<string, unknown>) => {
+      void displayIncomingVoipCall(payload as IncomingPayload);
+    };
+    const onMissed = (payload: Record<string, unknown>) => {
+      if (activeCall && activeCall.callId === payload.callId && activeCall.direction === 'outgoing') {
+        Alert.alert('Chamada não atendida', 'A chamada não foi atendida.');
+        void endVoipCall(activeCall.uuid);
+      }
+    };
+    socket.on('incoming_call', onIncoming);
+    socket.on('call_missed', onMissed);
+    return () => {
+      socket.off('incoming_call', onIncoming);
+      socket.off('call_missed', onMissed);
+    };
+  } catch (err) {
+    console.warn('[voip] realtime subscribe failed:', err);
+    return () => undefined;
+  }
 }
 
 export async function setVoipMuted(muted: boolean) {

@@ -1,6 +1,6 @@
 import axios, { create as createAxios, isAxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { clearDemoSession, loadDemoSession, saveDemoSession } from './demoAuth';
+import { clearStoredSession, loadSession, saveSession } from './session';
 import { API_URL } from './config';
 
 export const BASE_URL = API_URL;
@@ -18,7 +18,7 @@ api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
       if (!publicAuth(config.url)) {
-        const session = await loadDemoSession();
+        const session = await loadSession();
         const request = config as SessionRequest;
         if (request.sessionUserId && request.sessionUserId !== session?.user.id)
           throw new Error('Sessão alterada.');
@@ -41,7 +41,7 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config as SessionRequest | undefined;
     if (error.response?.status === 401 && original && !publicAuth(original.url)) {
-      const session = await loadDemoSession();
+      const session = await loadSession();
       if (original.sessionUserId !== session?.user.id) return Promise.reject(error);
       const requestToken = String(original.headers.Authorization ?? '');
       if (session && requestToken !== `Bearer ${session.token}` && !original.retried) {
@@ -50,7 +50,7 @@ api.interceptors.response.use(
       }
       if (!session) return Promise.reject(error);
       if (original.retried || !session.refreshToken) {
-        await clearDemoSession();
+        await clearStoredSession();
         return Promise.reject(error);
       }
       try {
@@ -61,11 +61,11 @@ api.interceptors.response.use(
               { refreshToken: session.refreshToken },
               { timeout: 15000 },
             );
-            if ((await loadDemoSession())?.token !== session.token)
+            if ((await loadSession())?.token !== session.token)
               throw new Error('Sessão alterada.');
             if (typeof response.data.token !== 'string' || !response.data.token)
               throw new Error('Token inválido.');
-            await saveDemoSession({
+            await saveSession({
               ...session,
               token: response.data.token,
               refreshToken: response.data.refreshToken ?? session.refreshToken,
@@ -83,7 +83,7 @@ api.interceptors.response.use(
           isAxiosError(refreshError) &&
           [400, 401, 403].includes(refreshError.response?.status ?? 0)
         ) {
-          if ((await loadDemoSession())?.token === session.token) await clearDemoSession();
+          if ((await loadSession())?.token === session.token) await clearStoredSession();
         }
         return Promise.reject(refreshError);
       }
@@ -104,7 +104,7 @@ export const authApi = {
   }) => api.post('/auth/register', data),
   getProfile: async () =>
     api.get('/auth/me', {
-      headers: { Authorization: `Bearer ${(await loadDemoSession())?.token ?? ''}` },
+      headers: { Authorization: `Bearer ${(await loadSession())?.token ?? ''}` },
     }),
   updateProfile: (data: { name?: string; phone?: string; avatar?: string }) =>
     api.patch('/users/me', data),
@@ -113,7 +113,7 @@ export const authApi = {
       '/auth/logout',
       {},
       {
-        headers: { Authorization: `Bearer ${(await loadDemoSession())?.token ?? ''}` },
+        headers: { Authorization: `Bearer ${(await loadSession())?.token ?? ''}` },
         timeout: 5000,
       },
     ),
@@ -186,6 +186,23 @@ export const voipApi = {
   getConfig: () => api.get('/calls/config'),
   requestToken: (orderId: string) => api.post(`/orders/${orderId}/call/voip-token`),
   getHistory: (orderId: string) => api.get(`/orders/${orderId}/call/history`),
+};
+
+/** Chamadas de voz LiveKit (cliente ↔ entregador do pedido). */
+export const callsApi = {
+  getConfig: () => api.get('/calls/config'),
+  /** Exige header Idempotency-Key (estável por tentativa do utilizador). */
+  initiate: (orderId: string, idempotencyKey: string) =>
+    api.post(
+      '/calls/initiate',
+      { orderId },
+      { headers: { 'Idempotency-Key': idempotencyKey } },
+    ),
+  /** Token do destinatário — atende a chamada (passa a `ongoing`). */
+  accept: (callId: string) => api.post(`/calls/${callId}/token`, {}),
+  setStatus: (callId: string, status: 'ongoing' | 'ended' | 'declined' | 'missed') =>
+    api.patch(`/calls/${callId}/status`, { status }),
+  get: (callId: string) => api.get(`/calls/${callId}`),
 };
 
 export const userApi = {

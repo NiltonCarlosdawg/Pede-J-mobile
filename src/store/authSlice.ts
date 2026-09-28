@@ -1,13 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import type { DemoRole } from '../services/demoAuth';
+import type { SessionRole } from '../services/session';
 import type { User } from '../types';
 
 export interface AuthState {
   initialized: boolean;
   token: string | null;
   user: User | null;
-  role: DemoRole | null;
+  role: SessionRole | null;
 }
 
 const initialState: AuthState = {
@@ -26,7 +26,7 @@ const authSlice = createSlice({
       action: PayloadAction<{
         token: string | null;
         user: User | null;
-        role: DemoRole | null;
+        role: SessionRole | null;
       }>,
     ) {
       state.token = action.payload.token;
@@ -34,7 +34,7 @@ const authSlice = createSlice({
       state.role = action.payload.role;
       state.initialized = true;
     },
-    setSession(state, action: PayloadAction<{ token: string; user: User; role: DemoRole }>) {
+    setSession(state, action: PayloadAction<{ token: string; user: User; role: SessionRole }>) {
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.role = action.payload.role;

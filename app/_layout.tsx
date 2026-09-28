@@ -16,13 +16,17 @@ import { Provider } from 'react-redux';
 
 import { AnimatedSplashScreen } from '../src/components/ui/SplashScreen';
 import {
-  loadDemoSession,
-  clearDemoSession,
-  saveDemoSession,
+  loadSession,
+  clearStoredSession,
+  saveSession,
   onSessionChange,
-} from '../src/services/demoAuth';
+} from '../src/services/session';
 import { initializeNotifications, setupNotificationListener } from '../src/services/notifications';
-import { initializeVoip, maybeHandleVoipNotificationData } from '../src/services/voip';
+import {
+  initializeVoip,
+  maybeHandleVoipNotificationData,
+  subscribeVoipEvents,
+} from '../src/services/voip';
 import '../src/services/sentry';
 import { store, useAppDispatch, useAppSelector } from '../src/store';
 import { apiSlice } from '../src/services/apiSlice';
@@ -82,15 +86,15 @@ function RootLayoutNav() {
     (async () => {
       try {
         setBootError(false);
-        const session = await loadDemoSession();
+        const session = await loadSession();
         if (session) {
           const data = await dispatch(
             apiSlice.endpoints.getProfile.initiate(undefined, { forceRefetch: true }),
           ).unwrap();
           if (!isMounted) return;
-          const current = await loadDemoSession();
+          const current = await loadSession();
           if (current)
-            await saveDemoSession({
+            await saveSession({
               ...current,
               user: (data as { user?: typeof data }).user ?? data,
             });
@@ -103,7 +107,7 @@ function RootLayoutNav() {
             ? (error as { status: unknown }).status
             : undefined;
         if (status === 401 || status === 403) {
-          await clearDemoSession();
+          await clearStoredSession();
           setIsLoading(false);
         } else {
           setBootError(true);
@@ -138,7 +142,7 @@ function RootLayoutNav() {
         <Button
           title="Entrar com outra conta"
           onPress={() => {
-            void clearDemoSession().then(() => {
+            void clearStoredSession().then(() => {
               setBootError(false);
               setIsLoading(false);
             });
@@ -171,9 +175,22 @@ function RootLayoutNavContent() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    let cancelled = false;
+    let offVoip: (() => void) | undefined;
     dispatch(hydratePaymentMethods());
     void initializeNotifications().catch(() => undefined);
     void initializeVoip().catch(() => undefined);
+    // Eventos de chamada (incoming_call / call_missed) via Socket.IO.
+    void subscribeVoipEvents()
+      .then((off) => {
+        if (cancelled) off();
+        else offVoip = off;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      offVoip?.();
+    };
   }, [dispatch, isAuthenticated]);
 
   useEffect(() => {

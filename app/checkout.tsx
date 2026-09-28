@@ -32,7 +32,6 @@ import {
   removeCoupon,
   selectAppliedCoupon,
   calculateDiscount,
-  selectActiveCoupons,
 } from '../src/store/promotionsSlice';
 import {
   selectCartItems,
@@ -40,7 +39,7 @@ import {
   selectCartSubtotal,
 } from '../src/store/cartSelectors';
 import { clearCart } from '../src/store/cartSlice';
-import { addOrder, type Order as LocalOrder } from '../src/store/ordersSlice';
+import { addOrder, type Order as OrderSnapshot } from '../src/store/ordersSlice';
 import { selectPaymentMethods } from '../src/store/paymentMethodsSlice';
 import { useGetAddressesQuery, useValidateCouponMutation } from '../src/hooks/useApi';
 import { formatPrice, spacing, typography } from '../src/theme';
@@ -48,9 +47,8 @@ import type { Address, PaymentMethod } from '../src/types';
 import * as Crypto from 'expo-crypto';
 
 const ROW_HIT_SLOP = { top: 14, bottom: 14, left: 10, right: 10 };
-const DEMO_RESTAURANT_ID = '5';
 
-function buildLocalOrder(params: {
+function buildOrderSnapshot(params: {
   items: ReturnType<typeof selectCartItems>;
   address: Address;
   payment: PaymentMethod;
@@ -59,7 +57,7 @@ function buildLocalOrder(params: {
   discount: number;
   total: number;
   orderId: string;
-}): LocalOrder {
+}): OrderSnapshot {
   return {
     id: params.orderId,
     items: params.items.map((item) => ({
@@ -97,7 +95,6 @@ export default function CheckoutScreen() {
   const subtotal = useAppSelector(selectCartSubtotal);
   const cartRestaurantId = useAppSelector(selectCartRestaurantId);
   const appliedCoupon = useAppSelector(selectAppliedCoupon);
-  const activeCoupons = useAppSelector(selectActiveCoupons);
   const paymentMethods = useAppSelector(selectPaymentMethods);
   const { colors } = useTheme();
 
@@ -415,24 +412,8 @@ export default function CheckoutScreen() {
       setCouponCode('');
       return;
     } catch {
-      // Mantém fallback local quando a API estiver indisponível.
+      setCouponError('Não foi possível validar o cupão. Verifique a ligação e tente novamente.');
     }
-
-    const coupon = activeCoupons.find((c) => c.code.toUpperCase() === code);
-
-    if (!coupon) {
-      setCouponError('Cupão inválido ou expirado');
-      return;
-    }
-
-    if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
-      setCouponError(`Pedido mínimo de Kz ${coupon.minOrderValue}`);
-      return;
-    }
-
-    dispatch(applyCoupon(code));
-    setCouponError('');
-    setCouponCode('');
   };
 
   const handleRemoveCoupon = () => {
@@ -461,8 +442,17 @@ export default function CheckoutScreen() {
         idempotencyKey = Crypto.randomUUID();
       }
 
+      if (!cartRestaurantId) {
+        const validation: OrderMutationError = {
+          type: 'VALIDATION_ERROR',
+          message: 'O carrinho não tem restaurante associado. Volte e escolha os produtos novamente.',
+        };
+        setOrderError(validation);
+        return { error: validation, fatal: true };
+      }
+
       const payload = {
-        restaurantId: cartRestaurantId ?? DEMO_RESTAURANT_ID,
+        restaurantId: cartRestaurantId,
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
@@ -510,7 +500,7 @@ export default function CheckoutScreen() {
     retryPayloadRef.current = null;
     const result = await doSubmitOrder(false);
     if (result.error || !result.remoteId) return;
-    const order = buildLocalOrder({
+    const order = buildOrderSnapshot({
       items,
       address: currentAddress,
       payment: currentPayment,
@@ -535,7 +525,7 @@ export default function CheckoutScreen() {
     setRetryCount((prev) => prev + 1);
     const result = await doSubmitOrder(true);
     if (result.error || !result.remoteId) return;
-    const order = buildLocalOrder({
+    const order = buildOrderSnapshot({
       items,
       address: currentAddress,
       payment: currentPayment,

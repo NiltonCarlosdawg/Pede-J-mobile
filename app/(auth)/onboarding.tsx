@@ -59,9 +59,8 @@ export default function OnboardingScreen() {
       id: '3',
       icon: 'account-group',
       iconColor: colors.primary[500],
-      title: 'Seja um Parceiro',
-      description:
-        'Quer entregar ou vender? Junte-se a nós como entregador ou restaurante parceiro e comece a ganhar!',
+      title: 'Seja um Entregador',
+      description: 'Quer entregar? Junte-se a nós como entregador parceiro e comece a ganhar!',
     },
   ];
 

@@ -20,7 +20,7 @@ import { ConfirmDialog } from '../../src/components/ui/ConfirmDialog';
 import { useAppDispatch, useAppSelector } from '../../src/store';
 import { clearSession } from '../../src/store/authSlice';
 import { clearCart } from '../../src/store/cartSlice';
-import { clearDemoSession } from '../../src/services/demoAuth';
+import { clearStoredSession } from '../../src/services/session';
 import { requestLocationPermissions } from '../../src/services/location';
 import { useLogoutMutation, useToggleLocationSharingMutation } from '../../src/hooks/useApi';
 import { LOCATION_SHARING_STORAGE_KEY } from '../../src/hooks/useDriverLocationPublisher';
@@ -469,7 +469,7 @@ export default function DeliveryProfileScreen() {
         .unwrap()
         .catch(() => undefined);
     } finally {
-      await clearDemoSession();
+      await clearStoredSession();
       dispatch(clearCart());
       dispatch(clearSession());
       router.replace('/(auth)/login');

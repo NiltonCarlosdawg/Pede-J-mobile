@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
   Animated,
   Image,
@@ -22,26 +22,16 @@ import {
   useVerifyOtpMutation,
   useLazyGetOtpDevCodeQuery,
 } from '../../src/hooks/useApi';
-import { saveDemoSession, roleFromUser } from '../../src/services/demoAuth';
+import { saveSession, roleFromUser } from '../../src/services/session';
 import { useAppDispatch } from '../../src/store';
 import { setSession } from '../../src/store/authSlice';
 import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 
-type UserRole = 'client' | 'delivery' | 'restaurant';
-
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ role?: UserRole }>();
-  const initialRole =
-    params.role === 'delivery'
-      ? 'delivery'
-      : params.role === 'restaurant'
-        ? 'restaurant'
-        : 'client';
 
-  const [role, setRole] = useState<UserRole>(initialRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -87,36 +77,6 @@ export default function LoginScreen() {
           color: colors.neutral[500],
           marginTop: spacing.xs,
         },
-        roleSelector: {
-          flexDirection: 'row',
-          gap: spacing.sm,
-          marginBottom: spacing.sm,
-        },
-        roleButton: {
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: spacing.xs,
-          paddingVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-          borderRadius: 12,
-          backgroundColor: colors.surfaceContainer,
-          borderWidth: 1,
-          borderColor: colors.surfaceVariant,
-        },
-        roleButtonActive: {
-          backgroundColor: colors.primary[500],
-          borderColor: colors.primary[500],
-        },
-        roleText: {
-          fontSize: 14,
-          fontWeight: '600',
-          color: colors.neutral[500],
-        },
-        roleTextActive: {
-          color: colors.white,
-        },
         formCard: {
           backgroundColor: colors.surfaceContainerLowest,
           borderWidth: 1,
@@ -158,21 +118,6 @@ export default function LoginScreen() {
           fontWeight: '600',
           textAlign: 'center',
         },
-        demoSection: {
-          alignItems: 'center',
-          marginTop: spacing.xs,
-        },
-        demoButton: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.xs,
-          paddingVertical: spacing.sm,
-        },
-        demoButtonText: {
-          fontSize: 13,
-          fontWeight: '600',
-          color: colors.primary[500],
-        },
         footer: {
           flexDirection: 'row',
           justifyContent: 'center',
@@ -191,19 +136,6 @@ export default function LoginScreen() {
       }),
     [colors],
   );
-
-  useEffect(() => {
-    if (params.role) {
-      const newRole =
-        params.role === 'delivery'
-          ? 'delivery'
-          : params.role === 'restaurant'
-            ? 'restaurant'
-            : 'client';
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza o perfil quando o parâmetro da rota muda
-      setRole(newRole);
-    }
-  }, [params.role]);
 
   function triggerShake() {
     Animated.sequence([
@@ -244,7 +176,7 @@ export default function LoginScreen() {
       }).unwrap();
       const sessionRole = roleFromUser(user);
 
-      await saveDemoSession({ token, refreshToken, user, role: sessionRole });
+      await saveSession({ token, refreshToken, user, role: sessionRole });
       dispatch(setSession({ token, user, role: sessionRole }));
     } catch (loginError: any) {
       // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
@@ -273,7 +205,7 @@ export default function LoginScreen() {
               }).unwrap();
               const { token: t, refreshToken: rt, user: u } = verifyRes;
               const sRole = roleFromUser(u);
-              await saveDemoSession({ token: t, refreshToken: rt, user: u, role: sRole });
+              await saveSession({ token: t, refreshToken: rt, user: u, role: sRole });
               dispatch(setSession({ token: t, user: u, role: sRole }));
               return;
             }
@@ -308,127 +240,6 @@ export default function LoginScreen() {
             <Text style={styles.tagline}>Entre e aproveite</Text>
           </View>
 
-          {/* Seletor de perfil */}
-          <View style={styles.roleSelector}>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
-              onPress={() => setRole('client')}
-            >
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color={role === 'client' ? colors.white : colors.neutral[500]}
-              />
-              <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>
-                Cliente
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'delivery' && styles.roleButtonActive]}
-              onPress={() => setRole('delivery')}
-            >
-              <Ionicons
-                name="bicycle-outline"
-                size={18}
-                color={role === 'delivery' ? colors.white : colors.neutral[500]}
-              />
-              <Text style={[styles.roleText, role === 'delivery' && styles.roleTextActive]}>
-                Entregador
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'restaurant' && styles.roleButtonActive]}
-              onPress={() => setRole('restaurant')}
-            >
-              <Ionicons
-                name="restaurant-outline"
-                size={18}
-                color={role === 'restaurant' ? colors.white : colors.neutral[500]}
-              />
-              <Text style={[styles.roleText, role === 'restaurant' && styles.roleTextActive]}>
-                Restaurante
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text
-            style={{
-              fontSize: 12,
-              color: colors.neutral[500],
-              textAlign: 'center',
-              marginBottom: 4,
-            }}
-          >
-            O painel que verás depende da tua conta (cliente / entregador / restaurante), não do
-            botão acima.
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-            <TouchableOpacity
-              onPress={() => {
-                setEmail('restaurante@pedeja.com');
-                setPassword('123456');
-                setRole('restaurant');
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: colors.surfaceContainer,
-                borderRadius: 10,
-                padding: 8,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: colors.surfaceVariant,
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.onSurface }}>
-                Demo Restaurante
-              </Text>
-              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>
-                restaurante@pedeja.com
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setEmail('demo-ent@pedeja.ao');
-                setPassword('segredo123');
-                setRole('delivery');
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: colors.surfaceContainer,
-                borderRadius: 10,
-                padding: 8,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: colors.surfaceVariant,
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.onSurface }}>
-                Demo Entregador
-              </Text>
-              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>demo-ent@pedeja.ao</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setEmail('');
-                setPassword('');
-                setRole('client');
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: colors.surfaceContainer,
-                borderRadius: 10,
-                padding: 8,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: colors.surfaceVariant,
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.onSurface }}>
-                Cliente
-              </Text>
-              <Text style={{ fontSize: 10, color: colors.neutral[500] }}>auto-registo</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Formulário */}
           <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>

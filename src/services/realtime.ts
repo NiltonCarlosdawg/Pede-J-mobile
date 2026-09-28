@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { BASE_URL } from './api';
-import { loadDemoSession, onSessionChange } from './demoAuth';
+import { loadSession, onSessionChange } from './session';
 
 let socket: Socket | null = null;
 let connectPromise: Promise<Socket> | null = null;
@@ -24,7 +24,7 @@ onSessionChange((session) => {
 });
 
 export async function getRealtimeSocket(): Promise<Socket> {
-  const session = await loadDemoSession();
+  const session = await loadSession();
   if (!session) throw new Error('Sessão necessária.');
   if (socket?.connected && socketToken === session.token) return socket;
   if (connectPromise) return connectPromise;

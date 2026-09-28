@@ -19,7 +19,7 @@ import { spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAppDispatch, useAppSelector } from '../../src/store';
 import { clearSession } from '../../src/store/authSlice';
-import { clearDemoSession } from '../../src/services/demoAuth';
+import { clearStoredSession } from '../../src/services/session';
 import {
   useLogoutMutation,
   useToggleOpenMutation,
@@ -149,7 +149,7 @@ export default function RestaurantProfileScreen() {
         .unwrap()
         .catch(() => undefined);
     } finally {
-      await clearDemoSession();
+      await clearStoredSession();
       const { clearCart } = await import('../../src/store/cartSlice');
       dispatch(clearCart());
       dispatch(clearSession());

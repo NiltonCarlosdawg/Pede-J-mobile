@@ -1,19 +1,37 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Room, RoomEvent, type RemoteParticipant } from 'livekit-client';
 
 import { useTheme } from '../src/hooks/useTheme';
 import {
+  answerVoipCall,
+  cleanupCallAudio,
   endVoipCall,
   getActiveVoipCall,
-  setVoipMuted,
-  setSpeakerEnabled,
   initializeCallAudio,
-  cleanupCallAudio,
+  setSpeakerEnabled,
+  setVoipMuted,
 } from '../src/services/voip';
+import { getRealtimeSocket } from '../src/services/realtime';
 import { spacing, typography } from '../src/theme';
+
+type Phase =
+  | 'preparing' // a obter token/globals
+  | 'ringing' // ligado à sala, à espera do outro
+  | 'connected' // participante remoto presente — cronómetro a correr
+  | 'reconnecting'
+  | 'ended'
+  | 'error';
 
 export default function CallScreen() {
   const router = useRouter();
@@ -25,28 +43,137 @@ export default function CallScreen() {
     direction?: string;
   }>();
   const { colors } = useTheme();
+
   const active = getActiveVoipCall();
+  const callerName = params.callerName ?? active?.callerName ?? 'Chamada PedeJá';
+  const orderId = params.orderId ?? active?.orderId ?? '';
+  const direction = params.direction ?? active?.direction ?? 'outgoing';
+  const callId = params.callId ?? active?.callId ?? '';
+
+  const [phase, setPhase] = useState<Phase>('preparing');
+  const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(Boolean(active?.muted));
   const [speaker, setSpeaker] = useState(false);
 
-  const callerName = params.callerName ?? active?.callerName ?? 'Chamada PedeJá';
-  const orderId = params.orderId ?? active?.orderId ?? '';
-  const direction = params.direction ?? active?.direction ?? 'outgoing';
-  const [connected, setConnected] = useState(false);
+  const roomRef = useRef<Room | null>(null);
+  const liveKitRef = useRef<typeof import('@livekit/react-native') | null>(null);
+  const answeredRef = useRef(false);
+  const [answered, setAnswered] = useState(false);
+  const cleanedRef = useRef(false);
 
+  // Cronómetro — só depois de o participante remoto entrar (atendimento real).
   useEffect(() => {
-    initializeCallAudio();
-    return () => {
-      cleanupCallAudio();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!connected) return;
+    if (!answeredRef.current) return;
     const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(timer);
-  }, [connected]);
+  }, [phase]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const finishWithError = (message: string) => {
+      if (cancelled) return;
+      setPhase('error');
+      setError(message);
+    };
+
+    void (async () => {
+      await initializeCallAudio();
+
+      // 1. Sessão da chamada — quem recebe pede o token da sala aqui.
+      let call = getActiveVoipCall();
+      if (call && !call.token) call = (await answerVoipCall(call.callId)) ?? call;
+      if (!call?.token || !call?.livekitUrl || !call?.roomName) {
+        finishWithError('Chamada indisponível: não foi possível obter a sessão de voz.');
+        return;
+      }
+
+      // 2. Globals do LiveKit (WebRTC) — exige development build.
+      try {
+        const lk = await import('@livekit/react-native');
+        lk.registerGlobals();
+        await lk.AudioSession.startAudioSession();
+        liveKitRef.current = lk;
+      } catch (err) {
+        console.warn('[call] LiveKit indisponível:', err);
+        finishWithError(
+          'As chamadas de voz exigem um development build nativo (não correm no Expo Go).',
+        );
+        return;
+      }
+      if (cancelled) return;
+      setPhase('ringing');
+
+      // 3. Ligar à sala LiveKit.
+      try {
+        const next = new Room();
+        roomRef.current = next;
+
+        const markAnswered = (participant?: RemoteParticipant) => {
+          if (participant) answeredRef.current = true;
+          else if (next.remoteParticipants.size > 0) answeredRef.current = true;
+          if (answeredRef.current) {
+            setAnswered(true);
+            setPhase('connected');
+          }
+        };
+
+        next.on(RoomEvent.Connected, () => markAnswered());
+        next.on(RoomEvent.ParticipantConnected, (p) => markAnswered(p));
+        next.on(RoomEvent.ParticipantDisconnected, () => {
+          answeredRef.current = false;
+          setAnswered(false);
+          setPhase('ringing');
+        });
+        next.on(RoomEvent.Reconnecting, () => setPhase('reconnecting'));
+        next.on(RoomEvent.Reconnected, () =>
+          setPhase(answeredRef.current ? 'connected' : 'ringing'),
+        );
+        next.on(RoomEvent.Disconnected, () => {
+          if (!cleanedRef.current) setPhase('ended');
+        });
+
+        await next.connect(call!.livekitUrl!, call!.token!, { autoSubscribe: true });
+        await next.localParticipant.setMicrophoneEnabled(true);
+        if (cancelled) {
+          next.disconnect(true);
+          return;
+        }
+        markAnswered();
+      } catch (err) {
+        console.warn('[call] ligação falhou:', err);
+        finishWithError(
+          'Não foi possível ligar ao servidor de chamadas. Verifique a rede e tente novamente.',
+        );
+      }
+    })();
+
+    // Evento de chamada não atendida (timeout do backend).
+    let offMissed: (() => void) | undefined;
+    void getRealtimeSocket()
+      .then((socket) => {
+        const onMissed = (payload: { callId?: string }) => {
+          if (!callId || payload?.callId !== callId) return;
+          setPhase('ended');
+          setError('A chamada não foi atendida.');
+        };
+        socket.on('call_missed', onMissed);
+        offMissed = () => socket.off('call_missed', onMissed);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+      cleanedRef.current = true;
+      offMissed?.();
+      void roomRef.current?.disconnect(true).catch(() => undefined);
+      roomRef.current = null;
+      void liveKitRef.current?.AudioSession.stopAudioSession().catch(() => undefined);
+      void cleanupCallAudio();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -123,32 +250,92 @@ export default function CallScreen() {
           alignItems: 'center',
           justifyContent: 'center',
         },
+        errorBox: {
+          marginTop: spacing.lg,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
+          borderRadius: 12,
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          maxWidth: '100%',
+        },
+        errorText: {
+          ...typography.bodySm,
+          color: 'rgba(255,255,255,0.85)',
+          textAlign: 'center',
+        },
+        quality: {
+          ...typography.bodySm,
+          color: 'rgba(255,255,255,0.6)',
+          marginTop: spacing.sm,
+        },
       }),
     [colors],
   );
 
   function formatTimer(total: number) {
-    const m = Math.floor(total / 60)
-      .toString()
-      .padStart(2, '0');
+    const m = Math.floor(total / 60).toString().padStart(2, '0');
     const s = (total % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
 
+  const statusLabel =
+    phase === 'error'
+      ? 'Chamada indisponível'
+      : phase === 'ended'
+        ? 'Chamada terminada'
+        : phase === 'reconnecting'
+          ? 'A reconectar…'
+          : phase === 'connected'
+            ? 'Em chamada'
+            : phase === 'ringing'
+              ? direction === 'incoming'
+                ? 'A ligar…'
+                : 'A aguardar atendimento…'
+              : 'A preparar…';
+
   async function toggleMute() {
     const next = !muted;
     setMuted(next);
+    try {
+      const room = roomRef.current;
+      const publication = Array.from(
+        room?.localParticipant.audioTrackPublications.values() ?? [],
+      )[0];
+      if (publication) {
+        if (next) await publication.mute();
+        else await publication.unmute();
+      } else {
+        await room?.localParticipant.setMicrophoneEnabled(!next);
+      }
+    } catch (err) {
+      console.warn('[call] mute failed:', err);
+    }
     await setVoipMuted(next);
   }
 
   async function toggleSpeaker() {
     const next = !speaker;
     setSpeaker(next);
+    try {
+      const lk = liveKitRef.current;
+      if (lk) {
+        const outputs = await lk.AudioSession.getAudioOutputs();
+        const wanted = Platform.OS === 'ios' ? (next ? 'force_speaker' : 'default') : next ? 'speaker' : 'earpiece';
+        if (outputs.includes(wanted)) await lk.AudioSession.selectAudioOutput(wanted);
+      }
+    } catch (err) {
+      console.warn('[call] speaker switch failed:', err);
+    }
     await setSpeakerEnabled(next);
   }
 
   async function hangup() {
-    await endVoipCall(params.uuid ?? active?.uuid);
+    const remoteJoined = answeredRef.current;
+    const activeCall = getActiveVoipCall();
+    await endVoipCall(
+      params.uuid ?? activeCall?.uuid,
+      direction === 'incoming' && !remoteJoined ? 'declined' : 'ended',
+    );
     if (router.canGoBack()) router.back();
     else router.replace(orderId ? { pathname: '/(tabs)/rastreamento' } : '/(tabs)');
   }
@@ -157,53 +344,41 @@ export default function CallScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <View style={styles.top}>
-          <Text style={styles.status}>
-            {!connected
-              ? direction === 'incoming'
-                ? 'Chamada recebida'
-                : 'A ligar…'
-              : 'Em chamada'}
-          </Text>
+          <Text style={styles.status}>{statusLabel}</Text>
           <Text style={styles.name}>{callerName}</Text>
           <Text style={styles.meta}>
-            Pedido #{orderId ? orderId.slice(-4) : '----'} · VoIP
-            {!connected ? ' · a aguardar atendimento real' : ''}
+            Pedido #{orderId ? orderId.slice(-4) : '----'} · Voz LiveKit
           </Text>
           <View style={styles.avatar}>
             <MaterialCommunityIcons name="account" size={56} color={colors.white} />
           </View>
-          <Text style={styles.timer}>{connected ? formatTimer(seconds) : '--:--'}</Text>
-          {!connected ? (
-            <TouchableOpacity
-              style={{
-                marginTop: spacing.md,
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.sm,
-                borderRadius: 12,
-                backgroundColor: colors.white,
-              }}
-              onPress={() => setConnected(true)}
-            >
-              <Text style={{ color: colors.onSurface, fontWeight: '700' }}>
-                Simular atendimento (backend deve confirmar)
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-          <Text
-            style={{
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: 11,
-              marginTop: spacing.sm,
-              textAlign: 'center',
-            }}
-          >
-            O cronómetro só avança após atendimento confirmado pelo servidor/SDK de voz. Integrar
-            provedor WebRTC/Twilio aqui.
+
+          {phase === 'preparing' && (
+            <ActivityIndicator color={colors.white} style={{ marginTop: spacing.lg }} />
+          )}
+
+          <Text style={styles.timer}>
+            {answered ? formatTimer(seconds) : '--:--'}
           </Text>
+
+          {phase === 'connected' && (
+            <Text style={styles.quality}>Ligação ativa · {muted ? 'micro desligado' : 'micro ligado'}</Text>
+          )}
+
+          {phase === 'error' && error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+          {phase === 'ended' && error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.controls}>
-          <TouchableOpacity style={styles.controlBtn} onPress={toggleMute}>
+          <TouchableOpacity style={styles.controlBtn} onPress={toggleMute} disabled={phase === 'error'}>
             <View style={[styles.controlCircle, muted && styles.controlCircleActive]}>
               <MaterialCommunityIcons
                 name={muted ? 'microphone-off' : 'microphone'}
@@ -221,7 +396,7 @@ export default function CallScreen() {
             <Text style={styles.controlLabel}>Desligar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlBtn} onPress={toggleSpeaker}>
+          <TouchableOpacity style={styles.controlBtn} onPress={toggleSpeaker} disabled={phase === 'error'}>
             <View style={[styles.controlCircle, speaker && styles.controlCircleActive]}>
               <MaterialCommunityIcons
                 name={speaker ? 'volume-high' : 'volume-medium'}

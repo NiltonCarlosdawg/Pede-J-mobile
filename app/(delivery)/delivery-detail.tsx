@@ -231,6 +231,8 @@ export default function DeliveryDetailScreen() {
     delivered: 4,
   };
   const deliveryStatus = (order?.status ?? 'pending') as string;
+  // Só permite ligar enquanto o pedido está activo (igual à regra do backend).
+  const canCall = Boolean(order) && order!.status !== 'delivered' && order!.status !== 'cancelled';
   const timeline = [
     { id: 'accepted', label: 'Pedido atribuído' },
     { id: 'picked_up', label: 'Retirado do restaurante' },
@@ -398,8 +400,9 @@ export default function DeliveryDetailScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
             <TouchableOpacity
-              style={styles.contactButton}
+              style={[styles.contactButton, !canCall && { opacity: 0.4 }]}
               onPress={() => order && startVoipCall(order.id)}
+              disabled={!canCall}
             >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>
@@ -435,8 +438,9 @@ export default function DeliveryDetailScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
             <TouchableOpacity
-              style={styles.contactButton}
+              style={[styles.contactButton, !canCall && { opacity: 0.4 }]}
               onPress={() => order && startVoipCall(order.id)}
+              disabled={!canCall}
             >
               <MaterialCommunityIcons name="phone" size={16} color={colors.primary[500]} />
               <Text style={styles.contactText}>Ligar</Text>

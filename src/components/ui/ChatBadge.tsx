@@ -23,7 +23,7 @@ export function ChatBadge({ orderId, size = 24 }: ChatBadgeProps) {
   // último valor lido com sucesso (comportamento anterior do badge).
   const { data: unreadData } = useGetUnreadMessagesQuery(orderId ?? '', {
     pollingInterval: 15000,
-    skip: !orderId || orderId.startsWith('local-'),
+    skip: !orderId,
   });
   const remoteUnread = Number(unreadData?.unreadCount ?? 0);
 

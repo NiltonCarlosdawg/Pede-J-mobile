@@ -82,8 +82,7 @@ export default function TrackingScreen() {
 
   // REST fallback: última posição persistida do entregador.
   // Fetch via RTK Query com o mesmo intervalo do antigo setInterval (8s).
-  const routeOrderId =
-    selectedOrder && !selectedOrder.id.startsWith('local-') ? selectedOrder.id : '';
+  const routeOrderId = selectedOrder ? selectedOrder.id : '';
   const { data: routeData, isError: routeError } = useGetOrderRouteQuery(routeOrderId, {
     pollingInterval: 8000,
     skip: !routeOrderId,
@@ -115,7 +114,7 @@ export default function TrackingScreen() {
 
   // Live updates via WebSocket quando disponíveis
   useEffect(() => {
-    if (!selectedOrder || selectedOrder.id.startsWith('local-')) return;
+    if (!selectedOrder) return;
 
     let unsubscribe: (() => void) | undefined;
     subscribeOrderLocation(selectedOrder.id, (payload) => {
@@ -148,7 +147,6 @@ export default function TrackingScreen() {
     // pedido selecionado é alterado — o re-run apenas re-inscreve na mesma canal WS.
   }, [selectedOrder]);
 
-  const isLocalOrder = Boolean(selectedOrder?.id.startsWith('local-'));
   const hasRealLocation =
     routeInfo?.lastKnown.latitude != null && routeInfo?.lastKnown.longitude != null;
   const lastKnownAgeMs = hasRealLocation // eslint-disable-next-line react-hooks/purity -- a idade do lastKnown é amostrada do relógio em cada render; adiá-la para efeito/memo mudaria quando a idade é calculada
@@ -625,7 +623,6 @@ export default function TrackingScreen() {
                       <Text>
                         Pedido #{selectedOrder.id.slice(-4)} ·{' '}
                         {STATUS_CONFIG[selectedOrder.status].label} · Aguardando localização
-                        {isLocalOrder ? ' (demonstração)' : ''}
                       </Text>
                     )
                   ) : (
@@ -635,7 +632,7 @@ export default function TrackingScreen() {
                     </Text>
                   )}
                 </Text>
-                {selectedOrder.status === 'delivering' && !hasRealLocation && !isLocalOrder ? (
+                {selectedOrder.status === 'delivering' && !hasRealLocation ? (
                   <Text
                     style={{
                       fontSize: 12,
@@ -678,7 +675,14 @@ export default function TrackingScreen() {
                     <Text style={styles.actionButtonText}>Chat</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[
+                      styles.actionButton,
+                      (selectedOrder.status === 'delivered' ||
+                        selectedOrder.status === 'cancelled') && { opacity: 0.4 },
+                    ]}
+                    disabled={
+                      selectedOrder.status === 'delivered' || selectedOrder.status === 'cancelled'
+                    }
                     onPress={() => startVoipCall(selectedOrder.id)}
                   >
                     <View style={styles.actionButtonCircle}>
