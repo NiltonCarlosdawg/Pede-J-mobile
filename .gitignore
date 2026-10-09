@@ -45,3 +45,6 @@ yarn-error.*
 
 # test coverage (artefato de build)
 coverage/
+
+# Workspace de execucao subagent-driven (ledger, briefs, pacotes de revisao)
+.superpowers/
