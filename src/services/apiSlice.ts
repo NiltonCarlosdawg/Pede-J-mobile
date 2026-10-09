@@ -37,11 +37,6 @@ type RegisterPayload = {
   role: string;
 };
 
-type OtpPayload = {
-  telefone: string;
-  codigo: string;
-};
-
 type UpdateProfilePayload = {
   name?: string;
   phone?: string;
@@ -190,28 +185,6 @@ export const apiSlice = createApi({
     register: builder.mutation<AuthResponse, RegisterPayload>({
       query: (body) => ({
         url: '/auth/register',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['Auth'],
-    }),
-    requestOtp: builder.mutation<{ data?: unknown }, { telefone: string }>({
-      query: (body) => ({
-        url: '/auth/otp/request',
-        method: 'POST',
-        body,
-      }),
-    }),
-    getOtpDevCode: builder.query<{ codigo?: string }, { telefone: string }>({
-      // Apenas em desenvolvimento (usado pelas telas de auth em __DEV__).
-      query: ({ telefone }) => ({
-        url: '/auth/otp/dev-code',
-        params: { telefone },
-      }),
-    }),
-    verifyOtp: builder.mutation<AuthResponse, OtpPayload>({
-      query: (body) => ({
-        url: '/auth/otp/verify',
         method: 'POST',
         body,
       }),
@@ -617,9 +590,6 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation,
   useRegisterMutation,
-  useRequestOtpMutation,
-  useLazyGetOtpDevCodeQuery,
-  useVerifyOtpMutation,
   useLogoutMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,

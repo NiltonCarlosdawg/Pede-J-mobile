@@ -12,12 +12,13 @@ const api: AxiosInstance = createAxios({
 });
 
 type SessionRequest = InternalAxiosRequestConfig & { retried?: boolean; sessionUserId?: string };
-const publicAuth = (url?: string) => /^\/auth\/(login|register|refresh|otp\/)/.test(url ?? '');
+export const isPublicAuthUrl = (url?: string): boolean =>
+  /^\/auth\/(login|register|refresh)/.test(url ?? '');
 
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      if (!publicAuth(config.url)) {
+      if (!isPublicAuthUrl(config.url)) {
         const session = await loadSession();
         const request = config as SessionRequest;
         if (request.sessionUserId && request.sessionUserId !== session?.user.id)
@@ -40,7 +41,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config as SessionRequest | undefined;
-    if (error.response?.status === 401 && original && !publicAuth(original.url)) {
+    if (error.response?.status === 401 && original && !isPublicAuthUrl(original.url)) {
       const session = await loadSession();
       if (original.sessionUserId !== session?.user.id) return Promise.reject(error);
       const requestToken = String(original.headers.Authorization ?? '');
@@ -116,9 +117,6 @@ export const authApi = {
         timeout: 5000,
       },
     ),
-  requestOtp: (telefone: string) => api.post('/auth/otp/request', { telefone }),
-  verifyOtp: (telefone: string, codigo: string) =>
-    api.post('/auth/otp/verify', { telefone, codigo }),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
 };
 

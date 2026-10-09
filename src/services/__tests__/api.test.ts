@@ -28,8 +28,6 @@ jest.mock('../api', () => {
       getProfile: jest.fn(),
       updateProfile: jest.fn(),
       logout: jest.fn(),
-      requestOtp: jest.fn(),
-      verifyOtp: jest.fn(),
       refresh: jest.fn(),
     },
     restaurantApi: {

@@ -27,12 +27,10 @@ export {
   useGetUnreadMessagesQuery,
   useInitiatePaymentMutation,
   useLazyGetMyRestaurantQuery,
-  useLazyGetOtpDevCodeQuery,
   useLoginMutation,
   useLogoutMutation,
   useMarkMessagesReadMutation,
   useRegisterMutation,
-  useRequestOtpMutation,
   useSendMessageMutation,
   useToggleLocationSharingMutation,
   useToggleOpenMutation,
@@ -43,5 +41,4 @@ export {
   useUpdateRestaurantOrderStatusMutation,
   useUpdateRestaurantProfileMutation,
   useValidateCouponMutation,
-  useVerifyOtpMutation,
 } from '../services/apiSlice';
