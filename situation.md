@@ -201,8 +201,8 @@ app/(tabs)/
 ├── index.tsx          ← lista via restaurantApi.list real
 
 app/(auth)/
-├── login.tsx          ← sem selector de perfil nem contas demo, POST /auth/login + dev-code OTP
-├── register.tsx       ← registo só `cliente` (role fixo), fluxo OTP request/verify/dev-code
+├── login.tsx          ← sem selector de perfil nem contas demo, POST /auth/login
+├── register.tsx       ← registo só `cliente` (role fixo), registo directo com tokens
 └── profile-select.tsx ← encaminha cliente→register, outros→login
 
 app/
@@ -268,11 +268,11 @@ Backend corrigido nesta sessão:
 ## 12. Limpeza da sessão 2026-09-27 (contas demo / restaurante removidas da UI)
 
 - **Sessão:** `src/services/demoAuth.ts` → `src/services/session.ts` (`DemoRole`→`SessionRole`, `loadDemoSession`→`loadSession`, `clearDemoSession`→`clearStoredSession`, colisão com a action Redux `clearSession` resolvida renomeando a da storage).
-- **Login:** sem selector de perfil (Cliente/Entregador/Restaurante), sem botões demo; auto-preenchimento do dev-code OTP mantido (âmbito de teste).
+- **Login:** sem selector de perfil (Cliente/Entregador/Restaurante), sem botões demo; sem auto-preenchimento de códigos (o registo passou a ser directo, sem OTP).
 - **Registo:** sem bloco "Tipo de conta" — envia sempre `role: 'cliente'`; `profile-select` só Cliente/Entregador (cartão "Tenho um restaurante" removido).
 - **Bloqueio:** `roleFromUser` lança para `restaurante` ("O painel do restaurante é uma aplicação separada"); ecrãs `app/(restaurant)/` mantidos no repo mas inalcançáveis (decisão: só esconder, não apagar).
 - **Checkout:** `DEMO_RESTAURANT_ID` e fallback local de cupão removidos (`buildOrderSnapshot`); `src/constants/checkoutFallbacks.ts` apagado.
 - **Código morto `local-*` removido** (7 sítios): `rastreamento.tsx` (routeOrderId/effect/isLocalOrder/label demonstração), `ChatBadge`, `useDriverLocationPublisher`, `voip.ts`/`voip.web.ts`.
 - **Onboarding:** slide "Seja um Parceiro" deixou de mencionar "restaurante parceiro".
-- **Mantidos de propósito:** `POST /auth/otp/dev-code`, `MockPaymentProvider`, seeds de contas, `Role='restaurante'` no tipo (guards das rotas arquivadas).
+- **Mantidos de propósito:** `MockPaymentProvider`, seeds de contas, `Role='restaurante'` no tipo (guards das rotas arquivadas).
 - **Qualidade:** `tsc --noEmit` 0 erros, `eslint` 0 problemas, `jest` 98/98.
