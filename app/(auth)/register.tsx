@@ -16,12 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../../src/components/ui/Button';
-import {
-  useRegisterMutation,
-  useRequestOtpMutation,
-  useVerifyOtpMutation,
-  useLazyGetOtpDevCodeQuery,
-} from '../../src/hooks/useApi';
+import { useRegisterMutation } from '../../src/hooks/useApi';
 import { useTheme } from '../../src/hooks/useTheme';
 import { saveSession, roleFromUser } from '../../src/services/session';
 import { useAppDispatch } from '../../src/store';
@@ -43,9 +38,6 @@ export default function RegisterScreen() {
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
   const [registerMutation] = useRegisterMutation();
-  const [requestOtpMutation] = useRequestOtpMutation();
-  const [verifyOtpMutation] = useVerifyOtpMutation();
-  const [fetchOtpDevCode] = useLazyGetOtpDevCodeQuery();
 
   const styles = React.useMemo(
     () =>
@@ -209,10 +201,6 @@ export default function RegisterScreen() {
     return true;
   };
 
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [pendingPhone, setPendingPhone] = useState('');
-
   async function handleRegister() {
     setError(null);
 
@@ -231,47 +219,12 @@ export default function RegisterScreen() {
         role: 'cliente',
       }).unwrap();
 
-      // Backend devolve { user, requiresOtp } sem tokens — é preciso verificar OTP
-      if (registerData?.token && registerData?.user) {
-        const { token, refreshToken, user } = registerData;
-        const role = roleFromUser(user);
-        await saveSession({ token, refreshToken, user, role });
-        dispatch(setSession({ token, user, role }));
-        router.replace('/(tabs)');
-        return;
-      }
-
-      // Fluxo OTP (obrigatório no backend atual)
-      const telefone = phone.trim();
-      setPendingPhone(telefone);
-      await requestOtpMutation({ telefone }).unwrap();
-      // Em dev, tenta obter o código automaticamente via /auth/otp/dev-code
-      try {
-        // Preserva a tentativa de auto-verify com código de teste (resultado não é usado)
-        await verifyOtpMutation({ telefone, codigo: '000000' })
-          .unwrap()
-          .catch(() => null);
-        // Se chegou aqui, não há auto-verify — tenta buscar dev-code
-        if (__DEV__) {
-          const devCodigo = await fetchOtpDevCode({ telefone })
-            .unwrap()
-            .then((d) => d?.codigo)
-            .catch(() => undefined);
-          if (devCodigo) {
-            const verifyRes = await verifyOtpMutation({ telefone, codigo: devCodigo }).unwrap();
-            const { token, refreshToken, user } = verifyRes;
-            const role = roleFromUser(user);
-            await saveSession({ token, refreshToken, user, role });
-            dispatch(setSession({ token, user, role }));
-            router.replace('/(tabs)');
-            return;
-          }
-        }
-      } catch {}
-      setOtpStep(true);
-      setError(
-        'Enviámos um código por SMS. Em desenvolvimento, verifica o console do backend ou usa o código de teste.',
-      );
+      const { token, refreshToken, user } = registerData;
+      const role = roleFromUser(user);
+      await saveSession({ token, refreshToken, user, role });
+      dispatch(setSession({ token, user, role }));
+      router.replace('/(tabs)');
+      return;
     } catch (err: any) {
       // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
       const data = err?.data;
@@ -285,55 +238,6 @@ export default function RegisterScreen() {
         setError(message);
       }
       triggerShake();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleVerifyOtp() {
-    if (!otpCode.trim() || otpCode.trim().length < 6) {
-      setError('Insira o código de 6 dígitos enviado por SMS.');
-      triggerShake();
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await verifyOtpMutation({
-        telefone: pendingPhone,
-        codigo: otpCode.trim(),
-      }).unwrap();
-      const { token, refreshToken, user } = res;
-      const role = roleFromUser(user);
-      await saveSession({ token, refreshToken, user, role });
-      dispatch(setSession({ token, user, role }));
-      router.replace('/(tabs)');
-    } catch (err: any) {
-      const msg = err?.data?.message || 'Código inválido ou expirado. Peça um novo.';
-      setError(msg);
-      triggerShake();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleResendOtp() {
-    if (!pendingPhone) return;
-    setLoading(true);
-    try {
-      await requestOtpMutation({ telefone: pendingPhone }).unwrap();
-      setError(null);
-      // Tenta auto-preencher em dev
-      if (__DEV__) {
-        try {
-          const devCodigo = await fetchOtpDevCode({ telefone: pendingPhone })
-            .unwrap()
-            .then((d) => d?.codigo);
-          if (devCodigo) setOtpCode(devCodigo);
-        } catch {}
-      }
-    } catch (err: any) {
-      setError(err?.data?.message || 'Não foi possível reenviar o código.');
     } finally {
       setLoading(false);
     }
@@ -472,52 +376,12 @@ export default function RegisterScreen() {
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            {!otpStep ? (
-              <Button
-                title={loading ? 'Criando conta...' : 'Criar conta'}
-                onPress={handleRegister}
-                loading={loading}
-                disabled={loading}
-              />
-            ) : (
-              <>
-                <View style={styles.inputWrapper}>
-                  <Ionicons
-                    name="keypad-outline"
-                    size={20}
-                    color={colors.neutral[500]}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Código de 6 dígitos"
-                    placeholderTextColor={colors.neutral[500]}
-                    value={otpCode}
-                    onChangeText={setOtpCode}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!loading}
-                  />
-                </View>
-                <Button
-                  title={loading ? 'Verificando...' : 'Verificar código'}
-                  onPress={handleVerifyOtp}
-                  loading={loading}
-                  disabled={loading}
-                />
-                <TouchableOpacity
-                  onPress={handleResendOtp}
-                  disabled={loading}
-                  style={{ alignItems: 'center', paddingVertical: 8 }}
-                >
-                  <Text style={styles.footerLink}>Reenviar código</Text>
-                </TouchableOpacity>
-                <Text style={[styles.termsText, { textAlign: 'center' }]}>
-                  Enviado para {pendingPhone}. Em dev, o código aparece no terminal do backend
-                  (SMS_PROVIDER=console).
-                </Text>
-              </>
-            )}
+            <Button
+              title={loading ? 'Criando conta...' : 'Criar conta'}
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading}
+            />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Já tem conta? </Text>

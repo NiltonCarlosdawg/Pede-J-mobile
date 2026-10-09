@@ -19,6 +19,10 @@ describe('isPublicAuthUrl', () => {
     expect(isPublicAuthUrl('/auth/refresh')).toBe(true);
   });
 
+  it('classifica /auth/me como protegido', () => {
+    expect(isPublicAuthUrl('/auth/me')).toBe(false);
+  });
+
   it('classifica /orders como protegido', () => {
     expect(isPublicAuthUrl('/orders')).toBe(false);
   });

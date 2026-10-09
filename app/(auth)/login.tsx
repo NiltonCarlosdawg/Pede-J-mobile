@@ -16,12 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../../src/components/ui/Button';
-import {
-  useLoginMutation,
-  useRequestOtpMutation,
-  useVerifyOtpMutation,
-  useLazyGetOtpDevCodeQuery,
-} from '../../src/hooks/useApi';
+import { useLoginMutation } from '../../src/hooks/useApi';
 import { saveSession, roleFromUser } from '../../src/services/session';
 import { useAppDispatch } from '../../src/store';
 import { setSession } from '../../src/store/authSlice';
@@ -40,9 +35,6 @@ export default function LoginScreen() {
   const [shakeAnim] = useState(new Animated.Value(0));
   const dispatch = useAppDispatch();
   const [loginMutation] = useLoginMutation();
-  const [requestOtpMutation] = useRequestOtpMutation();
-  const [verifyOtpMutation] = useVerifyOtpMutation();
-  const [fetchOtpDevCode] = useLazyGetOtpDevCodeQuery();
 
   const styles = React.useMemo(
     () =>
@@ -181,37 +173,7 @@ export default function LoginScreen() {
     } catch (loginError: any) {
       // Erro normalizado pelo RTK Query: { status, data: { message, ... } }
       const data = loginError?.data;
-      const code = data?.code;
       const message = data?.message || 'Email ou senha incorretos.';
-      if (code === 'PHONE_NOT_VERIFIED') {
-        setError('Conta ainda não verificada. A confirmar automaticamente...');
-        try {
-          await requestOtpMutation({ telefone: normalizedEmail })
-            .unwrap()
-            .catch(() => requestOtpMutation({ telefone: email.trim() }).unwrap());
-        } catch {}
-        // tenta verificar via dev-code se estiver em dev
-        if (__DEV__) {
-          try {
-            const tel = email.trim();
-            const devCodigo = await fetchOtpDevCode({ telefone: tel })
-              .unwrap()
-              .then((d) => d?.codigo)
-              .catch(() => undefined);
-            if (devCodigo) {
-              const verifyRes = await verifyOtpMutation({
-                telefone: tel,
-                codigo: devCodigo,
-              }).unwrap();
-              const { token: t, refreshToken: rt, user: u } = verifyRes;
-              const sRole = roleFromUser(u);
-              await saveSession({ token: t, refreshToken: rt, user: u, role: sRole });
-              dispatch(setSession({ token: t, user: u, role: sRole }));
-              return;
-            }
-          } catch {}
-        }
-      }
       setError(message);
       triggerShake();
     } finally {
