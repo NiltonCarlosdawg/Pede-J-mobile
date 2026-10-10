@@ -56,7 +56,7 @@ O backend tem de estar a correr — ver o [README do backend](../backend-pedeja/
 
 ## Variáveis de ambiente
 
-Todas as variáveis são **públicas** (`EXPO_PUBLIC_*`) e ficam embutidas no bundle. **Nunca** colocar aqui segredos de pagamentos, LiveKit ou do provider de SMS — o app só recebe tokens de curta duração do servidor.
+Todas as variáveis são **públicas** (`EXPO_PUBLIC_*`) e ficam embutidas no bundle. **Nunca** colocar aqui segredos de pagamentos ou LiveKit — o app só recebe tokens de curta duração do servidor.
 
 | Variável | Descrição |
 | --- | --- |
