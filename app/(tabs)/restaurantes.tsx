@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 
 import { Header } from '../../src/components/ui/Header';
 import { RestaurantCard } from '../../src/components/ui/RestaurantCard';
@@ -32,7 +33,47 @@ export default function RestaurantesScreen() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const { data: restaurantsData, error: restaurantsError } = useGetRestaurantsQuery(undefined);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Request location permission on mount
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!mounted) return;
+        if (status !== 'granted') {
+          setLocationError('Permissão de localização negada');
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (mounted) {
+          setLocation({
+            lat: loc.coords.latitude,
+            lng: loc.coords.longitude,
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setLocationError('Erro ao obter localização');
+          console.error('Location error:', e);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Use lat/lng from location if available
+  const { data: restaurantsData, error: restaurantsError } = useGetRestaurantsQuery(
+    location ? { lat: location.lat, lng: location.lng } : undefined
+  );
 
   const restaurants = useMemo<Restaurant[]>(() => {
     if (!restaurantsData) return [];
