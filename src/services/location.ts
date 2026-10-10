@@ -59,35 +59,3 @@ export function estimateDeliveryTime(distanceKm: number): number {
   const timeHours = distanceKm / speedKmh;
   return Math.ceil(timeHours * 60); // retorna minutos
 }
-
-/**
- * Coordenadas mock para Luanda
- */
-export const MOCK_COORDINATES: Record<string, Coordinates> = {
-  // Centro de Luanda
-  center: { latitude: -8.8147, longitude: 13.2302 },
-  // Mutamba
-  mutamba: { latitude: -8.8167, longitude: 13.2322 },
-  // Maianga
-  maianga: { latitude: -8.8127, longitude: 13.2282 },
-  // Ingombota
-  ingombota: { latitude: -8.8107, longitude: 13.2342 },
-  // Talatona
-  talatona: { latitude: -8.9187, longitude: 13.1802 },
-  // Vila Alice
-  vilaAlice: { latitude: -8.8207, longitude: 13.2362 },
-};
-
-/**
- * Simula movimento do entregador entre dois pontos
- */
-export function simulateDriverMovement(
-  from: Coordinates,
-  to: Coordinates,
-  progress: number, // 0 a 1
-): Coordinates {
-  return {
-    latitude: from.latitude + (to.latitude - from.latitude) * progress,
-    longitude: from.longitude + (to.longitude - from.longitude) * progress,
-  };
-}
