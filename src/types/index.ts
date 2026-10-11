@@ -327,3 +327,24 @@ export interface Earnings {
     entregas: number;
   }[];
 }
+
+
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  description?: string | null;
+  boundary: {
+    type: 'Polygon' | 'MultiPolygon';
+    coordinates: number[][][];
+  };
+  fee: number;
+  commission: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliveryZonePage {
+  data: DeliveryZone[];
+  next_cursor: string | null;
+}

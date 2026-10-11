@@ -9,6 +9,8 @@ import type {
   AuthResponse,
   ChatMessage,
   CouponValidationResponse,
+  DeliveryZone,
+  DeliveryZonePage,
   Earnings,
   Order,
   OrderPage,
