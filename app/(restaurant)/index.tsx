@@ -397,6 +397,13 @@ export default function RestaurantDashboard() {
               <Text style={styles.statValue}>{formatCurrency(stats.weekRevenue)}</Text>
               <Text style={styles.statLabel}>Receita Semana</Text>
             </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <MaterialCommunityIcons name="percent" size={20} color={colors.primary[500]} />
+              </View>
+              <Text style={styles.statValue}>{formatCurrency(stats.monthCommission)}</Text>
+              <Text style={styles.statLabel}>Comissão Mês ({stats.comissaoEfetiva.pct}%)</Text>
+            </View>
           </View>
         )}
 

@@ -56,6 +56,10 @@ const mockStats: RestaurantStats = {
   weekRevenue: 312000,
   monthOrders: 312,
   monthRevenue: 1248000,
+  todayCommission: 6750,
+  weekCommission: 46800,
+  monthCommission: 187200,
+  comissaoEfetiva: { pct: 15, fonte: 'plan' },
   averageRating: 4.7,
   totalRatings: 89,
 };

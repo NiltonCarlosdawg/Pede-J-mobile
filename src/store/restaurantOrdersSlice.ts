@@ -32,6 +32,10 @@ export interface RestaurantStats {
   weekRevenue: number;
   monthOrders: number;
   monthRevenue: number;
+  todayCommission: number;
+  weekCommission: number;
+  monthCommission: number;
+  comissaoEfetiva: { pct: number; fonte: 'exempt' | 'override' | 'plan' };
   averageRating: number;
   totalRatings: number;
 }
