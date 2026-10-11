@@ -41,7 +41,7 @@ import {
 import { clearCart } from '../src/store/cartSlice';
 import { addOrder, type Order as OrderSnapshot } from '../src/store/ordersSlice';
 import { selectPaymentMethods } from '../src/store/paymentMethodsSlice';
-import { useGetAddressesQuery, useValidateCouponMutation } from '../src/hooks/useApi';
+import { useGetAddressesQuery, useValidateCouponMutation, useGetRestaurantByIdQuery, useGetDeliveryZoneLookupQuery } from '../src/hooks/useApi';
 import { formatPrice, spacing, typography } from '../src/theme';
 import type { Address, PaymentMethod } from '../src/types';
 import * as Crypto from 'expo-crypto';
@@ -365,11 +365,40 @@ export default function CheckoutScreen() {
   );
 
   const hasItems = items.length > 0;
-  const deliveryFee = subtotal > 25 ? 0 : 5.9;
-  const total = subtotal + deliveryFee - discount;
 
   const currentAddress = addresses.find((a) => a.id === selectedAddress);
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
+
+  // Taxa de entrega: a zona que contém o endereço sobrepõe-se à taxa base do
+  // restaurante (a mesma regra que o backend aplica ao criar o pedido — o
+  // servidor é a fonte de verdade; aqui é só exibição). A regra local antiga
+  // (`subtotal > 25 ? 0 : 5.9`) foi removida porque divergia do cobrado.
+  const {
+    data: checkoutRestaurant,
+    isLoading: restaurantLoading,
+    error: restaurantError,
+    refetch: refetchRestaurant,
+  } = useGetRestaurantByIdQuery(cartRestaurantId ?? '', { skip: !cartRestaurantId });
+  const addressCoords =
+    currentAddress &&
+    Number.isFinite(currentAddress.latitude) &&
+    Number.isFinite(currentAddress.longitude)
+      ? { lat: currentAddress.latitude, lng: currentAddress.longitude }
+      : null;
+  const { data: zoneLookup } = useGetDeliveryZoneLookupQuery(
+    addressCoords ?? { lat: 0, lng: 0 },
+    { skip: !addressCoords },
+  );
+  const deliveryZone = addressCoords ? (zoneLookup?.zone ?? null) : null;
+  const restaurantFee =
+    checkoutRestaurant && Number.isFinite(Number(checkoutRestaurant.deliveryFee))
+      ? Number(checkoutRestaurant.deliveryFee)
+      : null;
+  // null = ainda a carregar a taxa real; o confirmar fica desativado.
+  // Se o lookup da zona falhar, vale a taxa do restaurante (melhor esforço de
+  // exibição; o backend aplica sempre a regra correta).
+  const deliveryFee = deliveryZone ? deliveryZone.fee : restaurantFee;
+  const total = subtotal + (deliveryFee ?? 0) - discount;
 
   function paymentSubtitle(method: PaymentMethod) {
     const descriptions: Record<string, string> = {
@@ -496,7 +525,7 @@ export default function CheckoutScreen() {
   );
 
   const handleConfirmOrder = async () => {
-    if (!hasItems || !currentAddress || !currentPayment || submitMutation.isPending) return;
+    if (!hasItems || !currentAddress || !currentPayment || submitMutation.isPending || deliveryFee == null) return;
     setRetryCount(0);
     retryPayloadRef.current = null;
     const result = await doSubmitOrder(false);
@@ -521,7 +550,7 @@ export default function CheckoutScreen() {
   };
 
   const handleRetry = async () => {
-    if (!retryPayloadRef.current || !currentAddress || !currentPayment || submitMutation.isPending)
+    if (!retryPayloadRef.current || !currentAddress || !currentPayment || submitMutation.isPending || deliveryFee == null)
       return;
     setRetryCount((prev) => prev + 1);
     const result = await doSubmitOrder(true);
@@ -787,15 +816,33 @@ export default function CheckoutScreen() {
               </View>
 
               <View style={styles.summaryCard}>
+                {restaurantError && !restaurantLoading && cartRestaurantId ? (
+                  <View style={{ marginBottom: spacing.sm }}>
+                    <Text style={{ ...typography.bodySm, color: colors.error, textAlign: 'center' }}>
+                      Não foi possível carregar a taxa de entrega.
+                    </Text>
+                    <Text
+                      onPress={() => refetchRestaurant()}
+                      style={{ ...typography.bodySm, color: colors.primary[500], textAlign: 'center', fontWeight: '700' }}
+                    >
+                      Tentar de novo
+                    </Text>
+                  </View>
+                ) : null}
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Subtotal</Text>
                   <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Entrega</Text>
-                  <Text style={[styles.summaryValue, deliveryFee === 0 && styles.freeDelivery]}>
-                    {deliveryFee === 0 ? 'Grátis' : formatPrice(deliveryFee)}
-                  </Text>
+                  {deliveryFee == null ? (
+                    <Text style={styles.summaryValue}>A calcular…</Text>
+                  ) : (
+                    <Text style={[styles.summaryValue, deliveryFee === 0 && styles.freeDelivery]}>
+                      {deliveryFee === 0 ? 'Grátis' : formatPrice(deliveryFee)}
+                      {deliveryZone ? ` · ${deliveryZone.name}` : ''}
+                    </Text>
+                  )}
                 </View>
                 {discount > 0 ? (
                   <View style={styles.summaryRow}>

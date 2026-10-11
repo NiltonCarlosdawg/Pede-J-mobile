@@ -170,6 +170,7 @@ export const apiSlice = createApi({
     'Order',
     'Address',
     'Delivery',
+    'DeliveryZone',
     'Payment',
     'Promotion',
     'Chat',
@@ -397,6 +398,18 @@ export const apiSlice = createApi({
       invalidatesTags: [{ type: 'Address', id: 'LIST' }],
     }),
 
+    // ------------------------------------------------------- Delivery zones
+    getDeliveryZoneLookup: builder.query<
+      { zone: { id: string; name: string; fee: number; commission: number } | null },
+      { lat: number; lng: number }
+    >({
+      query: (params) => ({
+        url: '/delivery-zones/lookup',
+        params,
+      }),
+      providesTags: [{ type: 'DeliveryZone', id: 'LOOKUP' }],
+    }),
+
     // ------------------------------------------------------------- Delivery
     getAvailableDeliveries: builder.query<OrderPage, { cursor?: string; limit?: number } | void>({
       query: (params) => ({
@@ -619,6 +632,7 @@ export const {
   useGetDeliveryQuery,
   useUpdateDeliveryStatusMutation,
   useGetDeliveryHistoryQuery,
+  useGetDeliveryZoneLookupQuery,
   useGetEarningsQuery,
   useToggleLocationSharingMutation,
   useGetRestaurantOrdersQuery,

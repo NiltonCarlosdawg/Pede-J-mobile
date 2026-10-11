@@ -8,6 +8,7 @@ export {
   useGetAddressesQuery,
   useGetAvailableDeliveriesQuery,
   useGetDeliveryHistoryQuery,
+  useGetDeliveryZoneLookupQuery,
   useGetDeliveryQuery,
   useGetEarningsQuery,
   useGetManageProductsQuery,
