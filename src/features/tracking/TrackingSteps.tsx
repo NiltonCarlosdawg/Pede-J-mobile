@@ -4,13 +4,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import type { OrderStatus } from '../../store/ordersSlice';
 import { shadowStyle } from '../../utils/shadow';
-import { getStatusIndex, TRACKING_STEPS } from './constants';
+import { getStatusIndex, TRACKING_STEPS, stepTimes, formatStepTime } from './constants';
 
 interface TrackingStepsProps {
   status: OrderStatus;
+  /** Timeline do servidor (GET orders/:id) — horas reais; sem ela, sem horas. */
+  timeline?: { status: string; timestamp: string }[];
 }
 
-export function TrackingSteps({ status }: TrackingStepsProps) {
+export function TrackingSteps({ status, timeline }: TrackingStepsProps) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -93,6 +95,7 @@ export function TrackingSteps({ status }: TrackingStepsProps) {
   );
 
   const idx = getStatusIndex(status);
+  const times = stepTimes(timeline);
 
   return (
     <View style={styles.timeline}>
@@ -100,6 +103,7 @@ export function TrackingSteps({ status }: TrackingStepsProps) {
       {TRACKING_STEPS.map((step, index) => {
         const isCompleted = index < idx;
         const isActive = index === idx;
+        const time = formatStepTime(times[step.status] ?? null);
         return (
           <View
             key={step.id}
@@ -124,8 +128,7 @@ export function TrackingSteps({ status }: TrackingStepsProps) {
               <Text style={[styles.stepTitle, isActive && styles.activeStepTitle]}>
                 {step.title}
               </Text>
-              {step.time && <Text style={styles.stepTime}>{step.time}</Text>}
-              {isActive && step.driver && <Text style={styles.driverText}>{step.driver}</Text>}
+              {time && <Text style={styles.stepTime}>{time}</Text>}
             </View>
           </View>
         );

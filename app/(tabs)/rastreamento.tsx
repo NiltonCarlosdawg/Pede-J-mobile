@@ -15,6 +15,7 @@ import { TrackingMapSection } from '../../src/features/tracking/TrackingMapSecti
 import { TrackingSteps } from '../../src/features/tracking/TrackingSteps';
 import { STATUS_CONFIG } from '../../src/features/tracking/constants';
 import { useOrderTracking } from '../../src/features/tracking/useOrderTracking';
+import { useGetOrderByIdQuery } from '../../src/hooks/useApi';
 
 export default function TrackingScreen() {
   const { colors } = useTheme();
@@ -38,6 +39,20 @@ export default function TrackingScreen() {
     hasRealLocation,
     lastKnownAgeMs,
   } = useOrderTracking(selectedOrder);
+
+  // Detalhe do servidor (mesma cache do PaymentPromptCard — sem pedido extra):
+  // restaurante real + timeline real para os passos.
+  const { data: serverDetail } = useGetOrderByIdQuery(selectedOrder?.id ?? '', {
+    skip: !selectedOrder,
+    pollingInterval: 8000,
+  });
+  const serverOrder = (serverDetail as unknown as { order?: any } | undefined)?.order;
+  const serverRestaurant = serverOrder?.restaurant as
+    | { name?: string; image?: string | null }
+    | undefined;
+  const serverTimeline = serverOrder?.timeline as
+    | { status: string; timestamp: string }[]
+    | undefined;
 
   const styles = useMemo(
     () =>
@@ -221,9 +236,11 @@ export default function TrackingScreen() {
                 estimatedMinutes={estimatedMinutes}
                 distance={distance}
                 lastKnownAgeMs={lastKnownAgeMs}
+                restaurantName={serverRestaurant?.name}
+                restaurantImage={serverRestaurant?.image ?? null}
               />
               <PaymentPromptCard orderId={selectedOrder.id} />
-              <TrackingSteps status={selectedOrder.status} />
+              <TrackingSteps status={selectedOrder.status} timeline={serverTimeline} />
             </>
           ) : (
             <View style={[styles.emptyHistory, { marginVertical: spacing.lg }]}>

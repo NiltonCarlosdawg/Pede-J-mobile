@@ -7,7 +7,7 @@ import type { Order } from '../../store/ordersSlice';
 import { startVoipCall } from '../../services/voip';
 import { shadowStyle } from '../../utils/shadow';
 import { spacing } from '../../theme';
-import { RESTAURANT_IMAGES, RESTAURANT_NAMES, STATUS_CONFIG } from './constants';
+import { STATUS_CONFIG } from './constants';
 
 interface SelectedOrderCardProps {
   order: Order;
@@ -15,6 +15,10 @@ interface SelectedOrderCardProps {
   estimatedMinutes: number | null;
   distance: number | null;
   lastKnownAgeMs: number | null;
+  /** Nome real do restaurante (servidor); sem ele, "Restaurante". */
+  restaurantName?: string;
+  /** Foto real do restaurante (servidor); sem ela, círculo com inicial. */
+  restaurantImage?: string | null;
 }
 
 export function SelectedOrderCard({
@@ -23,6 +27,8 @@ export function SelectedOrderCard({
   estimatedMinutes,
   distance,
   lastKnownAgeMs,
+  restaurantName,
+  restaurantImage,
 }: SelectedOrderCardProps) {
   const { colors } = useTheme();
   const router = useRouter();
@@ -59,6 +65,16 @@ export function SelectedOrderCard({
           width: 56,
           height: 56,
           borderRadius: 8,
+        },
+        restaurantFallback: {
+          backgroundColor: colors.primary[100],
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        restaurantInitial: {
+          fontSize: 24,
+          fontWeight: '800',
+          color: colors.primary[500],
         },
         restaurantInfo: {
           flex: 1,
@@ -155,16 +171,17 @@ export function SelectedOrderCard({
       </View>
 
       <View style={styles.restaurantCard}>
-        <Image
-          source={{
-            uri:
-              RESTAURANT_IMAGES[order.id] ??
-              'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200',
-          }}
-          style={styles.restaurantImage}
-        />
+        {restaurantImage ? (
+          <Image source={{ uri: restaurantImage }} style={styles.restaurantImage} />
+        ) : (
+          <View style={[styles.restaurantImage, styles.restaurantFallback]}>
+            <Text style={styles.restaurantInitial}>
+              {(restaurantName ?? 'R').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View style={styles.restaurantInfo}>
-          <Text style={styles.restaurantName}>{RESTAURANT_NAMES[order.id] ?? 'Restaurante'}</Text>
+          <Text style={styles.restaurantName}>{restaurantName ?? 'Restaurante'}</Text>
           <Text style={styles.orderNumber}>Pedido #{order.id.slice(-4)}</Text>
         </View>
         <View style={styles.actionButtonsContainer}>
