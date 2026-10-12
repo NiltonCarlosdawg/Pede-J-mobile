@@ -41,7 +41,7 @@ import {
 import { clearCart } from '../src/store/cartSlice';
 import { addOrder, type Order as OrderSnapshot } from '../src/store/ordersSlice';
 import { selectPaymentMethods } from '../src/store/paymentMethodsSlice';
-import { useGetAddressesQuery, useValidateCouponMutation, useGetRestaurantByIdQuery, useGetDeliveryZoneLookupQuery } from '../src/hooks/useApi';
+import { useGetAddressesQuery, useValidateCouponMutation, useGetRestaurantByIdQuery, useGetDeliveryZoneLookupQuery, useGetProfileQuery } from '../src/hooks/useApi';
 import { formatPrice, spacing, typography } from '../src/theme';
 import type { Address, PaymentMethod } from '../src/types';
 import * as Crypto from 'expo-crypto';
@@ -82,7 +82,7 @@ function buildOrderSnapshot(params: {
     deliveryFee: params.deliveryFee,
     discount: params.discount,
     total: params.total,
-    status: 'preparing',
+    status: 'pending',
     createdAt: new Date().toISOString(),
     estimatedDelivery: '30-45 min',
   };
@@ -117,6 +117,11 @@ export default function CheckoutScreen() {
   const [couponError, setCouponError] = useState('');
   const [orderError, setOrderError] = useState<OrderMutationError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  // Telefone MCX Express para os pushes (produtos + entrega); pré-preenchido
+  // com o telefone do perfil.
+  const { data: profile } = useGetProfileQuery(undefined);
+  const [paymentPhone, setPaymentPhone] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   const submitMutation = useSubmitOrderMutation();
   const [validateCouponMutation] = useValidateCouponMutation();
@@ -124,6 +129,15 @@ export default function CheckoutScreen() {
     payload: Record<string, unknown>;
     idempotencyKey: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (phoneTouched || paymentPhone || !profile?.phone) return;
+    const digits = profile.phone.replace(/\D/g, '').slice(-9);
+    if (digits.length === 9) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pré-preenche uma vez
+      setPaymentPhone(digits);
+    }
+  }, [profile, phoneTouched, paymentPhone]);
 
   useEffect(() => {
     if (!addresses.length) return;
@@ -490,6 +504,11 @@ export default function CheckoutScreen() {
         addressId: currentAddress.id,
         paymentMethod: `${currentPayment.type}:${currentPayment.label}`,
         ...(appliedCoupon ? { cupomAplicado: appliedCoupon.code } : {}),
+        // Telefone dos pushes MCX (só produtos+entrega, sem taxas). Sem
+        // telefone, o push fica por gerar até o cliente o indicar.
+        ...(currentPayment.type === 'multicaixa_express' && paymentPhone.length === 9
+          ? { paymentPhone: `+244${paymentPhone}` }
+          : {}),
       };
 
       retryPayloadRef.current = { payload, idempotencyKey };
@@ -543,10 +562,9 @@ export default function CheckoutScreen() {
     dispatch(addOrder(order));
     dispatch(clearCart());
     await notifyOrderConfirmed(order.id, 'Restaurante');
-    router.push({
-      pathname: '/payment-flow',
-      params: { orderId: order.id, methodId: currentPayment.id },
-    });
+    // Sem pagamento imediato: o push 1 (produtos) é gerado quando o
+    // restaurante confirmar; a taxa de entrega cobra-se no fim (push 2).
+    router.push('/(tabs)/rastreamento');
   };
 
   const handleRetry = async () => {
@@ -568,10 +586,7 @@ export default function CheckoutScreen() {
     dispatch(addOrder(order));
     dispatch(clearCart());
     await notifyOrderConfirmed(order.id, 'Restaurante');
-    router.push({
-      pathname: '/payment-flow',
-      params: { orderId: order.id, methodId: currentPayment.id },
-    });
+    router.push('/(tabs)/rastreamento');
   };
 
   const confirming = submitMutation.isPending;
@@ -758,6 +773,27 @@ export default function CheckoutScreen() {
                         </View>
                       </Pressable>
                     ))}
+                    {currentPayment?.type === 'multicaixa_express' ? (
+                      <View style={{ marginTop: spacing.sm, gap: 4 }}>
+                        <Text style={{ ...typography.labelLg, color: colors.neutral[700] }}>
+                          Telemóvel MCX Express
+                        </Text>
+                        <Input
+                          placeholder="923456789"
+                          value={paymentPhone}
+                          onChangeText={(text) => {
+                            setPhoneTouched(true);
+                            setPaymentPhone(text.replace(/[^0-9]/g, '').slice(0, 9));
+                          }}
+                          keyboardType="numeric"
+                          maxLength={9}
+                          icon="cellphone"
+                        />
+                        <Text style={{ ...typography.bodySm, color: colors.neutral[500] }}>
+                          Os dois pagamentos (produtos e entrega) chegam a este número.
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 )}
               </View>
@@ -857,6 +893,17 @@ export default function CheckoutScreen() {
                   <Text style={styles.totalLabel}>Total</Text>
                   <Text style={styles.totalValue}>{formatPrice(total)}</Text>
                 </View>
+                <Text
+                  style={{
+                    ...typography.bodySm,
+                    color: colors.neutral[500],
+                    marginTop: spacing.xs,
+                    textAlign: 'center',
+                  }}
+                >
+                  Sem taxas: paga os produtos após a confirmação do restaurante e a entrega no fim,
+                  por Multicaixa Express.
+                </Text>
               </View>
             </>
           )}

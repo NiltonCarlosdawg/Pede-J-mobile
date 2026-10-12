@@ -176,6 +176,8 @@ export interface PaymentTransaction {
 export interface PaymentResponse {
   id: string;
   orderId: string;
+  /** products = push 1 (produtos), delivery = push 2 (entrega), null = legado */
+  purpose: 'products' | 'delivery' | null;
   amount: number;
   paymentMethod: PaymentMethod;
   status: PaymentStatus;
@@ -319,11 +321,18 @@ export interface AddressPage {
 export interface Earnings {
   periodo: string;
   totalGanho: number;
+  /** Taxa de entrega já paga pelo cliente (push 2 confirmado + legado) */
+  totalRecebido: number;
+  /** Taxa de entrega por pagar (push 2 pendente) */
+  totalPendente: number;
   totalEntregas: number;
+  entregasPagas: number;
   mediaPorEntrega: number;
   detalhe: {
     data: string;
     ganho: number;
+    recebido: number;
+    pendente: number;
     entregas: number;
   }[];
 }

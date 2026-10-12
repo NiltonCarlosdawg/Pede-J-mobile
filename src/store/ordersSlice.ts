@@ -41,7 +41,7 @@ export interface DeliveryConfirmation {
   clientConfirmedAt?: string;
 }
 
-export type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;

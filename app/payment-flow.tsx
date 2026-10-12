@@ -14,14 +14,15 @@ import {
 } from '../src/store/paymentMethodsSlice';
 import { spacing, typography, formatPrice } from '../src/theme';
 import { useTheme } from '../src/hooks/useTheme';
-import { useGetPaymentQuery, useInitiatePaymentMutation } from '../src/hooks/useApi';
+import { useGetPaymentQuery, useInitiatePaymentMutation, useGetOrderPaymentsQuery } from '../src/hooks/useApi';
 import { PaymentMethod, PaymentResponse } from '../src/types';
 import { playPaymentSuccess } from '../src/utils/sounds';
 
 export default function PaymentFlowScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ orderId?: string; methodId?: string }>();
+  const params = useLocalSearchParams<{ orderId?: string; methodId?: string; paymentId?: string }>();
   const orderId = params.orderId ?? '';
+  const paramPaymentId = params.paymentId ?? '';
   const { colors } = useTheme();
   const dispatch = useAppDispatch();
   const orders = useAppSelector(selectOrders);
@@ -30,7 +31,7 @@ export default function PaymentFlowScreen() {
   const paymentMethod = order?.payment as PaymentMethod | undefined;
   const [initiatePayment] = useInitiatePaymentMutation();
 
-  const [step, setStep] = useState<'confirm' | 'phone' | 'processing' | 'awaiting' | 'success'>(
+  const [step, setStep] = useState<'confirm' | 'phone' | 'processing' | 'awaiting' | 'success' | 'expired'>(
     'confirm',
   );
   const [pin, setPin] = useState('');
@@ -238,6 +239,53 @@ export default function PaymentFlowScreen() {
     }
   }, [step, timer]);
 
+  // Push 1 é gerado pelo restaurante na confirmação e o push 2 no fecho
+  // da entrega: se já existir tx (parâmetro ou lista), adopta-se em vez de
+  // iniciar nova (evita duplo débito).
+  const { data: paramPaymentData } = useGetPaymentQuery(
+    { orderId, paymentId: paramPaymentId },
+    { skip: !orderId || !paramPaymentId },
+  );
+  const { data: orderPaymentsData } = useGetOrderPaymentsQuery(orderId, {
+    skip: !orderId || !!paramPaymentId,
+  });
+  const adoptedRef = useRef(false);
+
+  useEffect(() => {
+    if (adoptedRef.current || !orderId || step !== 'confirm' || payment) return;
+    const fromParam = paramPaymentData?.payment;
+    if (paramPaymentId && !fromParam) return;
+    const candidate =
+      fromParam ??
+      orderPaymentsData?.payments.find(
+        (p) => p.purpose !== 'delivery' && (p.status === 'pending' || p.status === 'processing'),
+      ) ??
+      orderPaymentsData?.payments.find(
+        (p) => p.purpose === 'delivery' && (p.status === 'pending' || p.status === 'processing'),
+      ) ??
+      orderPaymentsData?.payments.find((p) => p.status === 'completed');
+    if (!candidate && (paramPaymentId || orderPaymentsData)) {
+      // Lista carregada sem tx aproveitável: fica no ecrã inicial (re-push).
+      if (paramPaymentId) {
+        adoptedRef.current = true;
+        setStep('expired');
+      }
+      return;
+    }
+    if (!candidate) return;
+    adoptedRef.current = true;
+    setPayment(candidate);
+    if (candidate.status === 'completed') {
+      setStep('success');
+    } else if (candidate.status === 'pending' || candidate.status === 'processing') {
+      setTimer(candidate.push?.expiresInSeconds ?? 90);
+      setStep('awaiting');
+    } else {
+      setStep('expired');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramPaymentData, orderPaymentsData, orderId, paramPaymentId]);
+
   // Polling do pagamento via RTK Query: só enquanto o step é "awaiting"
   // (antes era um setInterval manual de 5s com a mesma condição).
   const { data: paymentData, isError: paymentPollError } = useGetPaymentQuery(
@@ -265,8 +313,12 @@ export default function PaymentFlowScreen() {
       );
       setStep('success');
     } else if (nextPayment.status === 'failed' || nextPayment.status === 'cancelled') {
-      setError('Pagamento não confirmado. Tente novamente.');
-      setStep('confirm');
+      if (nextPayment.purpose === 'delivery') {
+        setStep('expired');
+      } else {
+        setError('Pagamento não confirmado. Tente novamente.');
+        setStep('confirm');
+      }
     }
   }, [paymentData, dispatch]);
 
@@ -294,7 +346,10 @@ export default function PaymentFlowScreen() {
   }, [step, pulseAnim]);
 
   const paymentIdempotencyKeyRef = useRef<string | null>(null);
-
+  // Montante real em cobrança (push 1 = só produtos; push 2 = só entrega).
+  const shownAmount = payment?.amount ?? order?.total ?? 0;
+  const isDeliveryPayment = payment?.purpose === 'delivery';
+  const amountLabel = isDeliveryPayment ? 'Taxa de entrega' : 'Total a pagar';
   // Chave de idempotência gerada fora do render (uma única vez por sessão de pagamento):
   // retentativas reutilizam a mesma chave para o servidor não iniciar dois pagamentos.
   useEffect(() => {
@@ -400,8 +455,8 @@ export default function PaymentFlowScreen() {
     return (
       <>
         <View style={styles.orderInfo}>
-          <Text style={styles.orderLabel}>Total a pagar</Text>
-          <Text style={styles.totalValue}>{formatPrice(order?.total ?? 0)}</Text>
+          <Text style={styles.orderLabel}>{amountLabel}</Text>
+          <Text style={styles.totalValue}>{formatPrice(shownAmount)}</Text>
         </View>
 
         <View style={styles.methodInfo}>
@@ -418,7 +473,7 @@ export default function PaymentFlowScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Confirme o pagamento</Text>
+        <Text style={styles.sectionTitle}>Confirme o pagamento dos produtos</Text>
         <Text style={styles.description}>{getMethodDescription()}</Text>
 
         {(paymentMethod?.type === 'paypay' || paymentMethod?.type === 'unitel_money') && (
@@ -476,8 +531,8 @@ export default function PaymentFlowScreen() {
     return (
       <>
         <View style={styles.orderInfo}>
-          <Text style={styles.orderLabel}>Total a pagar</Text>
-          <Text style={styles.totalValue}>{formatPrice(order?.total ?? 0)}</Text>
+          <Text style={styles.orderLabel}>{amountLabel}</Text>
+          <Text style={styles.totalValue}>{formatPrice(shownAmount)}</Text>
         </View>
 
         <View style={styles.methodInfo}>
@@ -594,7 +649,7 @@ export default function PaymentFlowScreen() {
                   <Text
                     style={{ ...typography.bodySm, fontWeight: '700', color: colors.onSurface }}
                   >
-                    {formatPrice(order?.total ?? 0)}
+                    {formatPrice(shownAmount)}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -630,6 +685,23 @@ export default function PaymentFlowScreen() {
             </View>
           </View>
         )}
+      </View>
+    );
+  }
+
+  function renderExpiredStep() {
+    return (
+      <View style={styles.successContainer}>
+        <View style={styles.successIcon}>
+          <MaterialCommunityIcons name="clock-alert-outline" size={40} color={colors.primary[500]} />
+        </View>
+        <Text style={styles.successTitle}>Pedido expirado</Text>
+        <Text style={styles.successText}>
+          {isDeliveryPayment
+            ? 'O push da taxa de entrega expirou. Gere um novo push no acompanhamento do pedido.'
+            : 'Este pedido de pagamento expirou. Volte ao acompanhamento para gerar um novo.'}
+        </Text>
+        <Button title="Voltar" onPress={() => router.back()} />
       </View>
     );
   }
@@ -723,7 +795,7 @@ export default function PaymentFlowScreen() {
                 <Text
                   style={{ ...typography.bodySm, fontWeight: '700', color: colors.primary[500] }}
                 >
-                  {formatPrice(order?.total ?? 0)}
+                  {formatPrice(shownAmount)}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -790,18 +862,23 @@ export default function PaymentFlowScreen() {
         </View>
         <Text style={styles.successTitle}>Pagamento Confirmado!</Text>
         <Text style={styles.successText}>
-          O pagamento de {formatPrice(order?.total ?? 0)} via {paymentMethod?.label} foi processado
-          com sucesso.
+          {isDeliveryPayment
+            ? `A taxa de entrega de ${formatPrice(shownAmount)} foi paga com sucesso. Obrigado!`
+            : `O pagamento de ${formatPrice(shownAmount)} via ${paymentMethod?.label} foi processado com sucesso.`}
         </Text>
-        <Button
-          title="Ver Pedido"
-          onPress={() =>
-            router.replace({
-              pathname: '/(auth)/order-success',
-              params: { orderId, total: String(order?.total) },
-            })
-          }
-        />
+        {isDeliveryPayment ? (
+          <Button title="Ver Pedidos" onPress={() => router.replace('/(tabs)/pedidos')} />
+        ) : (
+          <Button
+            title="Ver Pedido"
+            onPress={() =>
+              router.replace({
+                pathname: '/(auth)/order-success',
+                params: { orderId, total: String(shownAmount) },
+              })
+            }
+          />
+        )}
       </View>
     );
   }
@@ -830,6 +907,7 @@ export default function PaymentFlowScreen() {
         {step === 'processing' && renderProcessingStep()}
         {step === 'awaiting' && renderAwaitingStep()}
         {step === 'success' && renderSuccessStep()}
+        {step === 'expired' && renderExpiredStep()}
       </View>
     </SafeAreaView>
   );

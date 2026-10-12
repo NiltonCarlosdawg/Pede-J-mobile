@@ -54,6 +54,8 @@ type CreateOrderPayload = {
     notes?: string;
   }[];
   cupomAplicado?: string;
+  /** Telefone MCX Express para os pushes (produtos e entrega) */
+  paymentPhone?: string;
 };
 
 type AddAddressPayload = {
@@ -370,6 +372,25 @@ export const apiSlice = createApi({
         providesTags: (_result, _error, { paymentId }) => [{ type: 'Payment', id: paymentId }],
       },
     ),
+    getOrderPayments: builder.query<{ payments: PaymentResponse[] }, string>({
+      query: (orderId) => `/orders/${orderId}/payments`,
+      providesTags: (result, _error, orderId) => [
+        { type: 'Order', id: orderId },
+        ...(result?.payments.map((p) => ({ type: 'Payment' as const, id: p.id })) ?? []),
+      ],
+    }),
+    retryDeliveryPayment: builder.mutation<
+      { payment: PaymentResponse | null },
+      { orderId: string; phoneNumber?: string; idempotencyKey?: string }
+    >({
+      query: ({ orderId, phoneNumber, idempotencyKey }) => ({
+        url: `/orders/${orderId}/payments/delivery-retry`,
+        method: 'POST',
+        body: phoneNumber ? { phoneNumber } : {},
+        headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      }),
+      invalidatesTags: (_result, _error, { orderId }) => [{ type: 'Order', id: orderId }],
+    }),
 
     // ------------------------------------------------------------- Addresses
     getAddresses: builder.query<AddressPage, { cursor?: string; limit?: number } | void>({
@@ -625,6 +646,8 @@ export const {
   useValidateCouponMutation,
   useInitiatePaymentMutation,
   useGetPaymentQuery,
+  useGetOrderPaymentsQuery,
+  useRetryDeliveryPaymentMutation,
   useGetAddressesQuery,
   useAddAddressMutation,
   useGetAvailableDeliveriesQuery,

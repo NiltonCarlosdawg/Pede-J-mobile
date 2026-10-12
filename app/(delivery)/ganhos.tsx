@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '../../src/components/ui/Header';
-import { spacing } from '../../src/theme';
+import { formatPrice, spacing } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useGetEarningsQuery } from '../../src/hooks/useApi';
 
@@ -247,7 +247,7 @@ export default function EarningsScreen() {
             <View style={styles.totalCard}>
               <Text style={styles.totalLabel}>Total em {activePeriod.toLowerCase()}</Text>
               <Text style={styles.totalValue}>
-                Kz {(earnings.totalGanho || 0).toLocaleString()}
+                {formatPrice(earnings.totalGanho || 0)}
               </Text>
               <View style={styles.totalRow}>
                 <View style={styles.totalItem}>
@@ -256,13 +256,27 @@ export default function EarningsScreen() {
                 </View>
                 <View style={styles.totalItem}>
                   <Text style={styles.totalItemValue}>
-                    Kz {(earnings.mediaPorEntrega || 0).toLocaleString()}
+                    {formatPrice(earnings.mediaPorEntrega || 0)}
                   </Text>
                   <Text style={styles.totalItemLabel}>Média</Text>
                 </View>
                 <View style={styles.totalItem}>
                   <Text style={styles.totalItemValue}>{totalHours}</Text>
                   <Text style={styles.totalItemLabel}>Online</Text>
+                </View>
+              </View>
+              <View style={[styles.totalRow, { marginTop: spacing.sm }]}>
+                <View style={styles.totalItem}>
+                  <Text style={styles.totalItemValue}>
+                    {formatPrice(earnings.totalRecebido ?? earnings.totalGanho ?? 0)}
+                  </Text>
+                  <Text style={styles.totalItemLabel}>Recebido</Text>
+                </View>
+                <View style={styles.totalItem}>
+                  <Text style={styles.totalItemValue}>
+                    {formatPrice(earnings.totalPendente ?? 0)}
+                  </Text>
+                  <Text style={styles.totalItemLabel}>Pendente</Text>
                 </View>
               </View>
             </View>
@@ -295,7 +309,7 @@ export default function EarningsScreen() {
                   />
                 </View>
                 <Text style={styles.statValue}>
-                  Kz {(earnings.mediaPorEntrega || 0).toLocaleString()}
+                  {formatPrice(earnings.mediaPorEntrega || 0)}
                 </Text>
                 <Text style={styles.statLabel}>Por entrega</Text>
               </View>
@@ -319,7 +333,7 @@ export default function EarningsScreen() {
                   <View key={index} style={styles.payoutItem}>
                     <Text style={styles.payoutDate}>{item.data}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <Text style={styles.payoutAmount}>Kz {item.ganho.toLocaleString()}</Text>
+                      <Text style={styles.payoutAmount}>{formatPrice(item.ganho)}</Text>
                       <View style={styles.payoutStatus}>
                         <Text style={styles.payoutStatusText}>{item.entregas}x</Text>
                       </View>

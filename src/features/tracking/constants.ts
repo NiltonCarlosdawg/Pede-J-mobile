@@ -1,6 +1,8 @@
 import type { OrderStatus } from '../../store/ordersSlice';
 
 export const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: string; color: string }> = {
+  pending: { label: 'Aguarda restaurante', icon: 'clock-outline', color: '#9E9E9E' },
+  confirmed: { label: 'Confirmado', icon: 'check', color: '#2196F3' },
   preparing: { label: 'Preparando', icon: 'chef-hat', color: '#fbac1d' },
   ready: { label: 'Pronto', icon: 'package-variant', color: '#4CAF50' },
   delivering: { label: 'Em entrega', icon: 'truck-delivery', color: '#2196F3' },
@@ -33,6 +35,8 @@ export const RESTAURANT_NAMES: Record<string, string> = {
 
 export function getStatusIndex(status: OrderStatus) {
   const map: Record<OrderStatus, number> = {
+    pending: 0,
+    confirmed: 0,
     preparing: 1,
     ready: 2,
     delivering: 3,

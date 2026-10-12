@@ -19,6 +19,8 @@ import { spacing, formatPrice, typography } from '../../src/theme';
 import { useTheme } from '../../src/hooks/useTheme';
 
 const STATUS_CONFIG = {
+  pending: { label: 'Aguarda restaurante', icon: 'clock-outline', color: '#9E9E9E' },
+  confirmed: { label: 'Confirmado', icon: 'check', color: '#2196F3' },
   preparing: { label: 'Preparando', icon: 'chef-hat', color: '#fbac1d' },
   ready: { label: 'Pronto', icon: 'package-variant', color: '#4CAF50' },
   delivering: { label: 'Em entrega', icon: 'truck-delivery', color: '#2196F3' },

@@ -9,6 +9,7 @@ import { selectOrders, Order } from '../../src/store/ordersSlice';
 import { spacing, formatPrice } from '../../src/theme';
 import { shadowStyle } from '../../src/utils/shadow';
 import { OrderSwitcher } from '../../src/features/tracking/OrderSwitcher';
+import { PaymentPromptCard } from '../../src/features/tracking/PaymentPromptCard';
 import { SelectedOrderCard } from '../../src/features/tracking/SelectedOrderCard';
 import { TrackingMapSection } from '../../src/features/tracking/TrackingMapSection';
 import { TrackingSteps } from '../../src/features/tracking/TrackingSteps';
@@ -221,6 +222,7 @@ export default function TrackingScreen() {
                 distance={distance}
                 lastKnownAgeMs={lastKnownAgeMs}
               />
+              <PaymentPromptCard orderId={selectedOrder.id} />
               <TrackingSteps status={selectedOrder.status} />
             </>
           ) : (
