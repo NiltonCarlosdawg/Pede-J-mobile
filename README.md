@@ -123,6 +123,26 @@ docs/                      # arquitectura, layout e notas de iOS/VoIP
 
 ---
 
+## Pagamentos divididos (MCX Express)
+
+O cliente paga só produto + entrega, em dois pushes, sem taxas:
+
+- **Checkout** (`app/checkout.tsx`): cria o pedido `pending` com `paymentPhone`
+  (pré-preenchido do perfil) e segue para o acompanhamento — **sem cobrança
+  imediata**.
+- **Push 1 — produtos**: o restaurante confirma e o push chega ao telemóvel.
+  O cartão `PaymentPromptCard` (dados do servidor, com sync de estado) leva ao
+  `payment-flow`, que adopta a tx existente em vez de iniciar nova.
+- **Push 2 — entrega**: chega após `delivered`; o mesmo cartão pede a taxa de
+  entrega, com re-push se expirar.
+- **Ganhos do entregador** (`app/(delivery)/ganhos.tsx`): Recebido (push 2
+  confirmado) vs Pendente, em Kz (`pt-AO`).
+- **Acompanhamento** (`app/(tabs)/rastreamento.tsx`): passos com horas reais
+  da timeline do servidor; nome/foto reais do restaurante.
+- Preços em Kz (Kwanza); textos em português.
+
+---
+
 ## Voz, notificações e localização
 
 - **Chamadas 1-1** cliente ↔ entregador sobre LiveKit (`src/services/voip.ts`): CallKit no iOS, `ConnectionService` no Android, PushKit para chamada recebida em background, áudio CallKit↔RTCAudioSessionisolado por chamada.
